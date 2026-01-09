@@ -26,17 +26,17 @@
         "zustand": "^4.5.0"
     },
     "devDependencies": {
+        "@tailwindcss/container-queries": "^0.1.1",
+        "@tailwindcss/forms": "^0.5.7",
         "@types/js-cookie": "^3.0.6",
-        "@types/node": "^20.11.5",
-        "@types/react": "^18.2.48",
+        "@types/node": "^20.19.27",
+        "@types/react": "^18.3.27",
         "@types/react-dom": "^18.2.18",
-        "autoprefixer": "^10.4.17",
+        "autoprefixer": "^10.4.23",
         "eslint": "^8.56.0",
         "eslint-config-next": "14.1.0",
-        "postcss": "^8.4.33",
-        "tailwindcss": "^3.4.1",
-        "@tailwindcss/forms": "^0.5.7",
-        "@tailwindcss/container-queries": "^0.1.1",
-        "typescript": "^5.3.3"
+        "postcss": "^8.5.6",
+        "tailwindcss": "^3.4.19",
+        "typescript": "^5.9.3"
     }
 }
