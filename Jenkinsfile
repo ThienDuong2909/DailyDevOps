@@ -21,9 +21,9 @@ pipeline {
                 echo 'Cleaning up old modules...'
                 sh 'rm -rf node_modules'
                 sh 'rm -f package-lock.json' 
-                echo 'Dang cai dat lai tu dau (Fresh Install)...'
-                sh 'npm install' 
-                sh 'npm list --depth=0 || true' 
+                echo 'Dang cai dat TAT CA thu vien (BAT BUOC them --include=dev)...'
+                sh 'npm install --include=dev' 
+                sh 'npm list tailwindcss || true' 
             }
         }
 
