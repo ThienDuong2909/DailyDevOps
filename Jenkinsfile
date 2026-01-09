@@ -18,12 +18,12 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                echo 'Kiem tra file trong thu muc hien tai:'
-                sh 'ls -la' // In ra danh sách file để debug xem có package-lock.json không
-                
-                echo 'Dang cai dat thu vien...'
-                // Đổi tạm từ npm ci sang npm install để fix lỗi thiếu lockfile
+                echo 'Cleaning up old modules...'
+                sh 'rm -rf node_modules'
+                sh 'rm -f package-lock.json' 
+                echo 'Dang cai dat lai tu dau (Fresh Install)...'
                 sh 'npm install' 
+                sh 'npm list --depth=0 || true' 
             }
         }
 
