@@ -31,7 +31,23 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo 'Skipping SonarQube Analysis (TODO: Integrate SonarQube)'
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+                    // Ensure path uses forward slashes for compatibility with sh on Windows
+                    def scannerHomePath = scannerHome.replace('\\', '/')
+                    
+                    withSonarQubeEnv('sonar-server') {
+                        sh """
+                            "${scannerHomePath}/bin/sonar-scanner" \
+                            -Dsonar.projectKey=devops-blog-client \
+                            -Dsonar.projectName='DevOps Blog Client' \
+                            -Dsonar.sources=. \
+                            -Dsonar.typescript.tsconfigPath=tsconfig.json \
+                            -Dsonar.exclusions=node_modules/**,.next/**,coverage/**,**/*.d.ts \
+                            -Dsonar.sourceEncoding=UTF-8
+                        """
+                    }
+                }
             }
         }
 
