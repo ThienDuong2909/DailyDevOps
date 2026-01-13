@@ -23,7 +23,14 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public folder
+# Copy public folder if it exists (using a workaround with wildcards or direct copy if we know it should exist)
+# Since the error says it doesn't exist, we'll create an empty one in the builder or just skip copying if your app doesn't rely on static assets in public/
+# For a generic solution that doesn't fail, we can try to copy specific known assets or just create the dir.
+# However, if your app needs public/, it should be in the repo.
+# If you don't have a public folder, you can comment this out or create one.
+# For now, let's assume we might need it and ensure it exists in builder.
+
+RUN mkdir -p ./public
 COPY --from=builder /app/public ./public
 
 # Automatically leverage output traces to reduce image size
