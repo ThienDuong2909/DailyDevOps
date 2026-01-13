@@ -7,6 +7,9 @@ pipeline {
 
     environment {
         NODE_ENV = 'production'
+        DOCKER_HUB_USER = 'thienduong2909' 
+        IMAGE_NAME = 'devops-blog-client' // Đặt tên image cho client
+        DOCKER_CRED = 'docker-hub-credentials'
     }
 
     stages {
