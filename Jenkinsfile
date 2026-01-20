@@ -108,7 +108,6 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: GIT_CRED_ID, passwordVariable: 'GIT_TOKEN', usernameVariable: 'GIT_USER')]) {
                         
                         // 1. Clone the Infrastructure/GitOps Repository
-                        // Using specific credentials to allow write access
                         sh "git clone https://${GIT_USER}:${GIT_TOKEN}@${K8S_MANIFEST_REPO} k8s-repo"
                         
                         // 2. Navigate to repo and configure Git Identity
@@ -120,18 +119,20 @@ pipeline {
                             sh "git checkout main"
                             
                             // 3. Update the image version using SED
-                            // This replaces "image: user/repo:any_tag" with "image: user/repo:current_build_number"
+                            // FIX: Changed filename from deployment.yml to deployment.yaml
                             sh """
-                                sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${BUILD_NUMBER}|' deployment.yml
+                                sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${BUILD_NUMBER}|' deployment.yaml
                             """
                             
-                            // 4. Verify changes
-                            echo "Verifying changes in deployment.yml:"
-                            sh "grep 'image:' deployment.yml"
+                            // 4. Verify changes (Debug step)
+                            echo "Verifying changes in deployment.yaml:"
+                            sh "grep 'image:' deployment.yaml"
                             
                             // 5. Commit and Push changes
                             try {
-                                sh "git add deployment.yml"
+                                // FIX: Changed filename here as well
+                                sh "git add deployment.yaml"
+                                
                                 // Check if there are changes to commit to avoid exit code 1
                                 sh "git diff-index --quiet HEAD || git commit -m 'chore(ci): update image version to ${BUILD_NUMBER}'"
                                 sh "git push origin main"
