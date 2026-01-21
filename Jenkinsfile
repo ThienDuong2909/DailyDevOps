@@ -67,6 +67,7 @@ pipeline {
                 echo 'Starting static code analysis...'
                 script {
                     def scannerHome = tool 'sonar-scanner'
+                    
                     withSonarQubeEnv('sonar-server') {
                         sh """
                             "${scannerHome}/bin/sonar-scanner" \
@@ -77,6 +78,22 @@ pipeline {
                             -Dsonar.sourceEncoding=UTF-8
                         """
                     }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                echo 'Waiting for SonarQube Quality Gate result...'
+                script {
+                    // Requires: SonarQube Webhook configured to notify Jenkins
+                    timeout(time: 5, unit: 'MINUTES') {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
+                        }
+                    }
+                    echo 'Quality Gate passed successfully.'
                 }
             }
         }
