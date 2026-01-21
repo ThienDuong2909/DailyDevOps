@@ -7,7 +7,7 @@ interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    error: string | null;
+    error: string | null; fadadad
 
     // Actions
     login: (data: LoginForm) => Promise<void>;
