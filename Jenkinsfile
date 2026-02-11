@@ -62,10 +62,10 @@ pipeline {
                 ]) {
                     sh '''
                         cat > .env.production << EOF
-NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-NEXT_PUBLIC_APP_NAME=DevOps Blog
-EOF
+                            NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+                            NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+                            NEXT_PUBLIC_APP_NAME=DevOps Blog
+                            EOF
                     '''
                     // Verify the env file was created correctly (masked values)
                     sh 'echo "Environment file created with $(wc -l < .env.production) variables"'
