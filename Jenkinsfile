@@ -5,31 +5,35 @@ pipeline {
         nodejs 'node-20' 
     }
 
+    options {
+        // Auto-abort if pipeline runs longer than 30 minutes
+        timeout(time: 30, unit: 'MINUTES')
+        // Keep only last 5 builds to save disk space
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        // Prevent concurrent builds on the same branch
+        disableConcurrentBuilds()
+        // Add timestamps to console output for easier debugging
+        timestamps()
+    }
+
     environment {
-        // Application Environment
-        NODE_ENV = 'production'
-        
         // Docker Registry Configuration
         DOCKER_HUB_USER = 'thienduong2909' 
         IMAGE_NAME = 'devops-blog-client'
+        IMAGE_TAG = "${DOCKER_HUB_USER}/${IMAGE_NAME}"
         DOCKER_CRED_ID = 'docker-hub-credentials'
 
         // GitOps / Infrastructure Repository Configuration
-        // Note: Do not include 'https://' here as it is constructed dynamically below
         K8S_MANIFEST_REPO = 'github.com/ThienDuong2909/Blog_K8S.git'
         GIT_CRED_ID = 'github-access-token' 
         GIT_EMAIL = 'jenkins-bot@thienduong.info'
         GIT_NAME = 'Jenkins Bot'
+
+        // npm cache directory - persists across builds for faster installs
+        NPM_CACHE_DIR = "${WORKSPACE}/.npm-cache"
     }
 
     stages {
-        stage('Clean Workspace') {
-            steps {
-                echo 'Cleaning up workspace to ensure a fresh start...'
-                cleanWs()
-            }
-        }
-
         stage('Checkout Source Code') {
             steps {
                 echo 'Checking out application source code...'
@@ -39,9 +43,13 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                echo 'Removing old modules and installing fresh dependencies...'
-                sh 'rm -rf node_modules package-lock.json' 
-                sh 'npm install --include=dev' 
+                echo 'Installing dependencies from lockfile...'
+                // npm ci: designed for CI environments
+                // - Automatically removes existing node_modules (no manual rm needed)
+                // - Installs exact versions from package-lock.json (deterministic)
+                // - 2-3x faster than npm install
+                // - Fails if package-lock.json is out of sync with package.json
+                sh 'npm ci --cache ${NPM_CACHE_DIR}'
             }
         }
 
@@ -53,11 +61,14 @@ pipeline {
                     string(credentialsId: 'APP_URL_PROD', variable: 'NEXT_PUBLIC_APP_URL')
                 ]) {
                     sh '''
-                        echo "Creating .env.production file..."
-                        echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" > .env.production
-                        echo "NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}" >> .env.production
-                        echo "NEXT_PUBLIC_APP_NAME=DevOps Blog" >> .env.production
+                        cat > .env.production << EOF
+NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+NEXT_PUBLIC_APP_NAME=DevOps Blog
+EOF
                     '''
+                    // Verify the env file was created correctly (masked values)
+                    sh 'echo "Environment file created with $(wc -l < .env.production) variables"'
                 }
             }
         }
@@ -74,7 +85,7 @@ pipeline {
                             -Dsonar.projectKey=devops-blog-client \
                             -Dsonar.projectName='DevOps Blog Client' \
                             -Dsonar.sources=. \
-                            -Dsonar.exclusions=node_modules/**,.next/**,coverage/**,**/*.d.ts \
+                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,**/*.d.ts \
                             -Dsonar.sourceEncoding=UTF-8
                         """
                     }
@@ -86,7 +97,6 @@ pipeline {
             steps {
                 echo 'Waiting for SonarQube Quality Gate result...'
                 script {
-                    // Requires: SonarQube Webhook configured to notify Jenkins
                     timeout(time: 5, unit: 'MINUTES') {
                         def qg = waitForQualityGate()
                         if (qg.status != 'OK') {
@@ -101,18 +111,16 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    echo "Building Docker image with tag: ${BUILD_NUMBER}..."
+                    echo "Building Docker image: ${IMAGE_TAG}:${BUILD_NUMBER}..."
                     withCredentials([usernamePassword(credentialsId: DOCKER_CRED_ID, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         
-                        // Login to Docker Hub
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         
-                        // Build Image
-                        // Note: The .env.production file created earlier is copied into the image here
-                        sh "docker build -t $DOCKER_HUB_USER/$IMAGE_NAME:$BUILD_NUMBER -f Dockerfile ."
+                        // Build with both specific version tag and 'latest'
+                        sh "docker build -t ${IMAGE_TAG}:${BUILD_NUMBER} -t ${IMAGE_TAG}:latest -f Dockerfile ."
                         
-                        // Push Image to Registry
-                        sh "docker push $DOCKER_HUB_USER/$IMAGE_NAME:$BUILD_NUMBER"
+                        sh "docker push ${IMAGE_TAG}:${BUILD_NUMBER}"
+                        sh "docker push ${IMAGE_TAG}:latest"
                     }
                 }
             }
@@ -124,33 +132,22 @@ pipeline {
                     echo 'Updating Kubernetes manifest repository with new image version...'
                     withCredentials([usernamePassword(credentialsId: GIT_CRED_ID, passwordVariable: 'GIT_TOKEN', usernameVariable: 'GIT_USER')]) {
                         
-                        // 1. Clone the Infrastructure/GitOps Repository
                         sh "git clone https://${GIT_USER}:${GIT_TOKEN}@${K8S_MANIFEST_REPO} k8s-repo"
                         
-                        // 2. Navigate to repo and configure Git Identity
                         dir("k8s-repo") {
                             sh "git config user.email '${GIT_EMAIL}'"
                             sh "git config user.name '${GIT_NAME}'"
-                            
-                            // Ensure we are on the correct branch
                             sh "git checkout main"
                             
-                            // 3. Update the image version using SED
-                            // FIX: Changed filename from deployment.yml to deployment.yaml
                             sh """
-                                sed -i 's|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:.*|image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${BUILD_NUMBER}|' deployment.yaml
+                                sed -i 's|image: ${IMAGE_TAG}:.*|image: ${IMAGE_TAG}:${BUILD_NUMBER}|' deployment.yaml
                             """
                             
-                            // 4. Verify changes (Debug step)
                             echo "Verifying changes in deployment.yaml:"
                             sh "grep 'image:' deployment.yaml"
                             
-                            // 5. Commit and Push changes
                             try {
-                                // FIX: Changed filename here as well
                                 sh "git add deployment.yaml"
-                                
-                                // Check if there are changes to commit to avoid exit code 1
                                 sh "git diff-index --quiet HEAD || git commit -m 'chore(ci): update image version to ${BUILD_NUMBER}'"
                                 sh "git push origin main"
                                 echo "Manifest repository updated successfully."
@@ -168,18 +165,26 @@ pipeline {
     post {
         always {
             echo 'Performing post-build cleanup...'
-            // Remove sensitive environment file
             sh 'rm -f .env.production'
-            // Logout from Docker to prevent credential leakage
-            sh "docker logout"
-            // Cleanup the cloned Manifest repository
-            sh "rm -rf k8s-repo" 
+            sh "docker logout || true"
+            sh "rm -rf k8s-repo"
+            // Remove Docker images from agent to free disk space
+            sh "docker rmi ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest || true"
         }
         success {
-            echo "Pipeline executed successfully. Build ${BUILD_NUMBER} deployed."
+            echo "Pipeline executed successfully. Image: ${IMAGE_TAG}:${BUILD_NUMBER}"
         }
         failure {
-            echo "Pipeline failed. Please check logs for details."
+            echo "Pipeline failed at stage: ${env.STAGE_NAME}. Check logs for details."
+        }
+        cleanup {
+            // Clean workspace AFTER everything else - at the END instead of the START
+            // This allows npm cache to persist for the NEXT build
+            // cleanWs moves here so .npm-cache benefits next run
+            cleanWs(deleteDirs: true, patterns: [
+                // Keep npm cache between builds for faster installs
+                [pattern: '.npm-cache/**', type: 'EXCLUDE']
+            ])
         }
     }
 }
