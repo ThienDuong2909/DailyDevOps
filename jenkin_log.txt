@@ -1,6 +1,6 @@
 Push event to branch main
-06:47:42 Connecting to https://api.github.com using ThienDuong2909/******
-Obtained Jenkinsfile from 78563bfc14a08d77a77aee529899e3732030e991
+07:23:52 Connecting to https://api.github.com using ThienDuong2909/******
+Obtained Jenkinsfile from 37c090c20624c8dbf208dbdf2f32653ebdd352e2
 [Pipeline] Start of Pipeline
 [Pipeline] node
 Running on Jenkins
@@ -23,11 +23,11 @@ using GIT_ASKPASS to set credentials
  > git config remote.origin.url https://github.com/ThienDuong2909/DailyDevOps.git # timeout=10
  > git config --add remote.origin.fetch +refs/heads/main:refs/remotes/origin/main # timeout=10
 Avoid second fetch
-Checking out Revision 78563bfc14a08d77a77aee529899e3732030e991 (main)
+Checking out Revision 37c090c20624c8dbf208dbdf2f32653ebdd352e2 (main)
  > git config core.sparsecheckout # timeout=10
- > git checkout -f 78563bfc14a08d77a77aee529899e3732030e991 # timeout=10
-Commit message: "update: Optimize jenkinsfile"
- > git rev-list --no-walk c07c47e221b2f90598372095ea1001446cc58a09 # timeout=10
+ > git checkout -f 37c090c20624c8dbf208dbdf2f32653ebdd352e2 # timeout=10
+Commit message: "update"
+ > git rev-list --no-walk 78563bfc14a08d77a77aee529899e3732030e991 # timeout=10
 [Pipeline] }
 [Pipeline] // stage
 [Pipeline] withEnv
@@ -39,6 +39,7 @@ Timeout set to expire in 30 min
 [Pipeline] {
 [Pipeline] timestamps
 [Pipeline] {
+
 [Pipeline] stage
 [Pipeline] { (Declarative: Tool Install)
 [Pipeline] tool
@@ -54,24 +55,26 @@ Timeout set to expire in 30 min
 [Pipeline] withEnv
 [Pipeline] {
 [Pipeline] echo
-13:47:56  Checking out application source code...
+14:23:59  Checking out application source code...
 [Pipeline] checkout
-13:47:56  The recommended git tool is: NONE
-13:47:56  using credential github-token
-13:47:56   > git rev-parse --resolve-git-dir /var/jenkins_home/workspace/Blog_web_multi_fe_main/.git # timeout=10
-13:47:56  Fetching changes from the remote Git repository
-13:47:56   > git config remote.origin.url https://github.com/ThienDuong2909/DailyDevOps.git # timeout=10
-13:47:56  Fetching without tags
-13:47:56  Fetching upstream changes from https://github.com/ThienDuong2909/DailyDevOps.git
-13:47:56   > git --version # timeout=10
-13:47:56   > git --version # 'git version 2.47.3'
-13:47:56  using GIT_ASKPASS to set credentials 
-13:47:56   > git fetch --no-tags --force --progress -- https://github.com/ThienDuong2909/DailyDevOps.git +refs/heads/main:refs/remotes/origin/main # timeout=10
-13:47:56  Checking out Revision 78563bfc14a08d77a77aee529899e3732030e991 (main)
-13:47:56   > git config core.sparsecheckout # timeout=10
-13:47:57   > git checkout -f 78563bfc14a08d77a77aee529899e3732030e991 # timeout=10
-13:47:57  Commit message: "update: Optimize jenkinsfile"
+14:23:59  The recommended git tool is: NONE
+14:23:59  using credential github-token
+14:23:59   > git rev-parse --resolve-git-dir /var/jenkins_home/workspace/Blog_web_multi_fe_main/.git # timeout=10
+14:23:59  Fetching changes from the remote Git repository
+14:23:59   > git config remote.origin.url https://github.com/ThienDuong2909/DailyDevOps.git # timeout=10
+14:23:59  Fetching without tags
+14:23:59  Fetching upstream changes from https://github.com/ThienDuong2909/DailyDevOps.git
+14:23:59   > git --version # timeout=10
+14:23:59   > git --version # 'git version 2.47.3'
+14:23:59  using GIT_ASKPASS to set credentials 
+14:23:59   > git fetch --no-tags --force --progress -- https://github.com/ThienDuong2909/DailyDevOps.git +refs/heads/main:refs/remotes/origin/main # timeout=10
+
+14:24:00  Checking out Revision 37c090c20624c8dbf208dbdf2f32653ebdd352e2 (main)
+14:24:00   > git config core.sparsecheckout # timeout=10
+14:24:00   > git checkout -f 37c090c20624c8dbf208dbdf2f32653ebdd352e2 # timeout=10
+14:24:00  Commit message: "update"
 [Pipeline] }
+
 [Pipeline] // withEnv
 [Pipeline] }
 [Pipeline] // stage
@@ -82,33 +85,39 @@ Timeout set to expire in 30 min
 [Pipeline] withEnv
 [Pipeline] {
 [Pipeline] echo
-13:47:58  Installing dependencies from lockfile...
+14:24:01  Installing dependencies from lockfile...
 [Pipeline] sh
-13:47:58  + npm ci --cache /var/jenkins_home/workspace/Blog_web_multi_fe_main/.npm-cache
-13:48:13  npm WARN deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
-13:48:15  npm WARN deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
-13:48:19  npm WARN deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
-13:48:19  npm WARN deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
-13:48:19  npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
-13:48:31  npm WARN deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
-13:50:09  npm WARN deprecated next@14.1.0: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
-13:50:09  
-13:50:09  added 409 packages, and audited 410 packages in 2m
-13:50:09  
-13:50:09  154 packages are looking for funding
-13:50:09    run `npm fund` for details
-13:50:09  
-13:50:09  18 vulnerabilities (1 moderate, 16 high, 1 critical)
-13:50:09  
-13:50:09  To address issues that do not require attention, run:
-13:50:09    npm audit fix
-13:50:09  
-13:50:09  To address all issues (including breaking changes), run:
-13:50:09    npm audit fix --force
-13:50:09  
-13:50:09  Run `npm audit` for details.
+14:24:01  + npm ci --cache /var/jenkins_home/workspace/Blog_web_multi_fe_main/.npm-cache
+
+14:24:07  npm WARN deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+
+14:24:09  npm WARN deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+
+14:24:12  npm WARN deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+14:24:12  npm WARN deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+14:24:12  npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+
+14:24:17  npm WARN deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+14:25:13  npm WARN deprecated next@14.1.0: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
+14:25:13  
+14:25:13  added 409 packages, and audited 410 packages in 1m
+14:25:13  
+14:25:13  154 packages are looking for funding
+14:25:13    run `npm fund` for details
+14:25:13  
+14:25:13  18 vulnerabilities (1 moderate, 16 high, 1 critical)
+14:25:13  
+14:25:13  To address issues that do not require attention, run:
+14:25:13    npm audit fix
+14:25:13  
+14:25:13  To address all issues (including breaking changes), run:
+14:25:13    npm audit fix --force
+14:25:13  
+14:25:13  Run `npm audit` for details.
 [Pipeline] }
 [Pipeline] // withEnv
+
 [Pipeline] }
 [Pipeline] // stage
 [Pipeline] stage
@@ -118,21 +127,22 @@ Timeout set to expire in 30 min
 [Pipeline] withEnv
 [Pipeline] {
 [Pipeline] echo
-13:50:10  Injecting secrets into production environment file...
+14:25:13  Injecting secrets into production environment file...
 [Pipeline] withCredentials
-13:50:10  Masking supported pattern matches of $NEXT_PUBLIC_API_URL or $NEXT_PUBLIC_APP_URL
+14:25:13  Masking supported pattern matches of $NEXT_PUBLIC_API_URL or $NEXT_PUBLIC_APP_URL
 [Pipeline] {
 [Pipeline] sh
-13:50:10  + cat
+14:25:14  + cat
 [Pipeline] sh
-13:50:11  + wc -l
-13:50:11  + echo Environment file created with 4 variables
-13:50:11  Environment file created with 4 variables
+14:25:14  + wc -l
+14:25:14  + echo Environment file created with 4 variables
+14:25:14  Environment file created with 4 variables
 [Pipeline] }
 [Pipeline] // withCredentials
 [Pipeline] }
 [Pipeline] // withEnv
 [Pipeline] }
+
 [Pipeline] // stage
 [Pipeline] stage
 [Pipeline] { (SonarQube Analysis)
@@ -141,150 +151,163 @@ Timeout set to expire in 30 min
 [Pipeline] withEnv
 [Pipeline] {
 [Pipeline] echo
-13:50:12  Starting static code analysis...
+14:25:14  Starting static code analysis...
 [Pipeline] script
 [Pipeline] {
 [Pipeline] tool
 [Pipeline] withSonarQubeEnv
-13:50:12  Injecting SonarQube environment variables using the configuration: sonar-server
+14:25:15  Injecting SonarQube environment variables using the configuration: sonar-server
 [Pipeline] {
 [Pipeline] sh
-13:50:13  + /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=devops-blog-client -Dsonar.projectName=DevOps Blog Client -Dsonar.sources=. -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,**/*.d.ts -Dsonar.sourceEncoding=UTF-8
-13:50:14  06:50:14.699 INFO  Scanner configuration file: /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/conf/sonar-scanner.properties
-13:50:14  06:50:14.718 INFO  Project root configuration file: NONE
-13:50:14  06:50:14.809 INFO  SonarScanner CLI 8.0.1.6346
-13:50:14  06:50:14.824 INFO  Linux 6.8.0-90-generic amd64
-13:50:27  06:50:26.390 INFO  Communicating with SonarQube Server 9.9.8.100196
-13:50:27  06:50:27.831 INFO  Load global settings
-13:50:28  06:50:28.127 INFO  Load global settings (done) | time=299ms
-13:50:28  06:50:28.142 INFO  Server id: 147B411E-AZuwkI8u9yPO7wNiUGMN
-13:50:28  06:50:28.166 INFO  User cache: /root/.sonar/cache
-13:50:28  06:50:28.195 INFO  Load/download plugins
-13:50:28  06:50:28.195 INFO  Load plugins index
-13:50:28  06:50:28.379 INFO  Load plugins index (done) | time=184ms
-13:50:28  06:50:28.582 INFO  Load/download plugins (done) | time=386ms
-13:50:30  06:50:30.300 INFO  Process project properties
-13:50:30  06:50:30.322 INFO  Process project properties (done) | time=22ms
-13:50:30  06:50:30.339 INFO  Execute project builders
-13:50:30  06:50:30.347 INFO  Execute project builders (done) | time=8ms
-13:50:30  06:50:30.358 INFO  Project key: devops-blog-client
-13:50:30  06:50:30.358 INFO  Base dir: /var/jenkins_home/workspace/Blog_web_multi_fe_main
-13:50:30  06:50:30.358 INFO  Working dir: /var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork
-13:50:30  06:50:30.381 INFO  Load project settings for component key: 'devops-blog-client'
-13:50:30  06:50:30.434 INFO  Load project settings for component key: 'devops-blog-client' (done) | time=53ms
-13:50:31  06:50:31.052 INFO  Auto-configuring with CI 'Jenkins'
-13:50:31  06:50:31.074 INFO  Load quality profiles
-13:50:31  06:50:31.311 INFO  Load quality profiles (done) | time=237ms
-13:50:31  06:50:31.362 INFO  Load active rules
-13:50:36  06:50:36.107 INFO  Load active rules (done) | time=4745ms
-13:50:36  06:50:36.135 INFO  Load analysis cache
-13:50:36  06:50:36.153 INFO  Load analysis cache (404) | time=18ms
-13:50:36  06:50:36.440 INFO  Load project repositories
-13:50:36  06:50:36.541 INFO  Load project repositories (done) | time=101ms
-13:50:36  06:50:36.653 INFO  Indexing files...
-13:50:36  06:50:36.653 INFO  Project configuration:
-13:50:36  06:50:36.654 INFO    Excluded sources: node_modules/**, .next/**, .npm-cache/**, coverage/**, **/*.d.ts
-13:50:41  06:50:41.009 INFO  41 files indexed
-13:50:41  06:50:41.011 INFO  26935 files ignored because of inclusion/exclusion patterns
-13:50:41  06:50:41.011 INFO  0 files ignored because of scm ignore settings
-13:50:41  06:50:41.016 INFO  Quality profile for css: Sonar way
-13:50:41  06:50:41.016 INFO  Quality profile for js: Sonar way
-13:50:41  06:50:41.016 INFO  Quality profile for json: Sonar way
-13:50:41  06:50:41.016 INFO  Quality profile for ts: Sonar way
-13:50:41  06:50:41.017 INFO  ------------- Run sensors on module DevOps Blog Client
-13:50:41  06:50:41.299 INFO  Load metrics repository
-13:50:41  06:50:41.383 INFO  Load metrics repository (done) | time=84ms
-13:50:49  06:50:49.612 INFO  Sensor JaCoCo XML Report Importer [jacoco]
-13:50:49  06:50:49.620 INFO  'sonar.coverage.jacoco.xmlReportPaths' is not defined. Using default locations: target/site/jacoco/jacoco.xml,target/site/jacoco-it/jacoco.xml,build/reports/jacoco/test/jacocoTestReport.xml
-13:50:49  06:50:49.622 INFO  No report imported, no coverage information will be imported by JaCoCo XML Report Importer
-13:50:49  06:50:49.622 INFO  Sensor JaCoCo XML Report Importer [jacoco] (done) | time=11ms
-13:50:49  06:50:49.623 INFO  Sensor IaC CloudFormation Sensor [iac]
-13:50:50  06:50:50.077 INFO  0 source files to be analyzed
-13:50:50  06:50:50.449 INFO  0/0 source files have been analyzed
-13:50:50  06:50:50.450 INFO  Sensor IaC CloudFormation Sensor [iac] (done) | time=827ms
-13:50:50  06:50:50.451 INFO  Sensor IaC Kubernetes Sensor [iac]
-13:50:50  06:50:50.790 INFO  0 source files to be analyzed
-13:50:51  06:50:50.857 INFO  0/0 source files have been analyzed
-13:50:51  06:50:50.858 INFO  Sensor IaC Kubernetes Sensor [iac] (done) | time=407ms
-13:50:51  06:50:50.858 INFO  Sensor JavaScript analysis [javascript]
-13:51:32  06:51:25.779 WARN  Node.js version 22 is not recommended, you might experience issues. Please use a recommended version of Node.js [16, 18]
-13:51:32  06:51:25.923 INFO  3 source files to be analyzed
-13:51:36  06:51:35.959 INFO  1/3 file analyzed, current file: /var/jenkins_home/workspace/Blog_web_multi_fe_main/tailwind.config.js
-13:51:37  06:51:36.958 INFO  3/3 source files have been analyzed
-13:51:37  06:51:36.960 INFO  Hit the cache for 0 out of 3
-13:51:37  06:51:36.965 INFO  Miss the cache for 3 out of 3: ANALYSIS_MODE_INELIGIBLE [3/3]
-13:51:37  06:51:36.965 INFO  Sensor JavaScript analysis [javascript] (done) | time=46107ms
-13:51:37  06:51:36.965 INFO  Sensor TypeScript analysis [javascript]
-13:51:37  06:51:37.530 INFO  Found 1 tsconfig.json file(s): [/var/jenkins_home/workspace/Blog_web_multi_fe_main/tsconfig.json]
-13:51:37  06:51:37.534 INFO  Creating TypeScript program
-13:51:37  06:51:37.535 INFO  TypeScript configuration file /var/jenkins_home/workspace/Blog_web_multi_fe_main/tsconfig.json
-13:51:37  06:51:37.538 INFO  30 source files to be analyzed
-13:51:37  06:51:37.605 ERROR Error: Argument for '--moduleResolution' option must be: 'node', 'classic', 'node16', 'nodenext'.
-13:51:37  06:51:37.606 ERROR     at createProgramOptions (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/lib/services/program/program.js:106:15)
-13:51:37  06:51:37.606 ERROR     at createProgram (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/lib/services/program/program.js:132:28)
-13:51:37  06:51:37.606 ERROR     at default_1 (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/lib/routing/on-create-program.js:10:57)
-13:51:37  06:51:37.606 ERROR     at Layer.handle [as handle_request] (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/layer.js:95:5)
-13:51:37  06:51:37.606 ERROR     at next (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/route.js:144:13)
-13:51:37  06:51:37.606 ERROR     at Route.dispatch (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/route.js:114:3)
-13:51:37  06:51:37.606 ERROR     at Layer.handle [as handle_request] (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/layer.js:95:5)
-13:51:37  06:51:37.606 ERROR     at /var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/index.js:284:15
-13:51:37  06:51:37.606 ERROR     at Function.process_params (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/index.js:346:12)
-13:51:37  06:51:37.606 ERROR     at next (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/index.js:280:10)
-13:51:37  06:51:37.615 ERROR Failed to create program: Argument for '--moduleResolution' option must be: 'node', 'classic', 'node16', 'nodenext'.
-13:51:37  06:51:37.616 INFO  Creating TypeScript program (done) | time=81ms
-13:51:37  06:51:37.616 INFO  Skipped 30 file(s) because they were not part of any tsconfig.json (enable debug logs to see the full list)
-13:51:37  06:51:37.617 INFO  30/30 source files have been analyzed
-13:51:37  06:51:37.621 INFO  Hit the cache for 0 out of 0
-13:51:37  06:51:37.621 INFO  Miss the cache for 0 out of 0
-13:51:37  06:51:37.621 INFO  Sensor TypeScript analysis [javascript] (done) | time=656ms
-13:51:37  06:51:37.621 INFO  Sensor CSS Rules [javascript]
-13:51:37  06:51:37.658 INFO  1 source file to be analyzed
-13:51:38  06:51:38.527 INFO  1/1 source file has been analyzed
-13:51:38  06:51:38.531 INFO  Hit the cache for 0 out of 0
-13:51:38  06:51:38.531 INFO  Miss the cache for 0 out of 0
-13:51:38  06:51:38.531 INFO  Sensor CSS Rules [javascript] (done) | time=910ms
-13:51:38  06:51:38.531 INFO  Sensor CSS Metrics [javascript]
-13:51:38  06:51:38.743 INFO  Sensor CSS Metrics [javascript] (done) | time=212ms
-13:51:38  06:51:38.744 INFO  Sensor C# Project Type Information [csharp]
-13:51:38  06:51:38.750 INFO  Sensor C# Project Type Information [csharp] (done) | time=6ms
-13:51:38  06:51:38.750 INFO  Sensor C# Analysis Log [csharp]
-13:51:38  06:51:38.812 INFO  Sensor C# Analysis Log [csharp] (done) | time=62ms
-13:51:38  06:51:38.812 INFO  Sensor C# Properties [csharp]
-13:51:38  06:51:38.812 INFO  Sensor C# Properties [csharp] (done) | time=0ms
-13:51:38  06:51:38.812 INFO  Sensor HTML [web]
-13:51:38  06:51:38.825 INFO  Sensor HTML [web] (done) | time=13ms
-13:51:38  06:51:38.825 INFO  Sensor TextAndSecretsSensor [text]
-13:51:39  06:51:38.880 INFO  37 source files to be analyzed
-13:51:40  06:51:39.757 INFO  37/37 source files have been analyzed
-13:51:40  06:51:39.760 INFO  Sensor TextAndSecretsSensor [text] (done) | time=935ms
-13:51:40  06:51:39.760 INFO  Sensor VB.NET Project Type Information [vbnet]
-13:51:40  06:51:39.762 INFO  Sensor VB.NET Project Type Information [vbnet] (done) | time=1ms
-13:51:40  06:51:39.762 INFO  Sensor VB.NET Analysis Log [vbnet]
-13:51:40  06:51:39.829 INFO  Sensor VB.NET Analysis Log [vbnet] (done) | time=67ms
-13:51:40  06:51:39.829 INFO  Sensor VB.NET Properties [vbnet]
-13:51:40  06:51:39.830 INFO  Sensor VB.NET Properties [vbnet] (done) | time=1ms
-13:51:40  06:51:39.838 INFO  Sensor IaC Docker Sensor [iac]
-13:51:40  06:51:39.848 INFO  1 source file to be analyzed
-13:51:40  06:51:40.298 INFO  1/1 source file has been analyzed
-13:51:40  06:51:40.301 INFO  Sensor IaC Docker Sensor [iac] (done) | time=463ms
-13:51:40  06:51:40.312 INFO  ------------- Run sensors on project
-13:51:40  06:51:40.735 INFO  Sensor Analysis Warnings import [csharp]
-13:51:40  06:51:40.745 INFO  Sensor Analysis Warnings import [csharp] (done) | time=10ms
-13:51:40  06:51:40.745 INFO  Sensor Zero Coverage Sensor
-13:51:40  06:51:40.801 INFO  Sensor Zero Coverage Sensor (done) | time=56ms
-13:51:41  06:51:40.934 INFO  CPD Executor 1 file had no CPD blocks
-13:51:41  06:51:40.951 INFO  CPD Executor Calculating CPD for 2 files
-13:51:41  06:51:41.014 INFO  CPD Executor CPD calculation finished (done) | time=61ms
-13:51:41  06:51:41.609 INFO  Analysis report generated in 565ms, dir size=416.7 kB
-13:51:41  06:51:41.895 INFO  Analysis report compressed in 276ms, zip size=103.3 kB
-13:51:43  06:51:43.475 INFO  Analysis report uploaded in 1579ms
-13:51:43  06:51:43.480 INFO  ANALYSIS SUCCESSFUL, you can find the results at: http://sonarqube:9000/dashboard?id=devops-blog-client
-13:51:43  06:51:43.480 INFO  Note that you will be able to access the updated dashboard once the server has processed the submitted analysis report
-13:51:43  06:51:43.480 INFO  More about the report processing at http://sonarqube:9000/api/ce/task?id=AZyJRKAIF2I3zp0UWM9N
-13:51:47  06:51:46.708 INFO  Analysis total time: 1:17.814 s
-13:51:47  06:51:46.715 INFO  EXECUTION SUCCESS
-13:51:47  06:51:46.717 INFO  Total time: 1:32.148s
+14:25:15  + /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=devops-blog-client -Dsonar.projectName=DevOps Blog Client -Dsonar.sources=. -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,**/*.d.ts -Dsonar.sourceEncoding=UTF-8
+
+14:25:16  07:25:15.985 INFO  Scanner configuration file: /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/sonar-scanner/conf/sonar-scanner.properties
+14:25:16  07:25:15.992 INFO  Project root configuration file: NONE
+14:25:16  07:25:16.041 INFO  SonarScanner CLI 8.0.1.6346
+14:25:16  07:25:16.051 INFO  Linux 6.8.0-90-generic amd64
+
+14:25:22  07:25:22.778 INFO  Communicating with SonarQube Server 9.9.8.100196
+14:25:23  07:25:23.641 INFO  Load global settings
+14:25:23  07:25:23.789 INFO  Load global settings (done) | time=150ms
+14:25:23  07:25:23.796 INFO  Server id: 147B411E-AZuwkI8u9yPO7wNiUGMN
+14:25:23  07:25:23.820 INFO  User cache: /root/.sonar/cache
+14:25:23  07:25:23.833 INFO  Load/download plugins
+14:25:23  07:25:23.833 INFO  Load plugins index
+14:25:23  07:25:23.910 INFO  Load plugins index (done) | time=77ms
+14:25:24  07:25:24.038 INFO  Load/download plugins (done) | time=205ms
+
+14:25:25  07:25:24.940 INFO  Process project properties
+14:25:25  07:25:24.953 INFO  Process project properties (done) | time=14ms
+14:25:25  07:25:24.961 INFO  Execute project builders
+14:25:25  07:25:24.963 INFO  Execute project builders (done) | time=2ms
+14:25:25  07:25:24.970 INFO  Project key: devops-blog-client
+14:25:25  07:25:24.970 INFO  Base dir: /var/jenkins_home/workspace/Blog_web_multi_fe_main
+14:25:25  07:25:24.970 INFO  Working dir: /var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork
+14:25:25  07:25:24.985 INFO  Load project settings for component key: 'devops-blog-client'
+14:25:25  07:25:25.017 INFO  Load project settings for component key: 'devops-blog-client' (done) | time=32ms
+14:25:25  07:25:25.271 INFO  Auto-configuring with CI 'Jenkins'
+14:25:25  07:25:25.277 INFO  Load quality profiles
+14:25:25  07:25:25.370 INFO  Load quality profiles (done) | time=93ms
+
+14:25:25  07:25:25.427 INFO  Load active rules
+
+14:25:28  07:25:28.856 INFO  Load active rules (done) | time=3429ms
+14:25:29  07:25:28.872 INFO  Load analysis cache
+14:25:29  07:25:29.013 INFO  Load analysis cache (1.8 kB) | time=141ms
+14:25:29  07:25:29.352 INFO  Load project repositories
+
+14:25:29  07:25:29.407 INFO  Load project repositories (done) | time=55ms
+14:25:29  07:25:29.477 INFO  Indexing files...
+14:25:29  07:25:29.478 INFO  Project configuration:
+14:25:29  07:25:29.478 INFO    Excluded sources: node_modules/**, .next/**, .npm-cache/**, coverage/**, **/*.d.ts
+
+14:25:32  07:25:31.844 INFO  42 files indexed
+14:25:32  07:25:31.844 INFO  26935 files ignored because of inclusion/exclusion patterns
+14:25:32  07:25:31.845 INFO  0 files ignored because of scm ignore settings
+14:25:32  07:25:31.848 INFO  Quality profile for css: Sonar way
+14:25:32  07:25:31.849 INFO  Quality profile for js: Sonar way
+14:25:32  07:25:31.849 INFO  Quality profile for json: Sonar way
+14:25:32  07:25:31.849 INFO  Quality profile for ts: Sonar way
+14:25:32  07:25:31.849 INFO  ------------- Run sensors on module DevOps Blog Client
+14:25:32  07:25:32.021 INFO  Load metrics repository
+14:25:32  07:25:32.087 INFO  Load metrics repository (done) | time=66ms
+
+14:25:35  07:25:34.690 INFO  Sensor JaCoCo XML Report Importer [jacoco]
+14:25:35  07:25:34.692 INFO  'sonar.coverage.jacoco.xmlReportPaths' is not defined. Using default locations: target/site/jacoco/jacoco.xml,target/site/jacoco-it/jacoco.xml,build/reports/jacoco/test/jacocoTestReport.xml
+14:25:35  07:25:34.693 INFO  No report imported, no coverage information will be imported by JaCoCo XML Report Importer
+14:25:35  07:25:34.694 INFO  Sensor JaCoCo XML Report Importer [jacoco] (done) | time=5ms
+14:25:35  07:25:34.694 INFO  Sensor IaC CloudFormation Sensor [iac]
+14:25:35  07:25:34.844 INFO  0 source files to be analyzed
+14:25:35  07:25:34.930 INFO  0/0 source files have been analyzed
+14:25:35  07:25:34.931 INFO  Sensor IaC CloudFormation Sensor [iac] (done) | time=237ms
+14:25:35  07:25:34.931 INFO  Sensor IaC Kubernetes Sensor [iac]
+14:25:35  07:25:34.993 INFO  0 source files to be analyzed
+14:25:35  07:25:35.055 INFO  0/0 source files have been analyzed
+14:25:35  07:25:35.055 INFO  Sensor IaC Kubernetes Sensor [iac] (done) | time=124ms
+14:25:35  07:25:35.055 INFO  Sensor JavaScript analysis [javascript]
+
+14:25:43  07:25:43.026 WARN  Node.js version 22 is not recommended, you might experience issues. Please use a recommended version of Node.js [16, 18]
+14:25:43  07:25:43.058 INFO  3 source files to be analyzed
+
+14:25:47  07:25:47.106 INFO  3/3 source files have been analyzed
+14:25:47  07:25:47.107 INFO  Hit the cache for 0 out of 3
+14:25:47  07:25:47.109 INFO  Miss the cache for 3 out of 3: ANALYSIS_MODE_INELIGIBLE [3/3]
+14:25:47  07:25:47.109 INFO  Sensor JavaScript analysis [javascript] (done) | time=12054ms
+14:25:47  07:25:47.109 INFO  Sensor TypeScript analysis [javascript]
+14:25:47  07:25:47.244 INFO  Found 1 tsconfig.json file(s): [/var/jenkins_home/workspace/Blog_web_multi_fe_main/tsconfig.json]
+14:25:47  07:25:47.245 INFO  Creating TypeScript program
+14:25:47  07:25:47.245 INFO  30 source files to be analyzed
+14:25:47  07:25:47.245 INFO  TypeScript configuration file /var/jenkins_home/workspace/Blog_web_multi_fe_main/tsconfig.json
+14:25:47  07:25:47.264 ERROR Error: Argument for '--moduleResolution' option must be: 'node', 'classic', 'node16', 'nodenext'.
+14:25:47  07:25:47.264 ERROR     at createProgramOptions (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/lib/services/program/program.js:106:15)
+14:25:47  07:25:47.264 ERROR     at createProgram (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/lib/services/program/program.js:132:28)
+14:25:47  07:25:47.265 ERROR     at default_1 (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/lib/routing/on-create-program.js:10:57)
+14:25:47  07:25:47.265 ERROR     at Layer.handle [as handle_request] (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/layer.js:95:5)
+14:25:47  07:25:47.265 ERROR     at next (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/route.js:144:13)
+14:25:47  07:25:47.265 ERROR     at Route.dispatch (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/route.js:114:3)
+14:25:47  07:25:47.265 ERROR     at Layer.handle [as handle_request] (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/layer.js:95:5)
+14:25:47  07:25:47.265 ERROR     at /var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/index.js:284:15
+14:25:47  07:25:47.265 ERROR     at Function.process_params (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/index.js:346:12)
+14:25:47  07:25:47.265 ERROR     at next (/var/jenkins_home/workspace/Blog_web_multi_fe_main/.scannerwork/.sonartmp/eslint-bridge-bundle/package/node_modules/express/lib/router/index.js:280:10)
+14:25:47  07:25:47.267 ERROR Failed to create program: Argument for '--moduleResolution' option must be: 'node', 'classic', 'node16', 'nodenext'.
+14:25:47  07:25:47.267 INFO  Creating TypeScript program (done) | time=22ms
+14:25:47  07:25:47.267 INFO  Skipped 30 file(s) because they were not part of any tsconfig.json (enable debug logs to see the full list)
+14:25:47  07:25:47.268 INFO  30/30 source files have been analyzed
+14:25:47  07:25:47.268 INFO  Hit the cache for 0 out of 0
+14:25:47  07:25:47.268 INFO  Miss the cache for 0 out of 0
+14:25:47  07:25:47.268 INFO  Sensor TypeScript analysis [javascript] (done) | time=159ms
+14:25:47  07:25:47.269 INFO  Sensor CSS Rules [javascript]
+14:25:47  07:25:47.278 INFO  1 source file to be analyzed
+14:25:47  07:25:47.487 INFO  1/1 source file has been analyzed
+14:25:47  07:25:47.487 INFO  Hit the cache for 0 out of 0
+14:25:47  07:25:47.487 INFO  Miss the cache for 0 out of 0
+14:25:47  07:25:47.487 INFO  Sensor CSS Rules [javascript] (done) | time=218ms
+14:25:47  07:25:47.487 INFO  Sensor CSS Metrics [javascript]
+
+14:25:47  07:25:47.534 INFO  Sensor CSS Metrics [javascript] (done) | time=47ms
+14:25:47  07:25:47.534 INFO  Sensor C# Project Type Information [csharp]
+14:25:47  07:25:47.537 INFO  Sensor C# Project Type Information [csharp] (done) | time=3ms
+14:25:47  07:25:47.537 INFO  Sensor C# Analysis Log [csharp]
+14:25:47  07:25:47.554 INFO  Sensor C# Analysis Log [csharp] (done) | time=16ms
+14:25:47  07:25:47.555 INFO  Sensor C# Properties [csharp]
+14:25:47  07:25:47.556 INFO  Sensor C# Properties [csharp] (done) | time=1ms
+14:25:47  07:25:47.556 INFO  Sensor HTML [web]
+14:25:47  07:25:47.563 INFO  Sensor HTML [web] (done) | time=7ms
+14:25:47  07:25:47.563 INFO  Sensor TextAndSecretsSensor [text]
+14:25:47  07:25:47.576 INFO  37 source files to be analyzed
+14:25:48  07:25:47.887 INFO  37/37 source files have been analyzed
+14:25:48  07:25:47.887 INFO  Sensor TextAndSecretsSensor [text] (done) | time=324ms
+14:25:48  07:25:47.887 INFO  Sensor VB.NET Project Type Information [vbnet]
+14:25:48  07:25:47.889 INFO  Sensor VB.NET Project Type Information [vbnet] (done) | time=2ms
+14:25:48  07:25:47.891 INFO  Sensor VB.NET Analysis Log [vbnet]
+14:25:48  07:25:47.926 INFO  Sensor VB.NET Analysis Log [vbnet] (done) | time=35ms
+14:25:48  07:25:47.926 INFO  Sensor VB.NET Properties [vbnet]
+14:25:48  07:25:47.926 INFO  Sensor VB.NET Properties [vbnet] (done) | time=0ms
+14:25:48  07:25:47.926 INFO  Sensor IaC Docker Sensor [iac]
+14:25:48  07:25:47.932 INFO  1 source file to be analyzed
+14:25:48  07:25:48.127 INFO  1/1 source file has been analyzed
+14:25:48  07:25:48.127 INFO  Sensor IaC Docker Sensor [iac] (done) | time=201ms
+14:25:48  07:25:48.133 INFO  ------------- Run sensors on project
+14:25:48  07:25:48.227 INFO  Sensor Analysis Warnings import [csharp]
+14:25:48  07:25:48.229 INFO  Sensor Analysis Warnings import [csharp] (done) | time=2ms
+14:25:48  07:25:48.229 INFO  Sensor Zero Coverage Sensor
+14:25:48  07:25:48.241 INFO  Sensor Zero Coverage Sensor (done) | time=11ms
+14:25:48  07:25:48.264 INFO  CPD Executor 1 file had no CPD blocks
+14:25:48  07:25:48.265 INFO  CPD Executor Calculating CPD for 2 files
+14:25:48  07:25:48.274 INFO  CPD Executor CPD calculation finished (done) | time=9ms
+14:25:48  07:25:48.510 INFO  Analysis report generated in 228ms, dir size=416.7 kB
+
+14:25:48  07:25:48.624 INFO  Analysis report compressed in 114ms, zip size=103.3 kB
+14:25:48  07:25:48.703 INFO  Analysis report uploaded in 78ms
+14:25:48  07:25:48.705 INFO  ANALYSIS SUCCESSFUL, you can find the results at: http://sonarqube:9000/dashboard?id=devops-blog-client
+14:25:48  07:25:48.706 INFO  Note that you will be able to access the updated dashboard once the server has processed the submitted analysis report
+14:25:48  07:25:48.707 INFO  More about the report processing at http://sonarqube:9000/api/ce/task?id=AZyJY9roF2I3zp0UWM9O
+
+14:25:52  07:25:51.595 INFO  Analysis total time: 27.381 s
+14:25:52  07:25:51.599 INFO  EXECUTION SUCCESS
+14:25:52  07:25:51.599 INFO  Total time: 35.694s
 [Pipeline] }
+
 [Pipeline] // withSonarQubeEnv
 [Pipeline] }
 [Pipeline] // script
@@ -295,25 +318,27 @@ Timeout set to expire in 30 min
 [Pipeline] stage
 [Pipeline] { (Quality Gate)
 [Pipeline] tool
+
 [Pipeline] envVarsForTool
 [Pipeline] withEnv
 [Pipeline] {
 [Pipeline] echo
-13:51:50  Waiting for SonarQube Quality Gate result...
+14:25:54  Waiting for SonarQube Quality Gate result...
 [Pipeline] script
 [Pipeline] {
 [Pipeline] timeout
-13:51:50  Timeout set to expire in 5 min 0 sec
+14:25:54  Timeout set to expire in 5 min 0 sec
 [Pipeline] {
 [Pipeline] waitForQualityGate
-13:51:50  Checking status of SonarQube task 'AZyJRKAIF2I3zp0UWM9N' on server 'sonar-server'
-13:51:50  SonarQube task 'AZyJRKAIF2I3zp0UWM9N' status is 'PENDING'
-13:51:59  SonarQube task 'AZyJRKAIF2I3zp0UWM9N' status is 'SUCCESS'
-13:51:59  SonarQube task 'AZyJRKAIF2I3zp0UWM9N' completed. Quality gate is 'OK'
+14:25:54  Checking status of SonarQube task 'AZyJY9roF2I3zp0UWM9O' on server 'sonar-server'
+14:25:54  SonarQube task 'AZyJY9roF2I3zp0UWM9O' status is 'IN_PROGRESS'
+
+14:25:56  SonarQube task 'AZyJY9roF2I3zp0UWM9O' status is 'SUCCESS'
+14:25:56  SonarQube task 'AZyJY9roF2I3zp0UWM9O' completed. Quality gate is 'OK'
 [Pipeline] }
 [Pipeline] // timeout
 [Pipeline] echo
-13:52:00  Quality Gate passed successfully.
+14:25:56  Quality Gate passed successfully.
 [Pipeline] }
 [Pipeline] // script
 [Pipeline] }
@@ -329,181 +354,254 @@ Timeout set to expire in 30 min
 [Pipeline] script
 [Pipeline] {
 [Pipeline] echo
-13:52:02  Building Docker image: thienduong2909/devops-blog-client:30...
+14:25:57  Building Docker image: thienduong2909/devops-blog-client:31...
 [Pipeline] withCredentials
-13:52:02  Masking supported pattern matches of $DOCKER_PASS
+14:25:57  Masking supported pattern matches of $DOCKER_PASS
 [Pipeline] {
 [Pipeline] sh
-13:52:02  + echo ****
-13:52:02  + docker login -u thienduong2909 --password-stdin
-13:52:04  Login Succeeded
+
+14:25:57  + echo ****
+14:25:57  + docker login -u thienduong2909 --password-stdin
+
+14:25:59  
+14:25:59  WARNING! Your credentials are stored unencrypted in '/root/.docker/config.json'.
+14:25:59  Configure a credential helper to remove this warning. See
+14:25:59  https://docs.docker.com/go/credential-store/
+14:25:59  
+14:25:59  Login Succeeded
 [Pipeline] sh
-13:52:04  + docker build -t thienduong2909/devops-blog-client:30 -t thienduong2909/devops-blog-client:latest -f Dockerfile .
-13:52:04  DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
-13:52:04              Install the buildx component to build images with BuildKit:
-13:52:04              https://docs.docker.com/go/buildx/
-13:52:04  
-13:52:05  Sending build context to Docker daemon  606.2kB
-13:52:05  
-13:52:05  Step 1/26 : FROM node:18-alpine AS deps
-13:52:05   ---> ee77c6cd7c18
-13:52:05  Step 2/26 : RUN apk add --no-cache libc6-compat
-13:52:05   ---> Using cache
-13:52:05   ---> 8c6b5f3d3b80
-13:52:05  Step 3/26 : WORKDIR /app
-13:52:05   ---> Using cache
-13:52:05   ---> 3118c251ab35
-13:52:05  Step 4/26 : COPY package*.json ./
-13:52:05   ---> Using cache
-13:52:05   ---> 3fcc5648b223
-13:52:05  Step 5/26 : RUN npm ci
-13:52:05   ---> Using cache
-13:52:05   ---> 175b8c67a52c
-13:52:05  Step 6/26 : FROM node:18-alpine AS builder
-13:52:05   ---> ee77c6cd7c18
-13:52:05  Step 7/26 : WORKDIR /app
-13:52:05   ---> Using cache
-13:52:05   ---> 336f08cbe680
-13:52:05  Step 8/26 : COPY --from=deps /app/node_modules ./node_modules
-13:52:05   ---> Using cache
-13:52:05   ---> 9b204607fbfa
-13:52:05  Step 9/26 : COPY . .
-13:52:06   ---> 3d51dacfd276
-13:52:06  Step 10/26 : ENV NEXT_TELEMETRY_DISABLED=1
-13:52:07   ---> Running in ed46030783dd
-13:52:07   ---> Removed intermediate container ed46030783dd
-13:52:07   ---> 26f5f7be962f
-13:52:07  Step 11/26 : ENV NODE_OPTIONS="--max-old-space-size=1024"
-13:52:07   ---> Running in aea88ded2dc5
-13:52:07   ---> Removed intermediate container aea88ded2dc5
-13:52:07   ---> b1886dba21df
-13:52:07  Step 12/26 : RUN npm run build
-13:52:07   ---> Running in e8e25b7f3f83
-13:52:19  
-13:52:19  > devops-blog-client@1.0.0 build
-13:52:19  > next build
-13:52:19  
-13:52:21     ▲ Next.js 14.1.0
-13:52:21     - Environments: .env.production
-13:52:21  
-13:52:22     Creating an optimized production build ...
-13:53:00   ✓ Compiled successfully
-13:53:00     Linting and checking validity of types ...
-13:53:15     Collecting page data ...
-13:53:17     Generating static pages (0/13) ...
-13:53:17  [91m
-13:53:17   ⚠ metadata.metadataBase is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-13:53:17  [0m
-13:53:17     Generating static pages (3/13) 
-13:53:18  
-13:53:18     Generating static pages (6/13) 
-13:53:19  
-13:53:19     Generating static pages (9/13) 
-13:53:20  
-13:53:20   ✓ Generating static pages (13/13) 
-13:53:20     Finalizing page optimization ...
-13:53:20     Collecting build traces ...
-13:53:59  
-13:53:59  Route (app)                              Size     First Load JS
-13:53:59  ┌ ○ /                                    174 B          91.2 kB
-13:53:59  ├ ○ /_not-found                          882 B          85.1 kB
-13:53:59  ├ ○ /admin                               3.64 kB        94.7 kB
-13:53:59  ├ ○ /admin/articles                      5.5 kB         96.5 kB
-13:53:59  ├ λ /admin/articles/[id]                 8.88 kB        99.9 kB
-13:53:59  ├ ○ /admin/comments                      3.69 kB        87.9 kB
-13:53:59  ├ ○ /admin/performance                   2.67 kB        86.9 kB
-13:53:59  ├ ○ /admin/seo                           2.82 kB        87.1 kB
-13:53:59  ├ ○ /admin/settings                      3.41 kB        87.6 kB
-13:53:59  ├ ○ /admin/users                         6.25 kB        90.5 kB
-13:53:59  ├ ○ /blog                                6.49 kB         119 kB
-13:53:59  ├ λ /blog/[slug]                         3.71 kB         116 kB
-13:53:59  └ ○ /login                               2.93 kB         123 kB
-13:53:59  + First Load JS shared by all            84.2 kB
-13:53:59    ├ chunks/69-f3616b824c405aea.js        28.9 kB
-13:53:59    ├ chunks/fd9d1056-dc904de720f6568a.js  53.4 kB
-13:53:59    └ other shared chunks (total)          1.96 kB
-13:53:59  
-13:53:59  
-13:53:59  ○  (Static)   prerendered as static content
-13:53:59  λ  (Dynamic)  server-rendered on demand using Node.js
-13:53:59  
-13:53:59  [91mnpm notice
-13:53:59  npm notice New major version of npm available! 10.8.2 -> 11.10.1
-13:53:59  npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
-13:53:59  npm notice To update run: npm install -g npm@11.10.1
-13:53:59  npm notice
-13:53:59  [0m ---> Removed intermediate container e8e25b7f3f83
-13:53:59   ---> 187f6f5921b2
-13:53:59  Step 13/26 : FROM node:18-alpine AS runner
-13:53:59   ---> ee77c6cd7c18
-13:53:59  Step 14/26 : WORKDIR /app
-13:53:59   ---> Using cache
-13:53:59   ---> 336f08cbe680
-13:53:59  Step 15/26 : ENV NODE_ENV production
-13:53:59   ---> Using cache
-13:53:59   ---> d15842f30e57
-13:53:59  Step 16/26 : ENV NEXT_TELEMETRY_DISABLED 1
-13:53:59   ---> Using cache
-13:53:59   ---> 155d5765f22a
-13:53:59  Step 17/26 : RUN addgroup --system --gid 1001 nodejs
-13:53:59   ---> Using cache
-13:53:59   ---> 772370f37aa6
-13:53:59  Step 18/26 : RUN adduser --system --uid 1001 nextjs
-13:53:59   ---> Using cache
-13:53:59   ---> cb1c242b6f45
-13:53:59  Step 19/26 : RUN mkdir -p ./public
-13:53:59   ---> Using cache
-13:53:59   ---> fe0667c1e3b5
-13:53:59  Step 20/26 : COPY --from=builder /app/public ./public
-13:53:59   ---> Using cache
-13:53:59   ---> ec5de5c03d2b
-13:53:59  Step 21/26 : COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-13:54:04   ---> dee960d95c9b
-13:54:04  Step 22/26 : COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-13:54:04   ---> 860e16df76e3
-13:54:04  Step 23/26 : USER nextjs
-13:54:04   ---> Running in 1fa86df01ade
-13:54:04   ---> Removed intermediate container 1fa86df01ade
-13:54:04   ---> e475f4cdde1f
-13:54:04  Step 24/26 : EXPOSE 3000
-13:54:04   ---> Running in 1be4a30322f6
-13:54:04   ---> Removed intermediate container 1be4a30322f6
-13:54:04   ---> 6257cad2cdbf
-13:54:04  Step 25/26 : ENV PORT 3000
-13:54:04   ---> Running in 01645c302ebd
-13:54:04   ---> Removed intermediate container 01645c302ebd
-13:54:04   ---> c732994f9a7a
-13:54:04  Step 26/26 : CMD ["node", "server.js"]
-13:54:04   ---> Running in 1058c554b207
-13:54:04   ---> Removed intermediate container 1058c554b207
-13:54:04   ---> 3b8455e5c3c9
-13:54:04  Successfully built 3b8455e5c3c9
-13:54:04  Successfully tagged thienduong2909/devops-blog-client:30
-13:54:04  Successfully tagged thienduong2909/devops-blog-client:latest
+14:26:00  + docker build -t thienduong2909/devops-blog-client:31 -t thienduong2909/devops-blog-client:latest -f Dockerfile .
+14:26:00  DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+14:26:00              Install the buildx component to build images with BuildKit:
+14:26:00              https://docs.docker.com/go/buildx/
+14:26:00  
+14:26:00  Sending build context to Docker daemon  635.9kB
+14:26:00  
+14:26:00  Step 1/26 : FROM node:18-alpine AS deps
+14:26:00   ---> ee77c6cd7c18
+14:26:00  Step 2/26 : RUN apk add --no-cache libc6-compat
+14:26:00   ---> Using cache
+14:26:00   ---> 8c6b5f3d3b80
+14:26:00  Step 3/26 : WORKDIR /app
+14:26:00   ---> Using cache
+14:26:00   ---> 3118c251ab35
+14:26:00  Step 4/26 : COPY package*.json ./
+14:26:00   ---> Using cache
+14:26:00   ---> 3fcc5648b223
+14:26:00  Step 5/26 : RUN npm ci
+14:26:00   ---> Using cache
+14:26:00   ---> 175b8c67a52c
+14:26:00  Step 6/26 : FROM node:18-alpine AS builder
+14:26:00   ---> ee77c6cd7c18
+14:26:00  Step 7/26 : WORKDIR /app
+14:26:00   ---> Using cache
+14:26:00   ---> 336f08cbe680
+14:26:00  Step 8/26 : COPY --from=deps /app/node_modules ./node_modules
+14:26:00   ---> Using cache
+14:26:00   ---> 9b204607fbfa
+14:26:00  Step 9/26 : COPY . .
+14:26:00   ---> 7d59dae98bb4
+14:26:00  Step 10/26 : ENV NEXT_TELEMETRY_DISABLED=1
+14:26:00   ---> Running in 4cda2c941354
+14:26:00   ---> Removed intermediate container 4cda2c941354
+14:26:00   ---> c5b3b92a27a0
+14:26:00  Step 11/26 : ENV NODE_OPTIONS="--max-old-space-size=1024"
+14:26:00   ---> Running in 8acbdbd72789
+14:26:00   ---> Removed intermediate container 8acbdbd72789
+14:26:00   ---> 2509856fe537
+14:26:00  Step 12/26 : RUN npm run build
+14:26:00   ---> Running in 34398c09b42c
+
+14:26:02  
+14:26:02  > devops-blog-client@1.0.0 build
+14:26:02  > next build
+14:26:02  
+
+14:26:04     ▲ Next.js 14.1.0
+14:26:04     - Environments: .env.production
+14:26:04  
+14:26:04     Creating an optimized production build ...
+
+14:26:36   ✓ Compiled successfully
+14:26:36     Linting and checking validity of types ...
+
+14:26:48     Collecting page data ...
+
+14:26:50     Generating static pages (0/13) ...
+14:26:51  [91m
+14:26:51   ⚠ metadata.metadataBase is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+
+14:26:51  [0m
+14:26:51     Generating static pages (3/13) 
+14:26:52  
+14:26:52     Generating static pages (6/13) 
+14:26:52  
+14:26:52     Generating static pages (9/13) 
+14:26:52  
+14:26:52   ✓ Generating static pages (13/13) 
+
+14:26:54     Finalizing page optimization ...
+14:26:54     Collecting build traces ...
+
+14:27:32  
+14:27:32  Route (app)                              Size     First Load JS
+14:27:32  ┌ ○ /                                    174 B          91.2 kB
+14:27:32  ├ ○ /_not-found                          882 B          85.1 kB
+14:27:32  ├ ○ /admin                               3.64 kB        94.7 kB
+14:27:32  ├ ○ /admin/articles                      5.5 kB         96.5 kB
+14:27:32  ├ λ /admin/articles/[id]                 8.88 kB        99.9 kB
+14:27:32  ├ ○ /admin/comments                      3.69 kB        87.9 kB
+14:27:32  ├ ○ /admin/performance                   2.67 kB        86.9 kB
+14:27:32  ├ ○ /admin/seo                           2.82 kB        87.1 kB
+14:27:32  ├ ○ /admin/settings                      3.41 kB        87.6 kB
+14:27:32  ├ ○ /admin/users                         6.25 kB        90.5 kB
+14:27:32  ├ ○ /blog                                6.49 kB         119 kB
+14:27:32  ├ λ /blog/[slug]                         3.71 kB         116 kB
+14:27:32  └ ○ /login                               2.93 kB         123 kB
+14:27:32  + First Load JS shared by all            84.2 kB
+14:27:32    ├ chunks/69-f3616b824c405aea.js        28.9 kB
+14:27:32    ├ chunks/fd9d1056-dc904de720f6568a.js  53.4 kB
+14:27:32    └ other shared chunks (total)          1.96 kB
+14:27:32  
+14:27:32  
+14:27:32  ○  (Static)   prerendered as static content
+14:27:32  λ  (Dynamic)  server-rendered on demand using Node.js
+14:27:32  
+14:27:32  [91mnpm notice
+14:27:32  npm notice New major version of npm available! 10.8.2 -> 11.10.1
+14:27:32  npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
+14:27:32  npm notice To update run: npm install -g npm@11.10.1
+14:27:32  npm notice
+14:27:32  [0m ---> Removed intermediate container 34398c09b42c
+14:27:32   ---> 49d7cd1c1f6b
+14:27:32  Step 13/26 : FROM node:18-alpine AS runner
+14:27:32   ---> ee77c6cd7c18
+14:27:32  Step 14/26 : WORKDIR /app
+14:27:32   ---> Using cache
+14:27:32   ---> 336f08cbe680
+14:27:32  Step 15/26 : ENV NODE_ENV production
+14:27:32   ---> Using cache
+14:27:32   ---> d15842f30e57
+14:27:32  Step 16/26 : ENV NEXT_TELEMETRY_DISABLED 1
+14:27:32   ---> Using cache
+14:27:32   ---> 155d5765f22a
+14:27:32  Step 17/26 : RUN addgroup --system --gid 1001 nodejs
+14:27:32   ---> Using cache
+14:27:32   ---> 772370f37aa6
+14:27:32  Step 18/26 : RUN adduser --system --uid 1001 nextjs
+14:27:32   ---> Using cache
+14:27:32   ---> cb1c242b6f45
+14:27:32  Step 19/26 : RUN mkdir -p ./public
+14:27:32   ---> Using cache
+14:27:32   ---> fe0667c1e3b5
+14:27:32  Step 20/26 : COPY --from=builder /app/public ./public
+14:27:32   ---> Using cache
+14:27:32   ---> ec5de5c03d2b
+14:27:32  Step 21/26 : COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+
+14:27:35   ---> 7328b7a5224a
+14:27:35  Step 22/26 : COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+14:27:35   ---> cdff4024e583
+14:27:35  Step 23/26 : USER nextjs
+14:27:35   ---> Running in e1d6a948d34d
+14:27:35   ---> Removed intermediate container e1d6a948d34d
+14:27:35   ---> b35bbf4ca651
+14:27:35  Step 24/26 : EXPOSE 3000
+14:27:35   ---> Running in 72e433d04583
+14:27:35   ---> Removed intermediate container 72e433d04583
+14:27:35   ---> 6768ad54beca
+14:27:35  Step 25/26 : ENV PORT 3000
+14:27:35   ---> Running in 8a6e2252ee5e
+14:27:35   ---> Removed intermediate container 8a6e2252ee5e
+14:27:35   ---> adde2e305f75
+14:27:35  Step 26/26 : CMD ["node", "server.js"]
+14:27:35   ---> Running in 3932e3aba00f
+14:27:35   ---> Removed intermediate container 3932e3aba00f
+14:27:35   ---> 27836c04eb67
+14:27:35  Successfully built 27836c04eb67
+14:27:35  Successfully tagged thienduong2909/devops-blog-client:31
+14:27:35  Successfully tagged thienduong2909/devops-blog-client:latest
 [Pipeline] sh
-13:54:05  + docker push thienduong2909/devops-blog-client:30
-13:54:05  The push refers to repository [docker.io/thienduong2909/devops-blog-client]
-13:54:05  fa7accbfbf0e: Preparing
-13:54:05  00e54d12dc22: Preparing
-13:54:05  48daf75d64af: Preparing
-13:54:05  42c7c4f1dde1: Preparing
-13:54:05  5715ec15ac9c: Preparing
-13:54:05  14a1931c73d5: Preparing
-13:54:05  95ac48b37f4d: Preparing
-13:54:05  82140d9a70a7: Preparing
-13:54:05  f3b40b0cdb1c: Preparing
-13:54:05  0b1f26057bd0: Preparing
-13:54:05  08000c18d16d: Preparing
-13:54:05  14a1931c73d5: Waiting
-13:54:05  95ac48b37f4d: Waiting
-13:54:05  82140d9a70a7: Waiting
-13:54:05  f3b40b0cdb1c: Waiting
-13:54:05  0b1f26057bd0: Waiting
-13:54:05  08000c18d16d: Waiting
-13:54:07  42c7c4f1dde1: Layer already exists
-13:54:07  48daf75d64af: Layer already exists
-13:54:07  5715ec15ac9c: Layer already exists
-13:54:07  denied: requested access to the resource is denied
+
+14:27:36  + docker push thienduong2909/devops-blog-client:31
+14:27:36  The push refers to repository [docker.io/thienduong2909/devops-blog-client]
+14:27:36  bf1ed43ccb3f: Preparing
+14:27:36  5905fd232af5: Preparing
+14:27:36  48daf75d64af: Preparing
+14:27:36  42c7c4f1dde1: Preparing
+14:27:36  5715ec15ac9c: Preparing
+14:27:36  14a1931c73d5: Preparing
+14:27:36  95ac48b37f4d: Preparing
+14:27:36  82140d9a70a7: Preparing
+14:27:36  f3b40b0cdb1c: Preparing
+14:27:36  0b1f26057bd0: Preparing
+14:27:36  08000c18d16d: Preparing
+14:27:36  14a1931c73d5: Waiting
+14:27:36  95ac48b37f4d: Waiting
+14:27:36  82140d9a70a7: Waiting
+14:27:36  f3b40b0cdb1c: Waiting
+14:27:36  0b1f26057bd0: Waiting
+14:27:36  08000c18d16d: Waiting
+
+14:27:37  42c7c4f1dde1: Layer already exists
+14:27:37  48daf75d64af: Layer already exists
+14:27:37  5715ec15ac9c: Layer already exists
+
+14:27:38  14a1931c73d5: Layer already exists
+14:27:38  95ac48b37f4d: Layer already exists
+14:27:38  82140d9a70a7: Layer already exists
+14:27:39  f3b40b0cdb1c: Layer already exists
+14:27:39  08000c18d16d: Layer already exists
+14:27:39  0b1f26057bd0: Layer already exists
+
+14:27:49  5905fd232af5: Retrying in 5 seconds
+14:27:49  5905fd232af5: Retrying in 4 seconds
+
+14:27:50  5905fd232af5: Retrying in 3 seconds
+
+14:27:51  5905fd232af5: Retrying in 2 seconds
+
+14:27:52  5905fd232af5: Retrying in 1 second
+
+14:27:57  bf1ed43ccb3f: Pushed
+
+14:27:59  5905fd232af5: Pushed
+
+14:28:07  31: digest: sha256:b8d8751361eb6b959ed8b0955557b7fdb7c31385d2780084798c2a70f728e7a2 size: 2613
+[Pipeline] sh
+14:28:08  + docker push thienduong2909/devops-blog-client:latest
+14:28:08  The push refers to repository [docker.io/thienduong2909/devops-blog-client]
+14:28:08  bf1ed43ccb3f: Preparing
+14:28:08  5905fd232af5: Preparing
+14:28:08  48daf75d64af: Preparing
+14:28:08  42c7c4f1dde1: Preparing
+14:28:08  5715ec15ac9c: Preparing
+14:28:08  14a1931c73d5: Preparing
+14:28:08  95ac48b37f4d: Preparing
+14:28:08  82140d9a70a7: Preparing
+14:28:08  f3b40b0cdb1c: Preparing
+14:28:08  0b1f26057bd0: Preparing
+14:28:08  08000c18d16d: Preparing
+14:28:08  14a1931c73d5: Waiting
+14:28:08  95ac48b37f4d: Waiting
+14:28:08  82140d9a70a7: Waiting
+14:28:08  f3b40b0cdb1c: Waiting
+14:28:08  0b1f26057bd0: Waiting
+14:28:08  08000c18d16d: Waiting
+
+14:28:10  48daf75d64af: Layer already exists
+14:28:10  5905fd232af5: Layer already exists
+14:28:10  bf1ed43ccb3f: Layer already exists
+14:28:10  5715ec15ac9c: Layer already exists
+14:28:10  42c7c4f1dde1: Layer already exists
+14:28:10  95ac48b37f4d: Layer already exists
+14:28:10  14a1931c73d5: Layer already exists
+14:28:10  f3b40b0cdb1c: Layer already exists
+14:28:10  82140d9a70a7: Layer already exists
+14:28:10  0b1f26057bd0: Layer already exists
+14:28:11  08000c18d16d: Layer already exists
+
+14:28:15  latest: digest: sha256:b8d8751361eb6b959ed8b0955557b7fdb7c31385d2780084798c2a70f728e7a2 size: 2613
 [Pipeline] }
 [Pipeline] // withCredentials
 [Pipeline] }
@@ -514,42 +612,122 @@ Timeout set to expire in 30 min
 [Pipeline] // stage
 [Pipeline] stage
 [Pipeline] { (Update K8s Manifest)
-Stage "Update K8s Manifest" skipped due to earlier failure(s)
-[Pipeline] getContext
+[Pipeline] tool
+[Pipeline] envVarsForTool
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] script
+[Pipeline] {
+[Pipeline] echo
+14:28:15  Updating Kubernetes manifest repository with new image version...
+[Pipeline] dir
+14:28:15  Running in /var/jenkins_home/workspace/Blog_web_multi_fe_main/k8s-repo
+[Pipeline] {
+[Pipeline] checkout
+14:28:15  The recommended git tool is: NONE
+14:28:15  using credential github-access-token
+14:28:15  Cloning the remote Git repository
+14:28:15  Using shallow clone with depth 1
+14:28:15  Cloning repository https://github.com/ThienDuong2909/Blog_K8S.git
+14:28:15   > git init /var/jenkins_home/workspace/Blog_web_multi_fe_main/k8s-repo # timeout=10
+14:28:15  Fetching upstream changes from https://github.com/ThienDuong2909/Blog_K8S.git
+14:28:15   > git --version # timeout=10
+14:28:15   > git --version # 'git version 2.47.3'
+14:28:15  using GIT_ASKPASS to set credentials 
+14:28:15   > git fetch --tags --force --progress --depth=1 -- https://github.com/ThienDuong2909/Blog_K8S.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+
+14:28:17   > git config remote.origin.url https://github.com/ThienDuong2909/Blog_K8S.git # timeout=10
+14:28:17   > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+14:28:17  Avoid second fetch
+14:28:17   > git rev-parse origin/main^{commit} # timeout=10
+14:28:17  Checking out Revision 837c61f973257d358774262b08cdafe6db69cb3b (origin/main)
+14:28:17   > git config core.sparsecheckout # timeout=10
+14:28:17   > git checkout -f 837c61f973257d358774262b08cdafe6db69cb3b # timeout=10
+14:28:17  Commit message: "chore(ci): update image version to 29"
+14:28:17  First time build. Skipping changelog.
+
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] withCredentials
+14:28:18  Masking supported pattern matches of $GIT_TOKEN
+[Pipeline] {
+[Pipeline] dir
+14:28:18  Running in /var/jenkins_home/workspace/Blog_web_multi_fe_main/k8s-repo
+[Pipeline] {
+[Pipeline] sh
+14:28:18  + git config user.email jenkins-bot@thienduong.info
+[Pipeline] sh
+14:28:19  + git config user.name Jenkins Bot
+[Pipeline] sh
+
+14:28:19  + sed -i s|image: thienduong2909/devops-blog-client:.*|image: thienduong2909/devops-blog-client:31| deployment.yaml
+[Pipeline] echo
+14:28:19  Verifying changes in deployment.yaml:
+[Pipeline] sh
+14:28:19  + grep image: deployment.yaml
+14:28:19            image: thienduong2909/devops-blog-client:31
+[Pipeline] sh
+14:28:19  + git add deployment.yaml
+[Pipeline] sh
+
+14:28:20  + git diff-index --quiet HEAD
+[Pipeline] sh
+14:28:20  + git commit -m chore(ci): update client image to 31
+14:28:20  [detached HEAD 37462be] chore(ci): update client image to 31
+14:28:20   1 file changed, 1 insertion(+), 1 deletion(-)
+[Pipeline] sh
+14:28:20  + git remote set-url origin https://ThienDuong2909:****@github.com/ThienDuong2909/Blog_K8S.git
+[Pipeline] sh
+14:28:21  + git push origin main
+14:28:21  error: src refspec main does not match any
+14:28:21  error: failed to push some refs to 'https://github.com/ThienDuong2909/Blog_K8S.git'
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // withCredentials
+
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // withEnv
 [Pipeline] }
 [Pipeline] // stage
 [Pipeline] stage
 [Pipeline] { (Declarative: Post Actions)
 [Pipeline] echo
-13:54:07  Performing post-build cleanup...
+14:28:21  Performing post-build cleanup...
 [Pipeline] sh
-13:54:08  + rm -f .env.production
+14:28:21  + rm -f .env.production
 [Pipeline] sh
-13:54:08  + docker logout
-13:54:08  Removing login credentials for https://index.docker.io/v1/
+14:28:22  + docker logout
+14:28:22  Removing login credentials for https://index.docker.io/v1/
 [Pipeline] sh
-13:54:08  + rm -rf k8s-repo
+
+14:28:22  + rm -rf k8s-repo
 [Pipeline] sh
-13:54:08  + docker rmi thienduong2909/devops-blog-client:30 thienduong2909/devops-blog-client:latest
-13:54:08  Untagged: thienduong2909/devops-blog-client:30
-13:54:08  Untagged: thienduong2909/devops-blog-client:latest
-13:54:08  Deleted: sha256:3b8455e5c3c9d6c584ff4c248513bdde68a16fe18035cb0a4782ef02a748bed7
-13:54:08  Deleted: sha256:c732994f9a7ae0c0aee96b56e97eebf66755383265ec6da4d80b5ff2f3e6c851
-13:54:08  Deleted: sha256:6257cad2cdbf81ee9ba40f1b336270dca6d6a4f3eaf3070c6bd8ddcad695d56a
-13:54:08  Deleted: sha256:e475f4cdde1f49d93dd42bba09fcc318d4587fdb6adf8ca2b2b6d36f81362695
-13:54:08  Deleted: sha256:860e16df76e327e4534a41a516af6a7b2eae7c74d98a2f4c4da18c0a4f0874a9
-13:54:08  Deleted: sha256:70a802198d32d0069b64c9373f2a256251ff82327933beda53751c22dadcb719
-13:54:08  Deleted: sha256:dee960d95c9ba6c9f2fa29cadb4dd14230642789c336f63f387af06d1d962649
-13:54:08  Deleted: sha256:30f5f37e6f87ebc364f91ed21590ee9d4de8b3ee6b4d7668f25b3eb09205bba5
+14:28:22  + docker rmi thienduong2909/devops-blog-client:31 thienduong2909/devops-blog-client:latest
+14:28:22  Untagged: thienduong2909/devops-blog-client:31
+14:28:22  Untagged: thienduong2909/devops-blog-client:latest
+14:28:22  Untagged: thienduong2909/devops-blog-client@sha256:b8d8751361eb6b959ed8b0955557b7fdb7c31385d2780084798c2a70f728e7a2
+14:28:22  Deleted: sha256:27836c04eb67c09a677049b0f01ab6e03139d6c6378a6cb2acd6fc124446039f
+14:28:22  Deleted: sha256:adde2e305f75459d490b17f4a7565d01667255ebc074fea419a6d5420c090414
+14:28:22  Deleted: sha256:6768ad54beca71c2388446dec6cf388eb1640a7158a3aa01da67353ae74dfdcc
+14:28:22  Deleted: sha256:b35bbf4ca651f84e3011d75daf1804ed993bfdc993e21b3b39843d39f693aa23
+14:28:22  Deleted: sha256:cdff4024e583ba7bf1a2b1ccf3d188fa9eb799362995be75d7843be183ac184e
+14:28:22  Deleted: sha256:a6e64dd435091af3dd8bf19f3ea945b360b67b5e26c7ac7746a4cb000e74fc12
+14:28:22  Deleted: sha256:7328b7a5224a4db1d7ce694e449f65a8578253c602ad35b43e1785dc82835dff
+14:28:22  Deleted: sha256:6a60fc68dd16b846c285bad975bb8a2eff7b8a5926e90e168cec6c68a491ad9e
 [Pipeline] echo
-13:54:08  Pipeline failed at stage: Declarative: Post Actions. Check logs for details.
+14:28:22  Pipeline failed at stage: Declarative: Post Actions. Check logs for details.
 [Pipeline] cleanWs
-13:54:09  [WS-CLEANUP] Deleting project workspace...
-13:54:13  [WS-CLEANUP] done
+14:28:22  [WS-CLEANUP] Deleting project workspace...
+
+14:28:27  [WS-CLEANUP] done
 [Pipeline] }
 [Pipeline] // stage
 [Pipeline] }
 [Pipeline] // withEnv
+
 [Pipeline] }
 [Pipeline] // timestamps
 [Pipeline] }
@@ -562,6 +740,7 @@ Stage "Update K8s Manifest" skipped due to earlier failure(s)
 [Pipeline] // node
 [Pipeline] End of Pipeline
 ERROR: script returned exit code 1
+
 
 GitHub has been notified of this commit’s build result
 
