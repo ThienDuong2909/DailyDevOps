@@ -123,19 +123,35 @@ export default function BlogHomePage() {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const response = await apiClient.get<any>('/api/v1/posts/published?limit=12');
-                const responseData = response.data;
-                // Handle both { data: [...] } and direct array
-                const postsArray = Array.isArray(responseData)
-                    ? responseData
-                    : responseData?.data || [];
+                console.log('[Blog] Fetching posts from API...');
+                const response = await apiClient.get<any>('/api/v1/posts/published?limit=12&sortBy=publishedAt&sortOrder=asc');
+                
+                // After interceptor unwrap, response.data should be the posts array
+                // But be defensive about the response shape
+                const rawData = response.data;
+                console.log('[Blog] Response type:', typeof rawData, Array.isArray(rawData));
+                
+                let postsArray: Post[] = [];
+                if (Array.isArray(rawData)) {
+                    // Interceptor already unwrapped { success, data } → data (array)
+                    postsArray = rawData;
+                } else if (rawData && typeof rawData === 'object') {
+                    // Maybe interceptor didn't fire, or response has { data: [...], meta: {...} }
+                    if (Array.isArray(rawData.data)) {
+                        postsArray = rawData.data;
+                    }
+                }
+                
+                console.log('[Blog] Got', postsArray.length, 'posts from API');
+                
                 if (postsArray.length > 0) {
                     setPosts(postsArray);
                 } else {
+                    console.log('[Blog] No posts from API, using sample data');
                     setPosts(samplePosts);
                 }
             } catch (error) {
-                console.log('Using sample data');
+                console.warn('[Blog] API fetch failed, using sample data:', error);
                 setPosts(samplePosts);
             } finally {
                 setLoading(false);
