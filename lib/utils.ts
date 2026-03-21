@@ -89,3 +89,16 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Convert server-relative image path to full URL
+ * e.g., "/uploads/thumbnails/thumb.png" -> "http://localhost:3001/uploads/thumbnails/thumb.png"
+ */
+export function getImageUrl(path: string | null | undefined): string {
+    if (!path) return '';
+    // Already a full URL
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    // Server-relative path — prepend API base URL
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    return `${apiBase}${path.startsWith('/') ? '' : '/'}${path}`;
+}

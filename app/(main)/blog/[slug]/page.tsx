@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
-import { formatDate, getInitials } from '@/lib/utils';
+import { formatDate, getInitials, getImageUrl } from '@/lib/utils';
 import { PostCard } from '@/components/blog/post-card';
 import type { PostWithComments, Post } from '@/types';
 
@@ -72,13 +72,16 @@ export default function BlogDetailPage() {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const postData = await apiClient.get<PostWithComments>(`/api/v1/posts/slug/${slug}`);
+                const response = await apiClient.get<any>(`/api/v1/posts/slug/${slug}`);
+                // After interceptor unwrap: response.data = post object
+                const postData = response.data as PostWithComments;
                 setPost(postData);
 
                 // Fetch related posts
-                if (postData.id) {
-                    const related = await apiClient.get<Post[]>(`/api/v1/posts/${postData.id}/related?limit=3`);
-                    setRelatedPosts(related);
+                if (postData?.id) {
+                    const relatedResponse = await apiClient.get<any>(`/api/v1/posts/${postData.id}/related?limit=3`);
+                    const relatedData = relatedResponse.data;
+                    setRelatedPosts(Array.isArray(relatedData) ? relatedData : relatedData?.data || []);
                 }
             } catch (error) {
                 console.error('Failed to fetch post:', error);
@@ -165,7 +168,7 @@ export default function BlogDetailPage() {
                 {post.featuredImage && (
                     <div
                         className="aspect-video w-full rounded-xl bg-cover bg-center shadow-lg mb-10"
-                        style={{ backgroundImage: `url("${post.featuredImage}")` }}
+                        style={{ backgroundImage: `url("${getImageUrl(post.featuredImage)}")` }}
                     />
                 )}
             </section>

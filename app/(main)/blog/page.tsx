@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PostCard } from '@/components/blog/post-card';
 import { apiClient } from '@/lib/api';
+import { getImageUrl } from '@/lib/utils';
 import type { Post, Category, PaginatedResponse } from '@/types';
 
 // Sample posts for when API is unavailable
@@ -115,19 +116,27 @@ const samplePosts: Post[] = [
 const categories = ['All', 'CI/CD', 'Kubernetes', 'Cloud Architecture', 'Automation', 'Security'];
 
 export default function BlogHomePage() {
-    const [posts, setPosts] = useState<Post[]>(samplePosts);
+    const [posts, setPosts] = useState<Post[]>([]);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const response = await apiClient.get<PaginatedResponse<Post>>('/api/v1/posts/published?limit=6');
-                if (response.data && response.data.length > 0) {
-                    setPosts(response.data);
+                const response = await apiClient.get<any>('/api/v1/posts/published?limit=12');
+                const responseData = response.data;
+                // Handle both { data: [...] } and direct array
+                const postsArray = Array.isArray(responseData)
+                    ? responseData
+                    : responseData?.data || [];
+                if (postsArray.length > 0) {
+                    setPosts(postsArray);
+                } else {
+                    setPosts(samplePosts);
                 }
             } catch (error) {
                 console.log('Using sample data');
+                setPosts(samplePosts);
             } finally {
                 setLoading(false);
             }
@@ -136,9 +145,12 @@ export default function BlogHomePage() {
         fetchPosts();
     }, []);
 
+    const featuredPost = posts.length > 0 ? posts[0] : null;
+
     return (
         <div className="w-full max-w-[1280px] flex flex-col gap-8">
             {/* Hero Section */}
+            {featuredPost && (
             <section className="@container w-full">
                 <div className="flex flex-col-reverse md:flex-row gap-6 md:gap-10 items-center bg-surface-light dark:bg-surface-dark rounded-2xl p-6 md:p-8 lg:p-10 border border-gray-100 dark:border-gray-800 shadow-sm">
                     {/* Text Content */}
@@ -148,20 +160,19 @@ export default function BlogHomePage() {
                             Featured Article
                         </div>
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-text-main dark:text-white leading-tight tracking-[-0.033em]">
-                            Mastering Kubernetes: A Guide for 2024
+                            {featuredPost.title}
                         </h1>
                         <p className="text-text-sub dark:text-gray-400 text-base md:text-lg leading-relaxed">
-                            Learn the orchestration secrets that will scale your infrastructure efficiently and
-                            reliably. We dive deep into new scheduling algorithms and security patterns.
+                            {featuredPost.excerpt || 'Discover the latest insights and best practices in DevOps.'}
                         </p>
                         <div className="flex items-center gap-4 pt-2">
                             <Link
-                                href="/blog/mastering-kubernetes-autoscaling-2024"
+                                href={`/blog/${featuredPost.slug}`}
                                 className="flex items-center justify-center rounded-lg h-12 px-6 bg-primary hover:bg-primary-dark text-white text-base font-bold shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5"
                             >
                                 Read Article
                             </Link>
-                            <span className="text-sm text-text-sub">8 min read</span>
+                            <span className="text-sm text-text-sub">{featuredPost.readingTime || 5} min read</span>
                         </div>
                     </div>
                     {/* Image */}
@@ -169,12 +180,13 @@ export default function BlogHomePage() {
                         <div
                             className="w-full h-full bg-cover bg-center hover:scale-105 transition-transform duration-700"
                             style={{
-                                backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuCSD2g46KGqb9cGeS82Ec7BfIxg_KbzsZai-Dqyp-kXF22UR6X4yO0_enwCDCa6jSILQkNRhrO-qbNfP28DSjYc3R-LPS8-G-L8OGHYObrLWkSLfIiiV9yuXcIe7RlEshs58ng5Wca4SMVAxh_1KNrYC5g9xvgBqPF7DnBymxGSne4D6OEwRIOQbNEoCDnm6rRwENW4otkn5gG2aladZ8NgWhva1deiWykR5JBCyTbXzvA6UWwzb2W30j-hur9RiZ5z9FuU2mx2CaH1")`,
+                                backgroundImage: `url("${getImageUrl(featuredPost.featuredImage)}")`,
                             }}
                         />
                     </div>
                 </div>
             </section>
+            )}
 
             {/* Category Chips (Filters) */}
             <section className="flex flex-wrap gap-3 py-2 items-center">
@@ -217,7 +229,7 @@ export default function BlogHomePage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {posts.map((post) => (
+                            {posts.slice(1).map((post) => (
                                 <PostCard key={post.id} post={post} />
                             ))}
                         </div>
