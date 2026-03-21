@@ -136,18 +136,10 @@ export default function LoginPage() {
                             </div>
                         </form>
 
-                        {/* Test Credentials Info */}
-                        <div className="mt-6 p-4 bg-[#f6f7f8] dark:bg-[#111418] rounded-lg text-center">
-                            <p className="text-xs text-[#617589] mb-1">Test Credentials</p>
-                            <p className="text-sm text-[#111418] dark:text-white font-mono">
-                                admin@devopsblog.com / Admin@123
-                            </p>
-                        </div>
-
                         {/* Footer/Copyright */}
                         <div className="mt-8 text-center">
                             <p className="text-xs text-[#617589] dark:text-gray-500">
-                                © 2024 DevOps Blog. All rights reserved.
+                                © 2026 DevOps Blog. All rights reserved.
                             </p>
                         </div>
                     </div>

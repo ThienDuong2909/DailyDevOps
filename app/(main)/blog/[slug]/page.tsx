@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { formatDate, getInitials } from '@/lib/utils';
 import { PostCard } from '@/components/blog/post-card';
 import type { PostWithComments, Post } from '@/types';
+
+interface TocItem {
+    id: string;
+    text: string;
+    level: number;
+}
 
 export default function BlogDetailPage() {
     const params = useParams();
@@ -15,6 +21,53 @@ export default function BlogDetailPage() {
     const [post, setPost] = useState<PostWithComments | null>(null);
     const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+    const [readingProgress, setReadingProgress] = useState(0);
+    const [tocItems, setTocItems] = useState<TocItem[]>([]);
+    const [activeTocId, setActiveTocId] = useState('');
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    // Reading progress bar
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+            setReadingProgress(Math.min(100, progress));
+
+            // Active TOC tracking
+            if (contentRef.current) {
+                const headings = contentRef.current.querySelectorAll('h2, h3');
+                let currentId = '';
+                headings.forEach((heading) => {
+                    const rect = heading.getBoundingClientRect();
+                    if (rect.top <= 120) {
+                        currentId = heading.id;
+                    }
+                });
+                if (currentId) setActiveTocId(currentId);
+            }
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Extract TOC from content after render
+    useEffect(() => {
+        if (contentRef.current) {
+            const headings = contentRef.current.querySelectorAll('h2, h3');
+            const items: TocItem[] = [];
+            headings.forEach((heading, i) => {
+                const id = heading.id || `heading-${i}`;
+                heading.id = id;
+                items.push({
+                    id,
+                    text: heading.textContent || '',
+                    level: heading.tagName === 'H2' ? 2 : 3,
+                });
+            });
+            setTocItems(items);
+        }
+    }, [post]);
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -64,6 +117,13 @@ export default function BlogDetailPage() {
 
     return (
         <div className="min-h-screen bg-white dark:bg-background-dark">
+            {/* Reading Progress Bar */}
+            <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-transparent">
+                <div
+                    className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-150 ease-out shadow-lg shadow-primary/20"
+                    style={{ width: `${readingProgress}%` }}
+                />
+            </div>
             {/* Article Header */}
             <section className="max-w-4xl mx-auto px-4 lg:px-8 pt-10">
                 {/* Breadcrumb */}
@@ -116,6 +176,7 @@ export default function BlogDetailPage() {
                     {/* Main Content */}
                     <article className="lg:col-span-8">
                         <div
+                            ref={contentRef}
                             className="prose prose-lg dark:prose-invert max-w-none"
                             dangerouslySetInnerHTML={{ __html: post.content }}
                         />
@@ -162,20 +223,26 @@ export default function BlogDetailPage() {
                             {/* Table of Contents */}
                             <div className="p-5 bg-[#f9fafb] dark:bg-surface-dark rounded-xl">
                                 <h4 className="font-bold text-[#111418] dark:text-white mb-4">On this page</h4>
-                                <ul className="space-y-2 text-sm">
-                                    <li>
-                                        <a href="#" className="text-primary hover:underline">Introduction</a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="text-[#617589] hover:text-primary">Getting Started</a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="text-[#617589] hover:text-primary">Best Practices</a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="text-[#617589] hover:text-primary">Conclusion</a>
-                                    </li>
-                                </ul>
+                                {tocItems.length > 0 ? (
+                                    <ul className="space-y-2 text-sm">
+                                        {tocItems.map((item) => (
+                                            <li key={item.id} style={{ paddingLeft: item.level === 3 ? '1rem' : '0' }}>
+                                                <a
+                                                    href={`#${item.id}`}
+                                                    className={`hover:text-primary transition-colors ${
+                                                        activeTocId === item.id ? 'text-primary font-medium' : 'text-[#617589]'
+                                                    }`}
+                                                >
+                                                    {item.text}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <ul className="space-y-2 text-sm">
+                                        <li><span className="text-[#617589]">No headings found</span></li>
+                                    </ul>
+                                )}
                             </div>
 
                             {/* Share */}

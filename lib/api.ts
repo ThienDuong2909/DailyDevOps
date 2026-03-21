@@ -61,8 +61,16 @@ const processQueue = (error: Error | null, token: string | null = null) => {
     failedQueue = [];
 };
 
+// Response interceptor - unwrap server envelope + handle token refresh
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Server wraps responses as { success: true, data: {...} }
+        // Unwrap the envelope so callers get the inner data directly
+        if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+            response.data = response.data.data !== undefined ? response.data.data : response.data;
+        }
+        return response;
+    },
     async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
@@ -88,13 +96,13 @@ api.interceptors.response.use(
             try {
                 // Try to refresh the token
                 const response = await api.post('/api/v1/auth/refresh');
-                const { accessToken: newToken } = response.data;
+                const newToken = response.data?.accessToken || response.data;
 
-                setAccessToken(newToken);
-                processQueue(null, newToken);
+                setAccessToken(typeof newToken === 'string' ? newToken : newToken?.accessToken);
+                processQueue(null, typeof newToken === 'string' ? newToken : newToken?.accessToken);
 
                 if (originalRequest.headers) {
-                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    originalRequest.headers.Authorization = `Bearer ${typeof newToken === 'string' ? newToken : newToken?.accessToken}`;
                 }
 
                 return api(originalRequest);

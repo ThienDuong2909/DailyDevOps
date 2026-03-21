@@ -1,502 +1,291 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { apiClient } from '@/lib/api';
+import type { Post, PaginatedResponse } from '@/types';
+import { formatDate } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
-// ==============================================
-// TYPE DEFINITIONS
-// ==============================================
-
-interface Article {
-    id: string;
-    title: string;
-    slug: string;
-    excerpt: string;
-    author: {
-        name: string;
-        avatar: string;
-    };
-    category: string;
-    status: 'PUBLISHED' | 'DRAFT' | 'SCHEDULED' | 'ARCHIVED';
-    views: number;
-    comments: number;
-    publishedAt: string;
-    updatedAt: string;
-    featuredImage: string;
-}
-
-// ==============================================
-// SAMPLE DATA - Replace with API data
-// ==============================================
-
-const sampleArticles: Article[] = [
-    {
-        id: '1',
-        title: 'Mastering Kubernetes Network Policies',
-        slug: 'mastering-k8s-network-policies',
-        excerpt: 'Learn how to secure your Kubernetes cluster networking using Network Policies...',
-        author: {
-            name: 'Sarah L.',
-            avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnZCGrFGbf56yICttdpKRprUs_mwoAgImdoVlhbNKWHqRKW2e27qdhlrPimlZCwVIF-7V1G1a9zwlq4ZwdklZU8RUjUiTDl6bo_8yZBSVtDDE0hFslldpMjG7zKKB2ow3WE60B__RiO6y29cv9V_msqpeVKYhPA4eQ1mUPkS0WMWYOIkA-BAokhITO8h1TXcBUpdtxsC255HBYSOQaWpo3RP6EEfbgHkw89YcnwA4MHEG1uD_r2dFywFjjJvFazSj75LEBniC7C1Jm',
-        },
-        category: 'Kubernetes',
-        status: 'PUBLISHED',
-        views: 12405,
-        comments: 34,
-        publishedAt: 'Oct 24, 2023',
-        updatedAt: '2 hours ago',
-        featuredImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjEysfTyZ26PBX00Mx5FFP2GgQRsdNrPg8sJsdQ22KmvBSGAM7oMMbGZnrssdVDysi-UmYHyE1mOBADvOky1iW_8XrD6CHzoOx68FhljxVlFeDkc_I4d_4tGEoDeOqcZ54UmhRLnt7ImMZa-OZ18uoN4DCzxXO2_h4RpK7MKwGXxXbHQoGTJFDmeFfvYAbOD9zLB1gizkpnQ7VSvTm016qCwhUAZ9RJpN-UlABamA0Vdjj7lvRhLIL5BmBCMbeF9Z359osv4QaMSE2',
-    },
-    {
-        id: '2',
-        title: 'CI/CD Pipeline Best Practices for 2024',
-        slug: 'cicd-best-practices-2024',
-        excerpt: 'Discover the latest strategies for building efficient CI/CD pipelines...',
-        author: {
-            name: 'Mike R.',
-            avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD8_5VEGoMEkoBd2TLyY-qDhLB9bNFIFrvlEn2xusfrKZGABnfe-HfHMrSoTzIZWHA_DvYkF7auOEs4knWmgYas-saCZm06BxZsOkO_d7T-m5aYpPdwAIVDn833q_ekX0M3YDFTCnQtUOvzInLL0ADVPpfejfzy37j4ZIQVjQB7FfgaQTkniwbcKe3RfstsAkNf9bdzhYkYckTQ1atbK0-_Ve2ZFwlgAmqzcMQ3dOTCmPRRozVSMyd7USjSwU-EHeVV3Wb2jRlTh27R',
-        },
-        category: 'CI/CD',
-        status: 'DRAFT',
-        views: 0,
-        comments: 0,
-        publishedAt: '-',
-        updatedAt: '5 mins ago',
-        featuredImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBorMuWccEsO-365PD-J3ATEJq8PhpyU_A3oQjRX1bRo89MR3qecATcyBlzJfrlU7gvmdUVmrvYoZRlf6caYDPyJTI8YWDOEd4vbt39NM6A2MJwk8h6OMS07FoiPiz6xzq35_PXPXaXD6eAy03p1nFxYGlKmDP7fso1x1UfSYLyUWrph75ulp8rbWi9phwZ2VoNLu9jQOiF1sC8JZIsOQBa-nGWDa1FfBFjqjyLJ-h0MXOsHWMMMnqDS_hVJ1PAU7YjWx9UAPPG7u8c',
-    },
-    {
-        id: '3',
-        title: 'Docker Security Hardening Guide',
-        slug: 'docker-security-hardening',
-        excerpt: 'Best practices for securing your Docker containers in production...',
-        author: {
-            name: 'Sarah L.',
-            avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnZCGrFGbf56yICttdpKRprUs_mwoAgImdoVlhbNKWHqRKW2e27qdhlrPimlZCwVIF-7V1G1a9zwlq4ZwdklZU8RUjUiTDl6bo_8yZBSVtDDE0hFslldpMjG7zKKB2ow3WE60B__RiO6y29cv9V_msqpeVKYhPA4eQ1mUPkS0WMWYOIkA-BAokhITO8h1TXcBUpdtxsC255HBYSOQaWpo3RP6EEfbgHkw89YcnwA4MHEG1uD_r2dFywFjjJvFazSj75LEBniC7C1Jm',
-        },
-        category: 'Security',
-        status: 'PUBLISHED',
-        views: 8234,
-        comments: 18,
-        publishedAt: 'Oct 22, 2023',
-        updatedAt: '1 day ago',
-        featuredImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDbFges7BUsPGve6Xv_EhG2O984geMaKzrf5qECqixxR5c5_f89wn1iVARgC7EY6vXGtY41fqTCwwPt8e_DwBDLUVR3KHm5uupVIX5DhBIod01RI-2WMNsKLlRC7PTVuD8oevbLGahiNhXj0NxgSSAsXPmImm7rhNzu3uFf4RDuq3stZ9fMq2RsYClZ2o3kIr6zzIz6IMXlFGwAB_QQSe2afE0ALPgt_M6saXO9KajSgyEOx77RcCEYAD8QLvn3GIKevDvxTswqTmzz',
-    },
-    {
-        id: '4',
-        title: 'Terraform vs Pulumi: Infrastructure as Code Comparison',
-        slug: 'terraform-vs-pulumi',
-        excerpt: 'A comprehensive comparison of two popular IaC tools...',
-        author: {
-            name: 'Alex Chen',
-            avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBo4tWoLcSoqXUxBW8uZNd5ovAGPWC4bD6oVyIgoFGSW9zceRwokNjTJ4ixebB6Fu0BPQjYvM60JUGmIEjjf8XvsOG6UC0cQEaGAv9IVVYf5xV-EzSuXIwdQwKBJKDz7ECbctercDATvskWp1zm_sL1cZ5zZjUAbuLSCRYfxJihUQG910n_xbArMkMwsX7EELiPJM2OawhgNFdb5y2A7TaenLJNU7hFLocrYAmzDcYCIU8KEXemhL84Ohec3ZeE6KmFSKk63Op-ZcBt',
-        },
-        category: 'IaC',
-        status: 'SCHEDULED',
-        views: 0,
-        comments: 0,
-        publishedAt: 'Nov 1, 2023',
-        updatedAt: '3 days ago',
-        featuredImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA4F9iNe06dKe-tVFawe2CIN6OxPhdjc5hLC2yraMyC1iRajPReJ-w2L0Cg1Q6Jj750I4wflumZtNKvynGBxxfsU4JQ4dC4kkqwmlvRh02Ub4uYttxxrg862hfHqYplJY9ob6bcq8P19AIcdiTpBKaI6tbzipU52-Gbo8UoDcXLvt2q6EFZkHpCwLPGJZiKIErdHj4x_hCq3x6OWh-QmEHJwu-wfrq0Z3lF-1QUScyl4fp3_qwOD5uwzRLSNXKEYPlJ5j1ShULLtSRX',
-    },
-    {
-        id: '5',
-        title: 'Monitoring Kubernetes with Prometheus',
-        slug: 'monitoring-k8s-prometheus',
-        excerpt: 'Complete guide to setting up Prometheus for Kubernetes monitoring...',
-        author: {
-            name: 'Sarah L.',
-            avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAnZCGrFGbf56yICttdpKRprUs_mwoAgImdoVlhbNKWHqRKW2e27qdhlrPimlZCwVIF-7V1G1a9zwlq4ZwdklZU8RUjUiTDl6bo_8yZBSVtDDE0hFslldpMjG7zKKB2ow3WE60B__RiO6y29cv9V_msqpeVKYhPA4eQ1mUPkS0WMWYOIkA-BAokhITO8h1TXcBUpdtxsC255HBYSOQaWpo3RP6EEfbgHkw89YcnwA4MHEG1uD_r2dFywFjjJvFazSj75LEBniC7C1Jm',
-        },
-        category: 'Observability',
-        status: 'ARCHIVED',
-        views: 15620,
-        comments: 42,
-        publishedAt: 'Sep 15, 2023',
-        updatedAt: '2 weeks ago',
-        featuredImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgxiiSONy7fUaMxtViA2bwq_WV0xaYU5j6g5fB8WYQ8bMJjPsmrURJdBNKOES74nL4kf7I6R00IhqvOCFiP8UbhRFJqo_vYdEGd_Ngg3Bw4oEKTaMTzLJIG8FPbVltawq3q_Bo0vGby5pjwRNXt6vA-mkpDSQhObJ0WB8LG6qTHL-dHYMizuSNjUaMJZtj3HEnxEJzMfwDbtfpQh4qapC9I-GYy2IuK2UFVsacdT19O9sFXeatn0m6OVmVHrPuslzJ4AZLpWDsTzbv',
-    },
-];
-
-const sampleStats = {
-    total: 156,
-    published: 89,
-    draft: 42,
-    scheduled: 12,
-    archived: 13,
-};
-
-const tabs = ['All Articles', 'Published', 'Drafts', 'Scheduled', 'Archived'];
-const categories = ['All Categories', 'Kubernetes', 'CI/CD', 'Security', 'IaC', 'Observability', 'Cloud Native'];
-
-// ==============================================
-// HELPER FUNCTIONS
-// ==============================================
-
-function getStatusBadge(status: Article['status']) {
+function getStatusBadge(status: string) {
     switch (status) {
         case 'PUBLISHED':
-            return {
-                bg: 'bg-green-900/30',
-                text: 'text-green-400',
-                border: 'border-green-900',
-                label: 'Published',
-                icon: 'check_circle',
-            };
+            return { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/20', dot: 'bg-green-400', label: 'Published' };
         case 'DRAFT':
-            return {
-                bg: 'bg-yellow-900/30',
-                text: 'text-yellow-400',
-                border: 'border-yellow-900',
-                label: 'Draft',
-                icon: 'edit_note',
-            };
-        case 'SCHEDULED':
-            return {
-                bg: 'bg-blue-900/30',
-                text: 'text-blue-400',
-                border: 'border-blue-900',
-                label: 'Scheduled',
-                icon: 'schedule',
-            };
+            return { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/20', dot: 'bg-yellow-400', label: 'Draft' };
         case 'ARCHIVED':
-            return {
-                bg: 'bg-gray-900/30',
-                text: 'text-gray-400',
-                border: 'border-gray-700',
-                label: 'Archived',
-                icon: 'inventory_2',
-            };
+            return { bg: 'bg-gray-500/10', text: 'text-gray-400', border: 'border-gray-500/20', dot: 'bg-gray-400', label: 'Archived' };
         default:
-            return {
-                bg: 'bg-gray-900/30',
-                text: 'text-gray-400',
-                border: 'border-gray-700',
-                label: status,
-                icon: 'help',
-            };
+            return { bg: 'bg-gray-500/10', text: 'text-gray-400', border: 'border-gray-500/20', dot: 'bg-gray-400', label: status };
     }
 }
-
-function formatViews(views: number): string {
-    if (views >= 1000) {
-        return (views / 1000).toFixed(1) + 'k';
-    }
-    return views.toString();
-}
-
-// ==============================================
-// MAIN COMPONENT
-// ==============================================
 
 export default function ArticlesPage() {
-    const [activeTab, setActiveTab] = useState('All Articles');
-    const [selectedCategory, setSelectedCategory] = useState('All Categories');
-    const [selectedArticles, setSelectedArticles] = useState<string[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalPosts, setTotalPosts] = useState(0);
 
-    // Filter articles based on tab and category
-    const filteredArticles = sampleArticles.filter((article) => {
-        // Tab filter
-        if (activeTab === 'Published' && article.status !== 'PUBLISHED') return false;
-        if (activeTab === 'Drafts' && article.status !== 'DRAFT') return false;
-        if (activeTab === 'Scheduled' && article.status !== 'SCHEDULED') return false;
-        if (activeTab === 'Archived' && article.status !== 'ARCHIVED') return false;
+    const fetchPosts = async () => {
+        try {
+            setLoading(true);
+            const params = new URLSearchParams({
+                page: currentPage.toString(),
+                limit: '10',
+                ...(searchQuery && { search: searchQuery }),
+                ...(statusFilter !== 'all' && { status: statusFilter }),
+            });
+            const response = await apiClient.get<any>(`/api/v1/posts?${params}`);
+            const responseData = response.data as any;
+            // Handle both paginated { data: [...], meta: {...} } and direct array responses
+            const postsData = Array.isArray(responseData) ? responseData : responseData?.data || [];
+            setPosts(postsData);
+            const meta = responseData?.meta;
+            if (meta) {
+                setTotalPages(meta.totalPages || 1);
+                setTotalPosts(meta.total || 0);
+            }
+        } catch (error) {
+            console.log('Using empty article list');
+            setPosts([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        // Category filter
-        if (selectedCategory !== 'All Categories' && article.category !== selectedCategory) return false;
+    useEffect(() => {
+        fetchPosts();
+    }, [currentPage, statusFilter]);
 
-        // Search filter
-        if (searchQuery && !article.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentPage(1);
+        fetchPosts();
+    };
 
-        return true;
-    });
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this article?')) return;
+        try {
+            await apiClient.delete(`/api/v1/posts/${id}`);
+            toast.success('Article deleted successfully');
+            fetchPosts();
+        } catch {
+            toast.error('Failed to delete article');
+        }
+    };
 
-    const toggleSelectAll = () => {
-        if (selectedArticles.length === filteredArticles.length) {
-            setSelectedArticles([]);
-        } else {
-            setSelectedArticles(filteredArticles.map((a) => a.id));
+    const handleStatusChange = async (id: string, status: string) => {
+        try {
+            await apiClient.patch(`/api/v1/posts/${id}/status`, { status });
+            toast.success(`Article ${status.toLowerCase()} successfully`);
+            fetchPosts();
+        } catch {
+            toast.error('Failed to update article status');
         }
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex items-center gap-3 hover:border-primary/50 transition-colors">
-                    <div className="size-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-primary">
-                        <span className="material-symbols-outlined">article</span>
-                    </div>
-                    <div>
-                        <p className="text-[#9dabb9] text-xs font-medium">Total</p>
-                        <h3 className="text-white text-xl font-bold">{sampleStats.total}</h3>
-                    </div>
+        <div className="max-w-[1400px] mx-auto flex flex-col gap-6">
+            {/* Filter Bar */}
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-[#1e293b] p-4 rounded-xl border border-border-dark">
+                <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto flex-1">
+                    <form onSubmit={handleSearch} className="relative w-full sm:w-72 group">
+                        <span className="material-symbols-outlined absolute left-3 top-2.5 text-[#9dabb9] group-focus-within:text-primary transition-colors">
+                            search
+                        </span>
+                        <input
+                            className="w-full bg-[#111418] text-white border border-[#283039] rounded-lg pl-10 pr-4 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary placeholder-[#586069] transition-all"
+                            placeholder="Search articles by title..."
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </form>
+                    <select
+                        className="bg-[#111418] text-white border border-[#283039] rounded-lg px-4 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-40 cursor-pointer"
+                        value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                    >
+                        <option value="all">All Status</option>
+                        <option value="PUBLISHED">Published</option>
+                        <option value="DRAFT">Draft</option>
+                        <option value="ARCHIVED">Archived</option>
+                    </select>
                 </div>
-
-                <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex items-center gap-3 hover:border-green-500/50 transition-colors cursor-pointer" onClick={() => setActiveTab('Published')}>
-                    <div className="size-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
-                        <span className="material-symbols-outlined">check_circle</span>
-                    </div>
-                    <div>
-                        <p className="text-[#9dabb9] text-xs font-medium">Published</p>
-                        <h3 className="text-white text-xl font-bold">{sampleStats.published}</h3>
-                    </div>
-                </div>
-
-                <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex items-center gap-3 hover:border-yellow-500/50 transition-colors cursor-pointer" onClick={() => setActiveTab('Drafts')}>
-                    <div className="size-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500">
-                        <span className="material-symbols-outlined">edit_note</span>
-                    </div>
-                    <div>
-                        <p className="text-[#9dabb9] text-xs font-medium">Drafts</p>
-                        <h3 className="text-white text-xl font-bold">{sampleStats.draft}</h3>
-                    </div>
-                </div>
-
-                <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex items-center gap-3 hover:border-blue-500/50 transition-colors cursor-pointer" onClick={() => setActiveTab('Scheduled')}>
-                    <div className="size-10 rounded-lg bg-blue-400/10 flex items-center justify-center text-blue-400">
-                        <span className="material-symbols-outlined">schedule</span>
-                    </div>
-                    <div>
-                        <p className="text-[#9dabb9] text-xs font-medium">Scheduled</p>
-                        <h3 className="text-white text-xl font-bold">{sampleStats.scheduled}</h3>
-                    </div>
-                </div>
-
-                <div className="bg-surface-dark border border-border-dark rounded-xl p-4 flex items-center gap-3 hover:border-gray-500/50 transition-colors cursor-pointer" onClick={() => setActiveTab('Archived')}>
-                    <div className="size-10 rounded-lg bg-gray-500/10 flex items-center justify-center text-gray-400">
-                        <span className="material-symbols-outlined">inventory_2</span>
-                    </div>
-                    <div>
-                        <p className="text-[#9dabb9] text-xs font-medium">Archived</p>
-                        <h3 className="text-white text-xl font-bold">{sampleStats.archived}</h3>
-                    </div>
+                <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <span className="text-[#9dabb9] text-xs font-mono mr-2">
+                        {totalPosts > 0 ? `Showing page ${currentPage} of ${totalPages}` : 'No results'}
+                    </span>
+                    <button
+                        onClick={() => fetchPosts()}
+                        className="p-2 text-[#9dabb9] hover:text-white hover:bg-[#283039] rounded-lg transition-colors"
+                        title="Refresh list"
+                    >
+                        <span className="material-symbols-outlined">refresh</span>
+                    </button>
                 </div>
             </div>
 
             {/* Articles Table */}
-            <div className="bg-surface-dark border border-border-dark rounded-xl overflow-hidden shadow-sm flex flex-col min-h-[600px]">
-                {/* Header with Tabs and Actions */}
-                <div className="bg-[#111418] border-b border-border-dark p-4 flex flex-col gap-4">
-                    {/* Tabs Row */}
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab
-                                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                            : 'text-[#9dabb9] hover:text-white hover:bg-[#283039]'
-                                        }`}
-                                >
-                                    {tab}
-                                    {tab === 'Drafts' && sampleStats.draft > 0 && (
-                                        <span className="ml-2 bg-yellow-500/20 text-yellow-500 px-1.5 rounded text-[10px]">
-                                            {sampleStats.draft}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-
-                        <Link
-                            href="/admin/articles/new"
-                            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-primary/20"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">add</span>
-                            New Article
-                        </Link>
-                    </div>
-
-                    {/* Filters Row */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                        {/* Search */}
-                        <div className="relative flex-1 min-w-[200px] max-w-md">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#9dabb9] text-[20px]">
-                                search
-                            </span>
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search articles..."
-                                className="w-full bg-[#283039] border border-border-dark rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary placeholder-[#586069]"
-                            />
-                        </div>
-
-                        {/* Category Filter */}
-                        <div className="relative">
-                            <select
-                                value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.target.value)}
-                                className="appearance-none bg-[#283039] border border-border-dark rounded-lg pl-3 pr-10 py-2 text-sm text-[#9dabb9] focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
-                            >
-                                {categories.map((cat) => (
-                                    <option key={cat}>{cat}</option>
-                                ))}
-                            </select>
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#9dabb9] pointer-events-none text-[18px]">
-                                arrow_drop_down
-                            </span>
-                        </div>
-
-                        {/* Bulk Actions */}
-                        {selectedArticles.length > 0 && (
-                            <div className="flex items-center gap-2 ml-auto">
-                                <span className="text-xs text-[#9dabb9]">{selectedArticles.length} selected</span>
-                                <button className="flex items-center gap-1 px-3 py-1.5 bg-[#283039] hover:bg-[#3b4754] border border-border-dark rounded-lg text-sm text-[#9dabb9] hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-[16px]">delete</span>
-                                    Delete
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto custom-scrollbar flex-1">
+            <div className="bg-[#1e293b] border border-border-dark rounded-xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-[#18202a] border-b border-border-dark text-xs uppercase text-[#9dabb9] font-medium">
-                                <th className="p-4 w-10">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedArticles.length === filteredArticles.length && filteredArticles.length > 0}
-                                        onChange={toggleSelectAll}
-                                        className="rounded border-border-dark bg-[#283039] text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                                    />
-                                </th>
-                                <th className="p-4 min-w-[350px]">Article</th>
-                                <th className="p-4 min-w-[120px]">Author</th>
-                                <th className="p-4 min-w-[100px]">Category</th>
-                                <th className="p-4 min-w-[100px]">Status</th>
-                                <th className="p-4 min-w-[80px]">Views</th>
-                                <th className="p-4 min-w-[120px]">Updated</th>
-                                <th className="p-4 text-right min-w-[100px]">Actions</th>
+                        <thead className="bg-[#283039]/50 border-b border-border-dark text-[#9dabb9] text-xs uppercase font-bold tracking-wider">
+                            <tr>
+                                <th className="px-6 py-4 w-1/3">Article Details</th>
+                                <th className="px-6 py-4">Author</th>
+                                <th className="px-6 py-4">Published Date</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border-dark">
-                            {filteredArticles.map((article) => {
-                                const status = getStatusBadge(article.status);
-                                return (
-                                    <tr key={article.id} className="hover:bg-[#1f2937] transition-colors group">
-                                        <td className="p-4">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedArticles.includes(article.id)}
-                                                onChange={() => {
-                                                    setSelectedArticles((prev) =>
-                                                        prev.includes(article.id)
-                                                            ? prev.filter((id) => id !== article.id)
-                                                            : [...prev, article.id]
-                                                    );
-                                                }}
-                                                className="rounded border-border-dark bg-[#283039] text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                                            />
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-4">
-                                                <div
-                                                    className="size-16 rounded-lg bg-cover bg-center flex-shrink-0 border border-border-dark"
-                                                    style={{ backgroundImage: `url("${article.featuredImage}")` }}
-                                                />
-                                                <div className="flex flex-col min-w-0">
+                        <tbody className="divide-y divide-border-dark text-sm text-white">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-16 text-center">
+                                        <div className="flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : posts.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-16 text-center text-[#9dabb9]">
+                                        <span className="material-symbols-outlined text-4xl mb-2 block">article</span>
+                                        No articles found. Create your first article!
+                                    </td>
+                                </tr>
+                            ) : (
+                                posts.map((post) => {
+                                    const badge = getStatusBadge(post.status);
+                                    return (
+                                        <tr key={post.id} className="hover:bg-[#283039]/40 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1">
                                                     <Link
-                                                        href={`/admin/articles/${article.id}`}
-                                                        className="text-white font-medium text-sm hover:text-primary transition-colors line-clamp-1"
+                                                        href={`/admin/articles/${post.id}`}
+                                                        className="font-bold text-base hover:text-primary transition-colors line-clamp-1"
                                                     >
-                                                        {article.title}
+                                                        {post.title}
                                                     </Link>
-                                                    <span className="text-[#586069] text-xs font-mono">/{article.slug}</span>
-                                                    <p className="text-[#9dabb9] text-xs mt-1 line-clamp-1">{article.excerpt}</p>
+                                                    <span className="text-xs text-[#9dabb9] font-mono">/{post.slug}</span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                <div
-                                                    className="size-6 rounded-full bg-cover bg-center border border-border-dark"
-                                                    style={{ backgroundImage: `url("${article.author.avatar}")` }}
-                                                />
-                                                <span className="text-white text-sm">{article.author.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="bg-[#283039] text-[#9dabb9] text-xs px-2 py-1 rounded">
-                                                {article.category}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <span
-                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${status.bg} ${status.text} ${status.border}`}
-                                            >
-                                                <span className="material-symbols-outlined text-[12px]">{status.icon}</span>
-                                                {status.label}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-1 text-sm text-[#9dabb9]">
-                                                <span className="material-symbols-outlined text-[14px]">visibility</span>
-                                                {formatViews(article.views)}
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <span className="text-[#9dabb9] text-sm">{article.updatedAt}</span>
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                <Link
-                                                    href={`/admin/articles/${article.id}`}
-                                                    className="p-1.5 rounded text-[#9dabb9] hover:text-primary hover:bg-primary/10 transition-colors"
-                                                    title="Edit"
-                                                >
-                                                    <span className="material-symbols-outlined text-[20px]">edit</span>
-                                                </Link>
-                                                <button
-                                                    className="p-1.5 rounded text-[#9dabb9] hover:text-white hover:bg-[#283039] transition-colors"
-                                                    title="Preview"
-                                                >
-                                                    <span className="material-symbols-outlined text-[20px]">visibility</span>
-                                                </button>
-                                                <button
-                                                    className="p-1.5 rounded text-[#9dabb9] hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                                                    title="Delete"
-                                                >
-                                                    <span className="material-symbols-outlined text-[20px]">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold ring-2 ring-[#283039]">
+                                                        {post.author?.firstName?.[0]}{post.author?.lastName?.[0]}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">
+                                                            {post.author?.firstName} {post.author?.lastName}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {post.publishedAt ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{formatDate(post.publishedAt)}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[#586069] italic">--</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text} border ${badge.border}`}>
+                                                    <span className={`size-1.5 rounded-full ${badge.dot}`} />
+                                                    {badge.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-60 group-hover:opacity-100 transition-opacity">
+                                                    <Link
+                                                        href={`/admin/articles/${post.id}`}
+                                                        className="p-2 rounded-lg text-[#9dabb9] hover:text-white hover:bg-[#283039] transition-colors"
+                                                        title="Edit Article"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[20px]">edit_square</span>
+                                                    </Link>
+                                                    {post.status === 'PUBLISHED' ? (
+                                                        <button
+                                                            onClick={() => handleStatusChange(post.id, 'DRAFT')}
+                                                            className="p-2 rounded-lg text-[#9dabb9] hover:text-yellow-400 hover:bg-[#283039] transition-colors"
+                                                            title="Unpublish"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">unpublished</span>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleStatusChange(post.id, 'PUBLISHED')}
+                                                            className="p-2 rounded-lg text-[#9dabb9] hover:text-green-400 hover:bg-[#283039] transition-colors"
+                                                            title="Publish"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">publish</span>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDelete(post.id)}
+                                                        className="p-2 rounded-lg text-[#9dabb9] hover:text-[#fa6238] hover:bg-[#283039] transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                         </tbody>
                     </table>
-
-                    {filteredArticles.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <span className="material-symbols-outlined text-[#586069] text-5xl mb-4">article</span>
-                            <h3 className="text-white font-bold text-lg mb-2">No articles found</h3>
-                            <p className="text-[#9dabb9] text-sm">Try adjusting your filters or create a new article.</p>
-                        </div>
-                    )}
                 </div>
 
                 {/* Pagination */}
-                <div className="mt-auto p-4 border-t border-border-dark flex items-center justify-between">
-                    <span className="text-[#9dabb9] text-sm">
-                        Showing {filteredArticles.length} of {sampleStats.total} articles
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <button className="p-2 rounded-lg bg-[#283039] text-[#9dabb9] hover:text-white hover:bg-[#3b4754] transition-colors disabled:opacity-50">
-                            <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                        </button>
-                        <span className="text-white text-sm font-medium px-3">1</span>
-                        <button className="p-2 rounded-lg bg-[#283039] text-[#9dabb9] hover:text-white hover:bg-[#3b4754] transition-colors">
-                            <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-                        </button>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-border-dark bg-[#111418]">
+                        <div className="text-sm text-[#9dabb9]">
+                            Page <span className="font-medium text-white">{currentPage}</span> of{' '}
+                            <span className="font-medium text-white">{totalPages}</span>{' '}
+                            ({totalPosts} total)
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 rounded-lg border border-border-dark text-sm font-medium text-[#9dabb9] hover:bg-[#283039] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Previous
+                            </button>
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                const page = i + 1;
+                                return (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                                            currentPage === page
+                                                ? 'border-primary bg-primary text-white'
+                                                : 'border-border-dark text-[#9dabb9] hover:bg-[#283039] hover:text-white'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1.5 rounded-lg border border-border-dark text-sm font-medium text-[#9dabb9] hover:bg-[#283039] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
