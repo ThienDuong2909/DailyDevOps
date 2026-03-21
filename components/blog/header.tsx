@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export function BlogHeader() {
     return (
@@ -60,6 +61,7 @@ export function BlogHeader() {
                                 />
                             </div>
                         </label>
+                        <ThemeToggle />
                         <button className="flex items-center justify-center rounded-lg h-10 px-5 bg-primary hover:bg-primary-dark text-white text-sm font-bold shadow-md shadow-primary/20 transition-all active:scale-95">
                             Subscribe
                         </button>

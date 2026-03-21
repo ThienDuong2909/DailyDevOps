@@ -51,22 +51,86 @@ export default function BlogDetailPage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Extract TOC from content after render
+    // Style Code Blocks macOS Style & Extract TOC
     useEffect(() => {
-        if (contentRef.current) {
-            const headings = contentRef.current.querySelectorAll('h2, h3');
-            const items: TocItem[] = [];
-            headings.forEach((heading, i) => {
-                const id = heading.id || `heading-${i}`;
-                heading.id = id;
-                items.push({
-                    id,
-                    text: heading.textContent || '',
-                    level: heading.tagName === 'H2' ? 2 : 3,
-                });
+        if (!contentRef.current) return;
+
+        // TOC Extraction
+        const headings = contentRef.current.querySelectorAll('h2, h3');
+        const items: TocItem[] = [];
+        headings.forEach((heading, i) => {
+            const id = heading.id || `heading-${i}`;
+            heading.id = id;
+            items.push({
+                id,
+                text: heading.textContent || '',
+                level: heading.tagName === 'H2' ? 2 : 3,
             });
-            setTocItems(items);
-        }
+        });
+        setTocItems(items);
+
+        // macOS Code Block formatting
+        const preElements = contentRef.current.querySelectorAll('pre');
+        preElements.forEach((pre) => {
+            if (pre.parentElement?.classList.contains('code-wrapper-scroll')) return; // Already processed
+            
+            // Create Outer Container
+            const container = document.createElement('div');
+            container.className = 'macos-mockup relative rounded-xl overflow-hidden bg-[#1e293b] my-6 shadow-xl border border-[#283039] font-mono group';
+            
+            // Create Header Window
+            const header = document.createElement('div');
+            header.className = 'flex items-center justify-between pl-4 pr-3 py-2 bg-[#0f172a] border-b border-[#283039]';
+            
+            // Traffic Light Dots
+            const dots = document.createElement('div');
+            dots.className = 'flex gap-2';
+            dots.innerHTML = `
+                <div class="size-3 rounded-full bg-[#ff5f56]"></div>
+                <div class="size-3 rounded-full bg-[#ffbd2e]"></div>
+                <div class="size-3 rounded-full bg-[#27c93f]"></div>
+            `;
+            
+            // Copy Button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[#9dabb9] hover:text-white transition-colors text-xs font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100';
+            copyBtn.innerText = 'Copy';
+            
+            copyBtn.onclick = () => {
+                const codeNode = pre.querySelector('code');
+                const textTarget = codeNode ? codeNode.innerText : pre.innerText;
+                navigator.clipboard.writeText(textTarget).then(() => {
+                    copyBtn.innerText = 'Copied!';
+                    copyBtn.classList.add('!text-[#27c93f]', '!bg-[#27c93f]/10', '!border-[#27c93f]/30');
+                    setTimeout(() => {
+                        copyBtn.innerText = 'Copy';
+                        copyBtn.classList.remove('!text-[#27c93f]', '!bg-[#27c93f]/10', '!border-[#27c93f]/30');
+                    }, 2000);
+                });
+            };
+            
+            header.appendChild(dots);
+            header.appendChild(copyBtn);
+            
+            // Insert the container before pre
+            pre.parentNode?.insertBefore(container, pre);
+            
+            // Modify pre itself to reset default prose styles
+            pre.className = '!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none !text-[#e2e8f0] text-[13px] sm:text-sm leading-relaxed';
+            
+            const codeNode = pre.querySelector('code');
+            if (codeNode) {
+                // Remove prose backgorunds from code tag
+                codeNode.className = Array.from(codeNode.classList).join(' ') + ' !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none';
+            }
+            
+            const codeWrapper = document.createElement('div');
+            codeWrapper.className = 'code-wrapper-scroll overflow-x-auto';
+            codeWrapper.appendChild(pre);
+            
+            container.appendChild(header);
+            container.appendChild(codeWrapper);
+        });
     }, [post]);
 
     useEffect(() => {

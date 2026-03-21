@@ -38,12 +38,25 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en" className="dark">
+        <html lang="en" suppressHydrationWarning>
             <head>
                 {/* Material Symbols Outlined */}
                 <link
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
                     rel="stylesheet"
+                />
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            try {
+                                if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                                    document.documentElement.classList.remove('dark');
+                                } else {
+                                    document.documentElement.classList.add('dark');
+                                }
+                            } catch (_) {}
+                        `,
+                    }}
                 />
             </head>
             <body className={`${inter.variable} font-display bg-background-light dark:bg-background-dark text-gray-900 dark:text-white antialiased`}>
