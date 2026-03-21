@@ -61,14 +61,12 @@ const processQueue = (error: Error | null, token: string | null = null) => {
     failedQueue = [];
 };
 
-// Response interceptor - unwrap server envelope + handle token refresh
+// Response interceptor - Just return response, handle token refresh on error
 api.interceptors.response.use(
     (response) => {
-        // Server wraps responses as { success: true, data: {...} }
-        // Unwrap the envelope so callers get the inner data directly
-        if (response.data && typeof response.data === 'object' && 'success' in response.data) {
-            response.data = response.data.data !== undefined ? response.data.data : response.data;
-        }
+        // We purposely remove the envelope unwrapper here because 
+        // frontend components like blog/page.tsx strictly expect
+        // to receive the { success, data, meta } object to extract .data and .meta
         return response;
     },
     async (error: AxiosError) => {

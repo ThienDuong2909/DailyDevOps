@@ -43,7 +43,7 @@ export default function ArticlesPage() {
             // Handle both paginated { data: [...], meta: {...} } and direct array responses
             const postsData = Array.isArray(responseData) ? responseData : responseData?.data || [];
             setPosts(postsData);
-            const meta = responseData?.meta;
+            const meta = response?.meta || responseData?.meta;
             if (meta) {
                 setTotalPages(meta.totalPages || 1);
                 setTotalPosts(meta.total || 0);
