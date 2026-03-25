@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { apiClient } from '@/lib/api';
-import { formatDate, getInitials, getImageUrl } from '@/lib/utils';
-import { PostCard } from '@/components/blog/post-card';
-import type { PostWithComments, Post } from '@/types';
+import { PostDetailSkeleton } from '@/components/blog/detail/post-detail-skeleton';
+import { useAuthStore } from '@/hooks/use-auth';
+import { formatDate, getImageUrl, getInitials } from '@/lib/utils';
+import type { Post, PostWithComments } from '@/types';
 
 interface TocItem {
     id: string;
@@ -14,167 +16,166 @@ interface TocItem {
     level: number;
 }
 
-export default function BlogDetailPage() {
-    const params = useParams();
-    const slug = params.slug as string;
+function unwrap<T>(payload: unknown, fallback: T): T {
+    if (payload && typeof payload === 'object' && 'data' in payload) {
+        return ((payload as { data?: T }).data ?? fallback) as T;
+    }
+    return (payload as T) ?? fallback;
+}
 
+function SidebarCard({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <div className="rounded-2xl border border-[#e5e7eb] bg-[#f9fafb] p-5 dark:border-gray-800 dark:bg-surface-dark">
+            <h3 className="mb-4 text-base font-bold text-[#111418] dark:text-white">{title}</h3>
+            {children}
+        </div>
+    );
+}
+
+export default function BlogDetailPage() {
+    const { slug } = useParams<{ slug: string }>();
+    const { user, isAuthenticated, initializeAuth } = useAuthStore();
     const [post, setPost] = useState<PostWithComments | null>(null);
     const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
+    const [popularPosts, setPopularPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
-    const [readingProgress, setReadingProgress] = useState(0);
+    const [submitting, setSubmitting] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [progress, setProgress] = useState(0);
     const [tocItems, setTocItems] = useState<TocItem[]>([]);
     const [activeTocId, setActiveTocId] = useState('');
+    const [form, setForm] = useState({ authorName: '', authorEmail: '', content: '' });
     const contentRef = useRef<HTMLDivElement>(null);
+    const postUrl = typeof window !== 'undefined' ? `${window.location.origin}/blog/${slug}` : `http://localhost:3000/blog/${slug}`;
 
-    // Reading progress bar
     useEffect(() => {
-        const handleScroll = () => {
-            const scrollTop = window.scrollY;
-            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-            const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-            setReadingProgress(Math.min(100, progress));
+        void initializeAuth();
+    }, [initializeAuth]);
 
-            // Active TOC tracking
-            if (contentRef.current) {
-                const headings = contentRef.current.querySelectorAll('h2, h3');
-                let currentId = '';
-                headings.forEach((heading) => {
-                    const rect = heading.getBoundingClientRect();
-                    if (rect.top <= 120) {
-                        currentId = heading.id;
-                    }
-                });
-                if (currentId) setActiveTocId(currentId);
-            }
+    useEffect(() => {
+        const onScroll = () => {
+            const max = document.documentElement.scrollHeight - window.innerHeight;
+            setProgress(Math.min(100, max > 0 ? (window.scrollY / max) * 100 : 0));
+            if (!contentRef.current) return;
+            let current = '';
+            contentRef.current.querySelectorAll('h2, h3').forEach((node) => {
+                if ((node as HTMLElement).getBoundingClientRect().top <= 140) current = node.id;
+            });
+            if (current) setActiveTocId(current);
         };
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    // Style Code Blocks macOS Style & Extract TOC
     useEffect(() => {
-        if (!contentRef.current) return;
-
-        // TOC Extraction
-        const headings = contentRef.current.querySelectorAll('h2, h3');
-        const items: TocItem[] = [];
-        headings.forEach((heading, i) => {
-            const id = heading.id || `heading-${i}`;
-            heading.id = id;
-            items.push({
-                id,
-                text: heading.textContent || '',
-                level: heading.tagName === 'H2' ? 2 : 3,
-            });
-        });
-        setTocItems(items);
-
-        // macOS Code Block formatting
-        const preElements = contentRef.current.querySelectorAll('pre');
-        preElements.forEach((pre) => {
-            if (pre.parentElement?.classList.contains('code-wrapper-scroll')) return; // Already processed
-            
-            // Create Outer Container
-            const container = document.createElement('div');
-            container.className = 'macos-mockup relative rounded-xl overflow-hidden bg-[#1e293b] my-6 shadow-xl border border-[#283039] font-mono group';
-            
-            // Create Header Window
-            const header = document.createElement('div');
-            header.className = 'flex items-center justify-between pl-4 pr-3 py-2 bg-[#0f172a] border-b border-[#283039]';
-            
-            // Traffic Light Dots
-            const dots = document.createElement('div');
-            dots.className = 'flex gap-2';
-            dots.innerHTML = `
-                <div class="size-3 rounded-full bg-[#ff5f56]"></div>
-                <div class="size-3 rounded-full bg-[#ffbd2e]"></div>
-                <div class="size-3 rounded-full bg-[#27c93f]"></div>
-            `;
-            
-            // Copy Button
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[#9dabb9] hover:text-white transition-colors text-xs font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100';
-            copyBtn.innerText = 'Copy';
-            
-            copyBtn.onclick = () => {
-                const codeNode = pre.querySelector('code');
-                const textTarget = codeNode ? codeNode.innerText : pre.innerText;
-                navigator.clipboard.writeText(textTarget).then(() => {
-                    copyBtn.innerText = 'Copied!';
-                    copyBtn.classList.add('!text-[#27c93f]', '!bg-[#27c93f]/10', '!border-[#27c93f]/30');
-                    setTimeout(() => {
-                        copyBtn.innerText = 'Copy';
-                        copyBtn.classList.remove('!text-[#27c93f]', '!bg-[#27c93f]/10', '!border-[#27c93f]/30');
-                    }, 2000);
-                });
-            };
-            
-            header.appendChild(dots);
-            header.appendChild(copyBtn);
-            
-            // Insert the container before pre
-            pre.parentNode?.insertBefore(container, pre);
-            
-            // Modify pre itself to reset default prose styles
-            pre.className = '!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none !text-[#e2e8f0] text-[13px] sm:text-sm leading-relaxed';
-            
-            const codeNode = pre.querySelector('code');
-            if (codeNode) {
-                // Remove prose backgorunds from code tag
-                codeNode.className = Array.from(codeNode.classList).join(' ') + ' !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none';
-            }
-            
-            const codeWrapper = document.createElement('div');
-            codeWrapper.className = 'code-wrapper-scroll overflow-x-auto';
-            codeWrapper.appendChild(pre);
-            
-            container.appendChild(header);
-            container.appendChild(codeWrapper);
-        });
-    }, [post]);
-
-    useEffect(() => {
-        const fetchPost = async () => {
+        const fetchData = async () => {
             try {
-                const response = await apiClient.get<any>(`/api/v1/posts/slug/${slug}`);
-                // After interceptor unwrap: response.data = post object
-                const postData = response.data as PostWithComments;
+                setLoading(true);
+                setErrorMessage('');
+                const postRes = await apiClient.get(`/api/v1/posts/slug/${slug}`);
+                const postData = unwrap<PostWithComments | null>(postRes, null);
+                if (!postData) throw new Error('missing post');
                 setPost(postData);
-
-                // Fetch related posts
-                if (postData?.id) {
-                    const relatedResponse = await apiClient.get<any>(`/api/v1/posts/${postData.id}/related?limit=3`);
-                    const relatedData = relatedResponse.data;
-                    setRelatedPosts(Array.isArray(relatedData) ? relatedData : relatedData?.data || []);
-                }
-            } catch (error) {
-                console.error('Failed to fetch post:', error);
+                const [relatedRes, popularRes] = await Promise.all([
+                    apiClient.get(`/api/v1/posts/${postData.id}/related?limit=3`),
+                    apiClient.get('/api/v1/posts/published?limit=5&sortBy=viewCount&sortOrder=desc'),
+                ]);
+                setRelatedPosts(unwrap<Post[]>(relatedRes, []));
+                setPopularPosts(unwrap<Post[]>(popularRes, []).filter((item) => item.slug !== postData.slug).slice(0, 4));
+            } catch {
+                setErrorMessage('Khong the tai bai viet nay luc nay.');
+                setPost(null);
             } finally {
                 setLoading(false);
             }
         };
-
-        if (slug) {
-            fetchPost();
-        }
+        if (slug) void fetchData();
     }, [slug]);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-            </div>
-        );
-    }
+    useEffect(() => {
+        if (!contentRef.current) return;
+        const items: TocItem[] = [];
+        contentRef.current.querySelectorAll('h2, h3').forEach((node, index) => {
+            const id = node.id || `heading-${index}`;
+            node.id = id;
+            items.push({ id, text: node.textContent || '', level: node.tagName === 'H2' ? 2 : 3 });
+        });
+        setTocItems(items);
+    }, [post]);
+
+    const handleContentClick = useCallback((event: React.MouseEvent) => {
+        const target = event.target as HTMLElement;
+        const button = target.closest('.copy-code-btn');
+        if (!button) return;
+        const code = button.closest('.macos-mockup')?.querySelector('code');
+        if (!code) return;
+        navigator.clipboard.writeText(code.textContent || '').then(() => {
+            const html = button.innerHTML;
+            button.innerHTML = 'Copied!';
+            setTimeout(() => {
+                button.innerHTML = html;
+            }, 1600);
+        });
+    }, []);
+
+    const handleCommentSubmit = async () => {
+        if (!post) return;
+        if (!form.content.trim()) return toast.error('Noi dung comment khong duoc de trong');
+        if (!isAuthenticated && (!form.authorName.trim() || !form.authorEmail.trim())) {
+            return toast.error('Vui long nhap ten va email de gui comment');
+        }
+        try {
+            setSubmitting(true);
+            await apiClient.post('/api/v1/comments', {
+                postId: post.id,
+                content: form.content.trim(),
+                authorName: isAuthenticated ? undefined : form.authorName.trim(),
+                authorEmail: isAuthenticated ? undefined : form.authorEmail.trim(),
+            });
+            const commentsRes = await apiClient.get(`/api/v1/comments/post/${post.id}`);
+            setPost((prev) => (prev ? { ...prev, comments: unwrap<any[]>(commentsRes, []) } : prev));
+            setForm({ authorName: '', authorEmail: '', content: '' });
+            toast.success('Comment da duoc gui va dang cho duyet');
+        } catch {
+            toast.error('Khong the gui comment luc nay');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleShare = async (mode: 'native' | 'copy') => {
+        if (!post) return;
+        if (mode === 'native' && navigator.share) {
+            try {
+                await navigator.share({ title: post.title, text: post.excerpt || post.title, url: postUrl });
+                return;
+            } catch {}
+        }
+        try {
+            await navigator.clipboard.writeText(postUrl);
+            toast.success('Da copy link bai viet');
+        } catch {
+            toast.error('Khong the copy link bai viet');
+        }
+    };
+
+    const formattedContent = post?.content
+        ? post.content.replace(/<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/gi, (_m, attrs, content) => {
+              const withClass = attrs.includes('class=')
+                  ? attrs.replace(/class=["'](.*?)["']/, 'class="$1 !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"')
+                  : `${attrs} class="!bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"`;
+              return `<div class="macos-mockup relative rounded-xl overflow-hidden bg-[#1e293b] my-8 shadow-xl border border-[#283039] font-mono group"><div class="flex items-center justify-between pl-4 pr-3 py-2 bg-[#0f172a] border-b border-[#283039]"><div class="flex gap-2"><div class="size-3 rounded-full bg-[#ff5f56]"></div><div class="size-3 rounded-full bg-[#ffbd2e]"></div><div class="size-3 rounded-full bg-[#27c93f]"></div></div><button class="copy-code-btn flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[#9dabb9] hover:text-white transition-colors text-[13px] font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100">Copy</button></div><div class="code-wrapper-scroll overflow-x-auto text-[13px] sm:text-sm leading-relaxed whitespace-pre font-mono text-[#e2e8f0]"><pre class="!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none"><code${withClass}>${content}</code></pre></div></div>`;
+          })
+        : '';
+
+    if (loading) return <PostDetailSkeleton />;
 
     if (!post) {
         return (
-            <div className="flex items-center justify-center h-screen">
+            <div className="flex h-screen items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-4xl font-bold text-white mb-4">Post Not Found</h1>
-                    <Link href="/blog" className="text-primary hover:underline">
-                        Back to Blog
-                    </Link>
+                    <h1 className="mb-4 text-4xl font-bold text-white">{errorMessage || 'Post Not Found'}</h1>
+                    <Link href="/" className="text-primary hover:underline">Back to Blog</Link>
                 </div>
             </div>
         );
@@ -184,209 +185,102 @@ export default function BlogDetailPage() {
 
     return (
         <div className="min-h-screen bg-white dark:bg-background-dark">
-            {/* Reading Progress Bar */}
-            <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-transparent">
-                <div
-                    className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-150 ease-out shadow-lg shadow-primary/20"
-                    style={{ width: `${readingProgress}%` }}
-                />
+            <div className="fixed left-0 right-0 top-0 z-50 h-1 bg-transparent">
+                <div className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-150 ease-out" style={{ width: `${progress}%` }} />
             </div>
-            {/* Article Header */}
-            <section className="max-w-4xl mx-auto px-4 lg:px-8 pt-10">
-                {/* Breadcrumb */}
-                <nav className="flex items-center gap-2 text-sm text-[#617589] mb-6">
-                    <Link href="/blog" className="hover:text-primary">Blog</Link>
+
+            <section className="mx-auto max-w-[1280px] px-4 pt-10 lg:px-8">
+                <nav className="mb-6 flex items-center gap-2 text-sm text-[#617589]">
+                    <Link href="/" className="hover:text-primary">Blog</Link>
                     <span className="material-symbols-outlined text-sm">chevron_right</span>
-                    {post.category && (
-                        <>
-                            <Link href={`/blog/category/${post.category.slug}`} className="hover:text-primary">
-                                {post.category.name}
-                            </Link>
-                            <span className="material-symbols-outlined text-sm">chevron_right</span>
-                        </>
-                    )}
-                    <span className="text-[#111418] dark:text-white truncate">{post.title}</span>
+                    {post.category ? <><span>{post.category.name}</span><span className="material-symbols-outlined text-sm">chevron_right</span></> : null}
+                    <span className="truncate text-[#111418] dark:text-white">{post.title}</span>
                 </nav>
 
-                {/* Title & Meta */}
-                <h1 className="text-3xl md:text-5xl font-black text-[#111418] dark:text-white leading-tight mb-6">
-                    {post.title}
-                </h1>
-
-                <div className="flex items-center gap-4 mb-8">
-                    <div
-                        className="size-12 rounded-full bg-cover bg-center border-2 border-border-dark"
-                        style={{
-                            backgroundImage: `url("${post.author.avatar || '/avatar-placeholder.jpg'}")`,
-                        }}
-                    />
-                    <div>
-                        <h4 className="font-bold text-[#111418] dark:text-white">{authorName}</h4>
-                        <p className="text-sm text-[#617589]">
-                            {formatDate(post.publishedAt || post.createdAt)} · {post.readingTime || 5} min read
-                        </p>
-                    </div>
-                </div>
-
-                {/* Featured Image */}
-                {post.featuredImage && (
-                    <div
-                        className="aspect-video w-full rounded-xl bg-cover bg-center shadow-lg mb-10"
-                        style={{ backgroundImage: `url("${getImageUrl(post.featuredImage)}")` }}
-                    />
-                )}
-            </section>
-
-            {/* Article Content */}
-            <section className="max-w-4xl mx-auto px-4 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    {/* Main Content */}
-                    <article className="lg:col-span-8">
-                        <div
-                            ref={contentRef}
-                            className="prose prose-lg dark:prose-invert max-w-none"
-                            dangerouslySetInnerHTML={{ __html: post.content }}
-                        />
-
-                        {/* Tags */}
-                        {post.tags && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-8 pt-8 border-t border-[#f0f2f4] dark:border-gray-800">
-                                {post.tags.map((tag) => (
-                                    <Link
-                                        key={tag.id}
-                                        href={`/blog/tag/${tag.slug}`}
-                                        className="px-3 py-1 bg-[#f0f2f4] dark:bg-surface-dark text-sm text-[#617589] rounded-full hover:bg-primary hover:text-white transition-colors"
-                                    >
-                                        #{tag.name}
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Author Bio */}
-                        <div className="mt-10 p-6 bg-[#f9fafb] dark:bg-surface-dark rounded-xl">
-                            <div className="flex items-start gap-4">
-                                <div
-                                    className="size-16 rounded-full bg-cover bg-center flex-shrink-0"
-                                    style={{
-                                        backgroundImage: `url("${post.author.avatar || '/avatar-placeholder.jpg'}")`,
-                                    }}
-                                />
-                                <div>
-                                    <h4 className="font-bold text-lg text-[#111418] dark:text-white mb-1">
-                                        {authorName}
-                                    </h4>
-                                    <p className="text-[#617589] text-sm">
-                                        {post.author.bio || 'DevOps enthusiast sharing insights on cloud-native technologies.'}
-                                    </p>
-                                </div>
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
+                    <div className="min-w-0">
+                        <h1 className="mb-5 text-[30px] font-bold leading-[1.35] text-[#111418] dark:text-white">{post.title}</h1>
+                        <div className="mb-8 flex items-center gap-4 border-b border-[#e5e7eb] pb-6 dark:border-gray-800">
+                            <div className="size-12 rounded-full border-2 border-border-dark bg-cover bg-center" style={{ backgroundImage: `url("${getImageUrl(post.author.avatar) || '/avatar-placeholder.jpg'}")` }} />
+                            <div>
+                                <h4 className="font-semibold text-[#111418] dark:text-white">{authorName}</h4>
+                                <p className="text-sm text-[#617589]">{formatDate(post.publishedAt || post.createdAt)} · {post.readingTime || 5} min read · {post.viewCount || 0} views</p>
                             </div>
                         </div>
-                    </article>
 
-                    {/* Sidebar */}
-                    <aside className="lg:col-span-4">
-                        <div className="sticky top-24 space-y-8">
-                            {/* Table of Contents */}
-                            <div className="p-5 bg-[#f9fafb] dark:bg-surface-dark rounded-xl">
-                                <h4 className="font-bold text-[#111418] dark:text-white mb-4">On this page</h4>
-                                {tocItems.length > 0 ? (
-                                    <ul className="space-y-2 text-sm">
-                                        {tocItems.map((item) => (
-                                            <li key={item.id} style={{ paddingLeft: item.level === 3 ? '1rem' : '0' }}>
-                                                <a
-                                                    href={`#${item.id}`}
-                                                    className={`hover:text-primary transition-colors ${
-                                                        activeTocId === item.id ? 'text-primary font-medium' : 'text-[#617589]'
-                                                    }`}
-                                                >
-                                                    {item.text}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <ul className="space-y-2 text-sm">
-                                        <li><span className="text-[#617589]">No headings found</span></li>
-                                    </ul>
-                                )}
+                        <div ref={contentRef} className="article-copy max-w-none" onClick={handleContentClick} dangerouslySetInnerHTML={{ __html: formattedContent }} />
+
+                        <section className="mt-14">
+                            <h3 className="mb-6 text-[22px] font-bold text-[#111418] dark:text-white">Discussion</h3>
+                            <div className="mb-8 rounded-2xl border border-[#e5e7eb] bg-[#f9fafb] p-6 dark:border-gray-800 dark:bg-surface-dark">
+                                {!isAuthenticated ? (
+                                    <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <input className="w-full rounded-lg border border-[#e5e7eb] bg-white px-4 py-3 text-[#111418] focus:border-transparent focus:ring-2 focus:ring-primary dark:border-gray-700 dark:bg-[#1e293b] dark:text-white" placeholder="Your name" value={form.authorName} onChange={(e) => setForm((p) => ({ ...p, authorName: e.target.value }))} />
+                                        <input className="w-full rounded-lg border border-[#e5e7eb] bg-white px-4 py-3 text-[#111418] focus:border-transparent focus:ring-2 focus:ring-primary dark:border-gray-700 dark:bg-[#1e293b] dark:text-white" placeholder="Your email" type="email" value={form.authorEmail} onChange={(e) => setForm((p) => ({ ...p, authorEmail: e.target.value }))} />
+                                    </div>
+                                ) : <p className="mb-4 text-sm text-[#617589]">Dang binh luan voi tu cach <span className="font-semibold text-[#111418] dark:text-white">{user?.firstName} {user?.lastName}</span></p>}
+                                <textarea className="w-full rounded-lg border border-[#e5e7eb] bg-white p-4 text-[16px] text-[#111418] focus:border-transparent focus:ring-2 focus:ring-primary dark:border-gray-700 dark:bg-[#1e293b] dark:text-white" placeholder="Leave a comment..." rows={4} value={form.content} onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))} />
+                                <button onClick={() => void handleCommentSubmit()} disabled={submitting} className="mt-4 rounded-lg bg-primary px-6 py-2 font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-50">{submitting ? 'Sending...' : 'Post Comment'}</button>
+                                <p className="mt-3 text-xs text-[#617589]">Binh luan moi se duoc dua vao hang cho duyet truoc khi hien cong khai.</p>
                             </div>
 
-                            {/* Share */}
-                            <div className="p-5 bg-[#f9fafb] dark:bg-surface-dark rounded-xl">
-                                <h4 className="font-bold text-[#111418] dark:text-white mb-4">Share this article</h4>
+                            <div className="space-y-6">
+                                {post.comments?.length ? post.comments.map((comment) => (
+                                    <div key={comment.id} className="flex gap-4">
+                                        <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white">
+                                            {comment.user ? getInitials(`${comment.user.firstName} ${comment.user.lastName}`) : getInitials(comment.authorName || 'Anonymous')}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="mb-1 flex items-center gap-2">
+                                                <span className="font-bold text-[#111418] dark:text-white">{comment.user ? `${comment.user.firstName} ${comment.user.lastName}` : comment.authorName || 'Anonymous'}</span>
+                                                <span className="text-sm text-[#617589]">{formatDate(comment.createdAt)}</span>
+                                            </div>
+                                            <p className="text-[16px] leading-7 text-[#617589]">{comment.content}</p>
+                                        </div>
+                                    </div>
+                                )) : <div className="rounded-xl bg-[#f9fafb] p-6 text-sm text-[#617589] dark:bg-surface-dark">Chua co binh luan nao. Hay de lai y kien dau tien cho bai viet nay.</div>}
+                            </div>
+                        </section>
+                    </div>
+
+                    <aside className="min-w-0">
+                        <div className="sticky top-24 space-y-5">
+                            <SidebarCard title="On this page">
+                                {tocItems.length ? <ul className="space-y-3 text-sm">{tocItems.map((item) => <li key={item.id} style={{ paddingLeft: item.level === 3 ? '0.75rem' : '0' }}><button type="button" onClick={() => { const h = document.getElementById(item.id); if (h) { h.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActiveTocId(item.id); } }} className={`text-left transition-colors hover:text-primary ${activeTocId === item.id ? 'font-medium text-primary' : 'text-[#617589]'}`}>{item.text}</button></li>)}</ul> : <p className="text-sm text-[#617589]">No headings found</p>}
+                            </SidebarCard>
+                            <SidebarCard title="Related tags">
+                                {post.tags?.length ? <div className="flex flex-wrap gap-2">{post.tags.map((tag) => <span key={tag.id} className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-500">#{tag.name}</span>)}</div> : <p className="text-sm text-[#617589]">Chua co tag nao duoc gan.</p>}
+                            </SidebarCard>
+                            <SidebarCard title="Most viewed">
+                                {popularPosts.length ? <div className="space-y-4">{popularPosts.map((item, index) => <Link key={item.id} href={`/blog/${item.slug}`} className="block rounded-lg border border-transparent p-3 transition-colors hover:border-border-dark hover:bg-white/5"><div className="mb-2 flex items-center gap-2 text-xs text-[#617589]"><span className="font-mono text-primary">0{index + 1}</span><span>{item.viewCount || 0} views</span></div><h4 className="text-sm font-semibold leading-6 text-[#111418] dark:text-white">{item.title}</h4></Link>)}</div> : <p className="text-sm text-[#617589]">Chua co du lieu bai viet pho bien.</p>}
+                            </SidebarCard>
+                            <SidebarCard title="Share">
                                 <div className="flex gap-3">
-                                    <button className="size-10 bg-[#1DA1F2]/10 text-[#1DA1F2] rounded-lg flex items-center justify-center hover:bg-[#1DA1F2] hover:text-white transition-colors">
-                                        <span className="material-symbols-outlined text-lg">share</span>
-                                    </button>
-                                    <button className="size-10 bg-[#0077B5]/10 text-[#0077B5] rounded-lg flex items-center justify-center hover:bg-[#0077B5] hover:text-white transition-colors">
-                                        <span className="material-symbols-outlined text-lg">link</span>
-                                    </button>
+                                    <button onClick={() => void handleShare('native')} className="flex size-10 items-center justify-center rounded-lg bg-[#1DA1F2]/10 text-[#1DA1F2] transition-colors hover:bg-[#1DA1F2] hover:text-white"><span className="material-symbols-outlined text-lg">share</span></button>
+                                    <button onClick={() => void handleShare('copy')} className="flex size-10 items-center justify-center rounded-lg bg-[#0077B5]/10 text-[#0077B5] transition-colors hover:bg-[#0077B5] hover:text-white"><span className="material-symbols-outlined text-lg">link</span></button>
                                 </div>
-                            </div>
+                                <p className="mt-3 break-all text-xs text-[#617589]">{postUrl}</p>
+                            </SidebarCard>
+                            <SidebarCard title="Related posts">
+                                {relatedPosts.length ? <div className="space-y-4">{relatedPosts.map((item) => <Link key={item.id} href={`/blog/${item.slug}`} className="block rounded-lg border border-transparent p-3 transition-colors hover:border-border-dark hover:bg-white/5"><p className="mb-1 text-xs text-[#617589]">{item.category?.name || 'General'}</p><h4 className="text-sm font-semibold leading-6 text-[#111418] dark:text-white">{item.title}</h4></Link>)}</div> : <p className="text-sm text-[#617589]">Chua co bai viet lien quan du de hien thi.</p>}
+                            </SidebarCard>
                         </div>
                     </aside>
                 </div>
             </section>
 
-            {/* Comments Section */}
-            <section className="max-w-4xl mx-auto px-4 lg:px-8 mt-16">
-                <h3 className="text-2xl font-bold text-[#111418] dark:text-white mb-6">
-                    Comments ({post.comments?.length || 0})
-                </h3>
-
-                {/* Comment Form */}
-                <div className="mb-8 p-6 bg-[#f9fafb] dark:bg-surface-dark rounded-xl">
-                    <textarea
-                        className="w-full p-4 bg-white dark:bg-[#1e293b] border border-[#e5e7eb] dark:border-gray-700 rounded-lg text-[#111418] dark:text-white placeholder:text-[#617589] focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Leave a comment..."
-                        rows={4}
-                    />
-                    <button className="mt-4 px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors">
-                        Post Comment
-                    </button>
-                </div>
-
-                {/* Comments List */}
-                <div className="space-y-6">
-                    {post.comments?.map((comment) => (
-                        <div key={comment.id} className="flex gap-4">
-                            <div className="size-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white font-bold">
-                                {comment.user
-                                    ? getInitials(`${comment.user.firstName} ${comment.user.lastName}`)
-                                    : getInitials(comment.authorName || 'Anonymous')}
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-bold text-[#111418] dark:text-white">
-                                        {comment.user
-                                            ? `${comment.user.firstName} ${comment.user.lastName}`
-                                            : comment.authorName || 'Anonymous'}
-                                    </span>
-                                    <span className="text-sm text-[#617589]">
-                                        {formatDate(comment.createdAt)}
-                                    </span>
-                                </div>
-                                <p className="text-[#617589]">{comment.content}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* Related Posts */}
-            {relatedPosts.length > 0 && (
-                <section className="max-w-6xl mx-auto px-4 lg:px-8 mt-16 mb-16">
-                    <h3 className="text-2xl font-bold text-[#111418] dark:text-white mb-8">
-                        Related Articles
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {relatedPosts.map((relatedPost) => (
-                            <PostCard key={relatedPost.id} post={relatedPost} />
-                        ))}
-                    </div>
-                </section>
-            )}
+            <style jsx global>{`
+                .article-copy { color: #4b5563; font-size: 16px; line-height: 1.95; }
+                .dark .article-copy { color: #cbd5e1; }
+                .article-copy h2, .article-copy h3 { margin-top: 2rem; margin-bottom: 1rem; font-size: 22px; font-weight: 700; line-height: 1.5; color: #111827; }
+                .dark .article-copy h2, .dark .article-copy h3 { color: #f8fafc; }
+                .article-copy p, .article-copy li { margin-bottom: 1rem; font-size: 16px; line-height: 1.95; }
+                .article-copy ul, .article-copy ol { margin: 1rem 0 1.5rem; padding-left: 1.5rem; }
+                .article-copy strong { font-weight: 700; color: #111827; }
+                .dark .article-copy strong { color: #f8fafc; }
+                .article-copy code { background: #e2e8f0; color: #0f172a; border-radius: 0.375rem; padding: 0.15rem 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.92em; }
+                .dark .article-copy code { background: #1e293b; color: #e2e8f0; }
+            `}</style>
         </div>
     );
 }

@@ -100,7 +100,7 @@ export default function NotFoundPage() {
                         Go Home
                     </Link>
                     <Link
-                        href="/blog"
+                        href="/"
                         className="flex items-center gap-2 px-6 py-3 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] font-bold rounded-lg border border-[#30363d] transition-colors"
                     >
                         <span className="material-symbols-outlined text-lg">article</span>

@@ -1,20 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/use-auth';
+import { resolvePostLoginRoute } from '@/lib/auth/redirects';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login, isLoading, error, clearError } = useAuthStore();
+    const {
+        initializeAuth,
+        login,
+        isAuthenticated,
+        isInitialized,
+        isLoading,
+        error,
+        clearError,
+        user,
+    } =
+        useAuthStore();
 
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     });
     const [showPassword, setShowPassword] = useState(false);
+
+    useEffect(() => {
+        void initializeAuth();
+    }, [initializeAuth]);
+
+    useEffect(() => {
+        if (!isInitialized || !isAuthenticated) {
+            return;
+        }
+
+        router.replace(resolvePostLoginRoute(user?.role));
+    }, [isAuthenticated, isInitialized, router, user?.role]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,11 +46,22 @@ export default function LoginPage() {
         try {
             await login(formData);
             toast.success('Login successful!');
-            router.push('/admin');
+            const nextRoute = resolvePostLoginRoute(
+                useAuthStore.getState().user?.role
+            );
+            router.push(nextRoute);
         } catch (err) {
             toast.error(error || 'Login failed');
         }
     };
+
+    if (!isInitialized && isAuthenticated) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+                <span className="size-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white min-h-screen flex flex-col relative overflow-hidden">
@@ -50,10 +84,10 @@ export default function LoginPage() {
                             <span className="material-symbols-outlined text-primary text-4xl">terminal</span>
                         </div>
                         <h1 className="text-[#111418] dark:text-white tracking-tight text-[28px] font-bold leading-tight">
-                            DevOps Admin Portal
+                            Sign in to DevOps Blog
                         </h1>
                         <p className="text-[#617589] dark:text-gray-400 text-base font-normal leading-normal pt-2">
-                            Please enter your details to access the dashboard.
+                            Continue to your workspace. We will route you to the right area based on your role.
                         </p>
                     </div>
 
@@ -74,7 +108,7 @@ export default function LoginPage() {
                                 </label>
                                 <input
                                     className="form-input flex w-full resize-none overflow-hidden rounded-lg text-[#111418] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbe0e6] dark:border-gray-600 bg-white dark:bg-[#1a232e] focus:border-primary h-12 placeholder:text-[#617589] px-4 text-base font-normal leading-normal transition-all"
-                                    placeholder="admin@devopsblog.com"
+                                    placeholder="you@devopsblog.com"
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -152,7 +186,7 @@ export default function LoginPage() {
                 <div className="mt-6 text-center">
                     <Link
                         className="text-sm text-[#617589] hover:text-[#111418] dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-1"
-                        href="/blog"
+                        href="/"
                     >
                         <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                         Return to Blog

@@ -4,8 +4,13 @@ import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'http://localhost:3000';
 
 export const metadata: Metadata = {
+    metadataBase: new URL(siteUrl),
     title: {
         default: 'DevOps Blog - Automate Everything, Deploy Anywhere',
         template: '%s | DevOps Blog',

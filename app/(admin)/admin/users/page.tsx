@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiClient } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatRelativeTime, getImageUrl } from '@/lib/utils';
+import { Skeleton } from '@/components/shared/skeleton';
 import toast from 'react-hot-toast';
 
 interface User {
@@ -11,6 +12,7 @@ interface User {
     firstName: string;
     lastName: string;
     avatar?: string;
+    bio?: string;
     role: string;
     isActive: boolean;
     lastLoginAt?: string;
@@ -18,199 +20,434 @@ interface User {
     _count?: { posts: number; comments: number };
 }
 
+interface PaginatedUsers {
+    data: User[];
+    meta?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
 const roles = [
     { key: 'ADMIN', label: 'Administrator', desc: 'Full system access, user management, settings', icon: 'shield', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
-    { key: 'MODERATOR', label: 'Moderator', desc: 'Manage comments, review content', icon: 'gavel', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-    { key: 'EDITOR', label: 'Editor', desc: 'Create, edit and publish articles', icon: 'edit_note', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    { key: 'VIEWER', label: 'Viewer', desc: 'Read-only access to dashboard', icon: 'visibility', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
+    { key: 'MODERATOR', label: 'Moderator', desc: 'Manage comments, review content, moderation', icon: 'gavel', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+    { key: 'EDITOR', label: 'Editor', desc: 'Create, edit and publish technical articles', icon: 'edit_note', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+    { key: 'VIEWER', label: 'Viewer', desc: 'Read-only access to dashboard and reports', icon: 'visibility', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
 ];
+
+function resolvePayload(payload: unknown): PaginatedUsers {
+    if (payload && typeof payload === 'object' && 'data' in payload) {
+        const nestedData = (payload as { data?: unknown }).data;
+
+        if (nestedData && typeof nestedData === 'object' && 'data' in nestedData) {
+            return nestedData as PaginatedUsers;
+        }
+    }
+
+    return (payload as PaginatedUsers) ?? { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 1 } };
+}
+
+function getRoleBadge(role: string) {
+    const roleConfig = roles.find((item) => item.key === role);
+
+    if (!roleConfig) {
+        return {
+            key: role,
+            label: role,
+            desc: role,
+            icon: 'person',
+            color: 'text-gray-400',
+            bg: 'bg-gray-500/10',
+            border: 'border-gray-500/20',
+        };
+    }
+
+    return roleConfig;
+}
+
+function getUserName(user: User) {
+    return `${user.firstName} ${user.lastName}`.trim();
+}
+
+function getInitials(user: User) {
+    return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` || 'US';
+}
+
+function RoleCardSkeleton() {
+    return (
+        <div className="rounded-xl border border-border-dark bg-surface-dark p-5">
+            <Skeleton className="mb-4 h-10 w-10 rounded-lg" />
+            <Skeleton className="mb-2 h-4 w-32" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="mt-4 h-3 w-20" />
+        </div>
+    );
+}
+
+function UsersTableSkeleton() {
+    return (
+        <div className="space-y-3 p-4">
+            {Array.from({ length: 6 }, (_, index) => (
+                <div key={index} className="grid grid-cols-[2.2fr_1.2fr_1fr_1fr_1fr_1fr_auto] gap-3 rounded-xl border border-border-dark bg-[#111418] p-4">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="size-10 rounded-full" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-44" />
+                        </div>
+                    </div>
+                    <Skeleton className="h-8 w-28" />
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-4 w-10" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <div className="flex justify-end">
+                        <Skeleton className="h-8 w-20" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
 
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalUsers, setTotalUsers] = useState(0);
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async (showRefreshing = false) => {
         try {
-            setLoading(true);
+            if (showRefreshing) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+
+            setErrorMessage('');
+
             const params = new URLSearchParams({
-                limit: '20',
+                page: currentPage.toString(),
+                limit: '12',
                 ...(searchQuery && { search: searchQuery }),
                 ...(roleFilter && { role: roleFilter }),
             });
-            const response = await apiClient.get<{ data?: User[] }>(`/api/v1/users?${params}`);
-            const data = response.data as any;
-            setUsers(Array.isArray(data) ? data : data?.data || []);
+
+            const response = await apiClient.get<unknown>(`/api/v1/users?${params}`);
+            const resolved = resolvePayload(response);
+
+            setUsers(resolved.data || []);
+            setTotalPages(resolved.meta?.totalPages || 1);
+            setTotalUsers(resolved.meta?.total || 0);
         } catch {
             setUsers([]);
+            setTotalPages(1);
+            setTotalUsers(0);
+            setErrorMessage('Khong the tai danh sach nguoi dung luc nay.');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
-    };
+    }, [currentPage, roleFilter, searchQuery]);
 
-    useEffect(() => { fetchUsers(); }, [roleFilter]);
+    useEffect(() => {
+        void fetchUsers();
+    }, [fetchUsers]);
+
+    const roleStats = useMemo(() => {
+        const counts = users.reduce<Record<string, number>>((accumulator, user) => {
+            accumulator[user.role] = (accumulator[user.role] || 0) + 1;
+            return accumulator;
+        }, {});
+
+        return roles.map((role) => ({
+            ...role,
+            count: counts[role.key] || 0,
+        }));
+    }, [users]);
+
+    const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setCurrentPage(1);
+        setSearchQuery(searchInput.trim());
+    };
 
     const handleRoleChange = async (userId: string, newRole: string) => {
         try {
             await apiClient.put(`/api/v1/users/${userId}`, { role: newRole });
-            toast.success('Role updated');
-            fetchUsers();
+            toast.success('Da cap nhat vai tro nguoi dung');
+            void fetchUsers(true);
         } catch {
-            toast.error('Failed to update role');
+            toast.error('Khong the cap nhat vai tro');
+        }
+    };
+
+    const handleStatusToggle = async (user: User) => {
+        try {
+            await apiClient.put(`/api/v1/users/${user.id}`, { isActive: !user.isActive });
+            toast.success(user.isActive ? 'Da khoa tai khoan' : 'Da kich hoat tai khoan');
+            void fetchUsers(true);
+        } catch {
+            toast.error('Khong the cap nhat trang thai tai khoan');
         }
     };
 
     const handleDelete = async (userId: string) => {
-        if (!confirm('Delete this user permanently?')) return;
+        if (!confirm('Ban co chac muon xoa nguoi dung nay vinh vien khong?')) {
+            return;
+        }
+
         try {
             await apiClient.delete(`/api/v1/users/${userId}`);
-            toast.success('User deleted');
-            fetchUsers();
+            toast.success('Da xoa nguoi dung');
+            void fetchUsers(true);
         } catch {
-            toast.error('Failed to delete user');
+            toast.error('Khong the xoa nguoi dung');
         }
     };
 
-    const getRoleBadge = (role: string) => {
-        const r = roles.find(r => r.key === role);
-        if (!r) return { color: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/20', label: role };
-        return r;
-    };
-
     return (
-        <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
-            {/* Role Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {roles.map((role) => (
-                    <div
-                        key={role.key}
-                        onClick={() => setRoleFilter(roleFilter === role.key ? '' : role.key)}
-                        className={`bg-surface-dark border rounded-xl p-5 flex flex-col gap-3 cursor-pointer transition-all hover:shadow-lg ${
-                            roleFilter === role.key ? `${role.border} ring-1 ring-current ${role.color}` : 'border-border-dark hover:border-primary/30'
-                        }`}
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Users & Roles</h1>
+                    <p className="mt-1 text-sm text-[#9dabb9]">
+                        Quan ly truy cap, vai tro va tinh trang hoat dong cua nguoi dung.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => void fetchUsers(true)}
+                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-border-dark bg-[#111418] px-4 text-sm font-medium text-white transition-colors hover:bg-[#283039]"
                     >
-                        <div className="flex justify-between items-start">
-                            <div className={`size-10 rounded-lg ${role.bg} flex items-center justify-center ${role.color}`}>
-                                <span className="material-symbols-outlined">{role.icon}</span>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="text-white font-bold text-sm">{role.label}</h3>
-                            <p className="text-[#9dabb9] text-xs mt-1">{role.desc}</p>
-                        </div>
-                    </div>
-                ))}
+                        <span className={`material-symbols-outlined text-[18px] ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
+                        Lam moi
+                    </button>
+                </div>
             </div>
 
-            {/* Users Table */}
-            <div className="bg-surface-dark border border-border-dark rounded-xl overflow-hidden">
-                <div className="bg-[#111418] border-b border-border-dark p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h3 className="text-white font-bold text-base">
-                        User List {roleFilter && <span className="text-primary text-sm font-normal ml-2">— {roleFilter}</span>}
-                    </h3>
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-64">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#9dabb9] text-[18px]">search</span>
-                            <input
-                                className="w-full bg-[#283039] border border-border-dark rounded-lg pl-9 pr-3 py-1.5 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary placeholder-[#9dabb9] transition-all"
-                                placeholder="Search users..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
-                            />
-                        </div>
-                        <button onClick={fetchUsers} className="p-2 rounded-lg text-[#9dabb9] hover:text-white hover:bg-[#283039] transition-colors">
-                            <span className="material-symbols-outlined">refresh</span>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {loading ? (
+                    Array.from({ length: 4 }, (_, index) => <RoleCardSkeleton key={index} />)
+                ) : (
+                    roleStats.map((role) => (
+                        <button
+                            key={role.key}
+                            onClick={() => {
+                                setRoleFilter(roleFilter === role.key ? '' : role.key);
+                                setCurrentPage(1);
+                            }}
+                            className={`relative flex flex-col gap-3 overflow-hidden rounded-xl border p-5 text-left transition-all hover:shadow-lg ${
+                                roleFilter === role.key
+                                    ? `${role.border} ${role.bg} ring-1 ring-current ${role.color}`
+                                    : 'border-border-dark bg-surface-dark hover:border-primary/30'
+                            }`}
+                        >
+                            <div className={`absolute left-0 top-0 h-full w-1 ${role.bg.replace('/10', '')}`} />
+                            <div className={`flex size-10 items-center justify-center rounded-lg ${role.bg} ${role.color}`}>
+                                <span className="material-symbols-outlined">{role.icon}</span>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-white">{role.label}</h3>
+                                <p className="mt-1 text-xs text-[#9dabb9]">{role.desc}</p>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between border-t border-border-dark pt-3 text-xs">
+                                <span className="text-[#9dabb9]">Trong trang hien tai</span>
+                                <span className="font-mono text-white">{role.count}</span>
+                            </div>
                         </button>
+                    ))
+                )}
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark">
+                <div className="flex flex-col gap-4 border-b border-border-dark bg-[#111418] p-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h3 className="text-base font-bold text-white">
+                            Danh sach nguoi dung
+                            {roleFilter ? (
+                                <span className="ml-2 text-sm font-normal text-primary">- {roleFilter}</span>
+                            ) : null}
+                        </h3>
+                        <p className="mt-1 text-xs text-[#9dabb9]">
+                            {loading ? 'Dang tai...' : `${totalUsers} tai khoan phu hop bo loc hien tai`}
+                        </p>
+                    </div>
+
+                    <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
+                        <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
+                            <span className="material-symbols-outlined absolute left-3 top-2.5 text-[#9dabb9] text-[18px]">search</span>
+                            <input
+                                className="w-full rounded-lg border border-border-dark bg-[#283039] py-2 pl-9 pr-3 text-sm text-white placeholder-[#9dabb9] transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                                placeholder="Tim theo ten hoac email..."
+                                value={searchInput}
+                                onChange={(event) => setSearchInput(event.target.value)}
+                            />
+                        </form>
+                        <select
+                            value={roleFilter}
+                            onChange={(event) => {
+                                setRoleFilter(event.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="cursor-pointer rounded-lg border border-border-dark bg-[#283039] px-4 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                        >
+                            <option value="">Tat ca vai tro</option>
+                            {roles.map((role) => (
+                                <option key={role.key} value={role.key}>
+                                    {role.label}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-[#18202a] border-b border-border-dark text-xs uppercase text-[#9dabb9] font-medium">
-                                <th className="p-4">User</th>
-                                <th className="p-4">Role</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4">Posts</th>
-                                <th className="p-4">Last Login</th>
-                                <th className="p-4">Joined</th>
-                                <th className="p-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-dark">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={7} className="p-16 text-center">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-                                    </td>
+                    {loading ? (
+                        <UsersTableSkeleton />
+                    ) : errorMessage ? (
+                        <div className="p-16 text-center text-[#9dabb9]">
+                            <span className="material-symbols-outlined mb-2 block text-4xl text-[#fa6238]">warning</span>
+                            {errorMessage}
+                        </div>
+                    ) : users.length === 0 ? (
+                        <div className="p-16 text-center text-[#9dabb9]">
+                            <span className="material-symbols-outlined mb-2 block text-4xl">manage_accounts</span>
+                            Khong tim thay nguoi dung nao.
+                        </div>
+                    ) : (
+                        <table className="w-full border-collapse text-left">
+                            <thead>
+                                <tr className="border-b border-border-dark bg-[#18202a] text-xs font-medium uppercase text-[#9dabb9]">
+                                    <th className="p-4">User</th>
+                                    <th className="p-4">Role</th>
+                                    <th className="p-4">Status</th>
+                                    <th className="p-4">Posts</th>
+                                    <th className="p-4">Last Active</th>
+                                    <th className="p-4">Joined</th>
+                                    <th className="p-4 text-right">Actions</th>
                                 </tr>
-                            ) : users.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="p-16 text-center text-[#9dabb9]">
-                                        <span className="material-symbols-outlined text-4xl mb-2 block">manage_accounts</span>
-                                        No users found
-                                    </td>
-                                </tr>
-                            ) : (
-                                users.map((user) => {
+                            </thead>
+                            <tbody className="divide-y divide-border-dark">
+                                {users.map((user) => {
                                     const roleDef = getRoleBadge(user.role);
+
                                     return (
-                                        <tr key={user.id} className="hover:bg-[#1f2937] transition-colors group">
+                                        <tr key={user.id} className="group transition-colors hover:bg-[#1f2937]">
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold ring-2 ring-[#283039]">
-                                                        {user.firstName[0]}{user.lastName[0]}
+                                                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-primary/20 text-sm font-bold text-primary ring-2 ring-[#283039]">
+                                                        {user.avatar ? (
+                                                            <img
+                                                                src={getImageUrl(user.avatar)}
+                                                                alt={getUserName(user)}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            getInitials(user)
+                                                        )}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-white font-medium text-sm">{user.firstName} {user.lastName}</span>
-                                                        <span className="text-[#9dabb9] text-xs">{user.email}</span>
+                                                        <span className="text-sm font-medium text-white">
+                                                            {getUserName(user)}
+                                                        </span>
+                                                        <span className="text-xs text-[#9dabb9]">{user.email}</span>
+                                                        {user.bio ? (
+                                                            <span className="mt-1 line-clamp-1 text-xs text-[#586069]">
+                                                                {user.bio}
+                                                            </span>
+                                                        ) : null}
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="p-4">
                                                 <select
                                                     value={user.role}
-                                                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                                    className={`bg-transparent border rounded text-xs font-bold px-2 py-1 cursor-pointer focus:ring-1 focus:ring-primary ${roleDef.bg} ${roleDef.color} ${roleDef.border}`}
+                                                    onChange={(event) => void handleRoleChange(user.id, event.target.value)}
+                                                    className={`rounded border px-2 py-1 text-xs font-bold focus:ring-1 focus:ring-primary ${roleDef.bg} ${roleDef.color} ${roleDef.border}`}
                                                 >
-                                                    {roles.map(r => (
-                                                        <option key={r.key} value={r.key} className="bg-[#111418] text-white">{r.label}</option>
+                                                    {roles.map((role) => (
+                                                        <option key={role.key} value={role.key} className="bg-[#111418] text-white">
+                                                            {role.label}
+                                                        </option>
                                                     ))}
                                                 </select>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                    user.isActive ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                                                }`}>
+                                                <button
+                                                    onClick={() => void handleStatusToggle(user)}
+                                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold transition-colors ${
+                                                        user.isActive
+                                                            ? 'border-green-500/20 bg-green-500/10 text-green-400'
+                                                            : 'border-gray-500/20 bg-gray-500/10 text-gray-400'
+                                                    }`}
+                                                >
                                                     <span className={`size-1.5 rounded-full ${user.isActive ? 'bg-green-400' : 'bg-gray-400'}`} />
                                                     {user.isActive ? 'Active' : 'Inactive'}
+                                                </button>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-mono text-sm text-white">{user._count?.posts || 0}</div>
+                                                <div className="text-xs text-[#9dabb9]">{user._count?.comments || 0} comments</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-sm text-[#9dabb9]">
+                                                    {user.lastLoginAt ? formatRelativeTime(user.lastLoginAt) : '--'}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-white font-mono text-sm">{user._count?.posts || 0}</span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="text-[#9dabb9] text-sm">{user.lastLoginAt ? formatDate(user.lastLoginAt) : '--'}</span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="text-[#9dabb9] text-sm">{formatDate(user.createdAt)}</span>
+                                                <span className="text-sm text-[#9dabb9]">{formatDate(user.createdAt)}</span>
                                             </td>
                                             <td className="p-4 text-right">
-                                                <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => handleDelete(user.id)} className="p-1.5 rounded text-[#9dabb9] hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete User">
+                                                <div className="flex items-center justify-end gap-2 opacity-60 transition-opacity group-hover:opacity-100">
+                                                    <button
+                                                        onClick={() => void handleDelete(user.id)}
+                                                        className="rounded-lg p-1.5 text-[#9dabb9] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                                                        title="Delete user"
+                                                    >
                                                         <span className="material-symbols-outlined text-[20px]">delete</span>
                                                     </button>
                                                 </div>
                                             </td>
                                         </tr>
                                     );
-                                })
-                            )}
-                        </tbody>
-                    </table>
+                                })}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
+
+                {totalPages > 1 ? (
+                    <div className="flex items-center justify-between border-t border-border-dark bg-[#111418] p-4">
+                        <span className="text-xs text-[#9dabb9]">
+                            Trang {currentPage}/{totalPages} - {totalUsers} nguoi dung
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                                className="rounded border border-border-dark px-3 py-1 text-xs text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                disabled={currentPage === totalPages}
+                                className="rounded border border-border-dark px-3 py-1 text-xs text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </div>
     );
