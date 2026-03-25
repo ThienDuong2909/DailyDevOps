@@ -1,7 +1,15 @@
 import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 
+const resolveApiBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+        return '';
+    }
+
+    return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+};
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+    baseURL: resolveApiBaseUrl(),
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
