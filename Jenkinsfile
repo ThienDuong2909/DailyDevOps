@@ -69,6 +69,8 @@ pipeline {
 NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 NEXT_PUBLIC_APP_NAME=DevOps Blog
+NEXT_PUBLIC_SITE_URL=https://blog.thienduong.info
+INTERNAL_API_URL=http://devops-blog-server-svc
 EOF
                     '''
                     // Verify the env file was created correctly (masked values)
@@ -85,12 +87,12 @@ EOF
                     
                     withSonarQubeEnv('sonar-server') {
                         sh """
-                            "${scannerHome}/bin/sonar-scanner" \
-                            -Dsonar.projectKey=devops-blog-client \
-                            -Dsonar.projectName='DevOps Blog Client' \
-                            -Dsonar.sources=. \
-                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,**/*.d.ts \
-                            -Dsonar.coverage.exclusions=app/**,components/**,hooks/**,lib/**,stores/**,types/**,next.config.js,tailwind.config.js,postcss.config.js \
+                            "${scannerHome}/bin/sonar-scanner" \\
+                            -Dsonar.projectKey=devops-blog-client \\
+                            -Dsonar.projectName='DevOps Blog Client' \\
+                            -Dsonar.sources=. \\
+                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,**/*.d.ts \\
+                            -Dsonar.coverage.exclusions=app/**,components/**,hooks/**,lib/**,stores/**,types/**,next.config.js,tailwind.config.js,postcss.config.js \\
                             -Dsonar.sourceEncoding=UTF-8
                         """
                     }
