@@ -1,5 +1,11 @@
 import type { MetadataRoute } from 'next';
 
+// Force dynamic generation at runtime — NOT at build time.
+// During Docker build, the backend API is unavailable, so the sitemap
+// would be cached empty. This ensures fresh data on every request.
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // ISR: regenerate every 1 hour
+
 const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
