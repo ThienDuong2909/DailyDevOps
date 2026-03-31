@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import type { Category, Post, PostStatus, Tag } from '@/types';
 import { formatDate, formatRelativeTime, getImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -13,9 +14,10 @@ type TaxonomyPayload<T> = { data?: T[] } | T[];
 
 interface ArticleFormState {
     title: string;
+    subtitle: string;
     slug: string;
-    excerpt: string;
     content: string;
+    contentJson: Record<string, unknown> | null;
     featuredImage: string;
     status: PostStatus;
     categoryId: string;
@@ -23,11 +25,18 @@ interface ArticleFormState {
     scheduledAt: string;
 }
 
+interface OutlineItem {
+    id: string;
+    text: string;
+    level: 2 | 3;
+}
+
 const initialFormState: ArticleFormState = {
     title: '',
+    subtitle: '',
     slug: '',
-    excerpt: '',
     content: '',
+    contentJson: null,
     featuredImage: '',
     status: 'DRAFT',
     categoryId: '',
@@ -61,9 +70,10 @@ function buildFormState(post?: Post): ArticleFormState {
 
     return {
         title: post.title || '',
+        subtitle: post.subtitle || post.excerpt || '',
         slug: post.slug || '',
-        excerpt: post.excerpt || '',
-        content: post.content || '',
+        content: post.contentHtml || post.content || '',
+        contentJson: (post.contentJson as Record<string, unknown> | null) || null,
         featuredImage: post.featuredImage || '',
         status: post.status || 'DRAFT',
         categoryId: post.category?.id || '',
@@ -164,6 +174,21 @@ export default function ArticleEditPage() {
         };
     }, [formState.content]);
 
+    const documentOutline = useMemo<OutlineItem[]>(() => {
+        if (typeof window === 'undefined' || !formState.content) {
+            return [];
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(formState.content, 'text/html');
+
+        return Array.from(doc.querySelectorAll('h2, h3')).map((heading, index) => ({
+            id: heading.id || `outline-${index}`,
+            text: (heading.textContent || '').trim(),
+            level: heading.tagName === 'H2' ? (2 as const) : (3 as const),
+        })).filter((item) => item.text);
+    }, [formState.content]);
+
     const lastSavedLabel = article?.updatedAt ? formatRelativeTime(article.updatedAt) : 'Chua luu lan nao';
 
     const handleFieldChange = <K extends keyof ArticleFormState>(
@@ -200,8 +225,10 @@ export default function ArticleEditPage() {
         const payload = {
             title: formState.title.trim(),
             slug: formState.slug.trim() || createSlug(formState.title),
-            excerpt: formState.excerpt.trim() || null,
+            excerpt: formState.subtitle.trim() || null,
             content: formState.content,
+            contentHtml: formState.content,
+            contentJson: formState.contentJson,
             featuredImage: formState.featuredImage.trim() || null,
             status: formState.status,
             categoryId: formState.categoryId || null,
@@ -359,49 +386,85 @@ export default function ArticleEditPage() {
                     </div>
 
                     <div className="rounded-xl border border-border-dark bg-surface-dark p-5">
-                        <label className="mb-2 block text-xs font-medium uppercase text-[#9dabb9]">Excerpt</label>
+                        <label className="mb-2 block text-xs font-medium uppercase text-[#9dabb9]">Sub title</label>
                         <textarea
-                            value={formState.excerpt}
-                            onChange={(event) => handleFieldChange('excerpt', event.target.value)}
+                            value={formState.subtitle}
+                            onChange={(event) => handleFieldChange('subtitle', event.target.value)}
                             rows={3}
                             className="w-full resize-none rounded-lg border border-border-dark bg-[#111418] px-4 py-3 text-sm text-white placeholder-[#586069] focus:border-primary focus:ring-1 focus:ring-primary"
-                            placeholder="Tom tat ngan de hien thi tren danh sach bai viet..."
+                            placeholder="Sub title ngan, mo ta nhanh goc nhin va gia tri cua bai viet..."
                         />
                     </div>
 
-                    <div className="flex min-h-[600px] flex-col overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-sm">
-                        <div className="border-b border-border-dark bg-[#111418] px-4 py-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-sm font-bold text-white">Noi dung bai viet</h3>
-                                    <p className="mt-1 text-xs text-[#9dabb9]">
-                                        Dang su dung editor don gian de viet HTML/Markdown phu hop backend hien tai.
-                                    </p>
-                                </div>
-                                <span className="rounded-full border border-border-dark px-2.5 py-1 font-mono text-[11px] text-[#9dabb9]">
-                                    HTML / Markdown
-                                </span>
+                    <div className="flex flex-col gap-4 rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h3 className="text-sm font-bold text-white">Noi dung bai viet</h3>
+                                <p className="mt-1 text-xs text-[#9dabb9]">
+                                    Soan thao truc quan nhu Word: heading, dam, nghieng, can le, mau sac, quote, list, code block va link.
+                                </p>
                             </div>
+                            <span className="rounded-full border border-border-dark px-2.5 py-1 font-mono text-[11px] text-[#9dabb9]">
+                                WYSIWYG
+                            </span>
                         </div>
-                        <div className="flex-1 p-6">
-                            <textarea
-                                value={formState.content}
-                                onChange={(event) => handleFieldChange('content', event.target.value)}
-                                className="custom-scrollbar min-h-[440px] w-full resize-none rounded-lg border border-border-dark bg-[#111418] p-4 font-mono text-sm leading-7 text-white placeholder-[#586069] focus:border-primary focus:ring-1 focus:ring-primary"
-                                placeholder="Viet noi dung bai viet tai day..."
-                            />
-                        </div>
-                        <div className="flex items-center justify-between border-t border-border-dark bg-[#111418] px-4 py-2 text-xs text-[#9dabb9]">
-                            <span>Words: {stats.words}</span>
-                            <div className="flex gap-4">
-                                <span>Characters: {stats.characters}</span>
-                                <span>Reading time: {stats.readingTime} min</span>
+
+                        <RichTextEditor
+                            value={formState.content}
+                            jsonValue={formState.contentJson}
+                            onChange={({ html, json }) =>
+                                setFormState((previous) => ({
+                                    ...previous,
+                                    content: html,
+                                    contentJson: json,
+                                }))
+                            }
+                        />
+
+                        <div className="grid gap-3 rounded-xl border border-border-dark bg-[#111418] p-4 md:grid-cols-3">
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-[#9dabb9]">Words</p>
+                                <p className="mt-1 text-base font-bold text-white">{stats.words}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-[#9dabb9]">Characters</p>
+                                <p className="mt-1 text-base font-bold text-white">{stats.characters}</p>
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-wide text-[#9dabb9]">Reading time</p>
+                                <p className="mt-1 text-base font-bold text-white">{stats.readingTime} min</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex flex-col gap-6 lg:col-span-4">
+                    <div className="rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
+                        <h3 className="mb-4 text-sm font-bold text-white">Document Outline</h3>
+                        <div className="rounded-xl border border-border-dark bg-[#111418] p-4">
+                            {documentOutline.length ? (
+                                <div className="space-y-1.5">
+                                    {documentOutline.map((item, index) => (
+                                        <div
+                                            key={`${item.text}-${index}`}
+                                            className={`rounded-lg border-l-2 px-3 py-2 text-sm ${
+                                                item.level === 3
+                                                    ? 'ml-4 border-transparent text-[#9dabb9]'
+                                                    : 'border-primary/50 bg-primary/5 font-semibold text-white'
+                                            }`}
+                                        >
+                                            {item.text}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-[#9dabb9]">
+                                    Them cac heading H2/H3 trong editor de tao muc luc cho bai viet.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
                         <h3 className="mb-4 text-sm font-bold text-white">Publishing</h3>
                         <div className="space-y-4">

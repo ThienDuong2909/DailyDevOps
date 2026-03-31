@@ -48,8 +48,11 @@ export interface Post {
     id: string;
     title: string;
     slug: string;
+    subtitle?: string;
     excerpt?: string;
     content: string;
+    contentHtml?: string;
+    contentJson?: unknown;
     featuredImage?: string;
     status: PostStatus;
     viewCount: number;

@@ -25,8 +25,11 @@ export interface ApiError {
 export interface CreatePostForm {
     title: string;
     slug?: string;
+    subtitle?: string;
     excerpt?: string;
     content: string;
+    contentHtml?: string;
+    contentJson?: unknown;
     featuredImage?: string;
     status?: PostStatus;
     categoryId?: string;
