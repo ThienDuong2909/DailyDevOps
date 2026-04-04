@@ -39,6 +39,8 @@ pipeline {
         RUN_E2E = "${env.RUN_E2E ?: 'false'}"
         PLAYWRIGHT_BASE_URL = 'http://localhost:3000'
         PLAYWRIGHT_API_URL = 'http://localhost:3001'
+        NEXT_PUBLIC_APP_ENV_DEFAULT = 'production'
+        NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE_DEFAULT = "${env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?: '0'}"
     }
 
     stages {
@@ -71,6 +73,33 @@ pipeline {
             }
         }
 
+        stage('Inject Environment Secrets') {
+            steps {
+                echo 'Injecting secrets into production environment file...'
+                withCredentials([
+                    string(credentialsId: 'API_URL_PROD', variable: 'NEXT_PUBLIC_API_URL'),
+                    string(credentialsId: 'APP_URL_PROD', variable: 'NEXT_PUBLIC_APP_URL'),
+                    string(credentialsId: 'NEXT_PUBLIC_SENTRY_DSN', variable: 'NEXT_PUBLIC_SENTRY_DSN'),
+                    string(credentialsId: 'NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE', variable: 'NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE')
+                ]) {
+                    sh '''
+                        cat > .env.production << EOF
+NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+NEXT_PUBLIC_APP_NAME=DevOps Blog
+NEXT_PUBLIC_SITE_URL=https://blog.thienduong.info
+INTERNAL_API_URL=http://devops-blog-server-svc
+NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV:-${NEXT_PUBLIC_APP_ENV_DEFAULT}}
+NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
+NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:-${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE_DEFAULT}}
+EOF
+                    '''
+                    // Verify the env file was created correctly (masked values)
+                    sh 'echo "Environment file created with $(wc -l < .env.production) variables"'
+                }
+            }
+        }
+
         stage('Build Application') {
             steps {
                 echo 'Running production build before containerization...'
@@ -86,28 +115,6 @@ pipeline {
                 echo 'Installing Playwright browser and running E2E smoke suite...'
                 sh 'npm run test:e2e:install'
                 sh 'npm run test:e2e'
-            }
-        }
-
-        stage('Inject Environment Secrets') {
-            steps {
-                echo 'Injecting secrets into production environment file...'
-                withCredentials([
-                    string(credentialsId: 'API_URL_PROD', variable: 'NEXT_PUBLIC_API_URL'),
-                    string(credentialsId: 'APP_URL_PROD', variable: 'NEXT_PUBLIC_APP_URL')
-                ]) {
-                    sh '''
-                        cat > .env.production << EOF
-NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-NEXT_PUBLIC_APP_NAME=DevOps Blog
-NEXT_PUBLIC_SITE_URL=https://blog.thienduong.info
-INTERNAL_API_URL=http://devops-blog-server-svc
-EOF
-                    '''
-                    // Verify the env file was created correctly (masked values)
-                    sh 'echo "Environment file created with $(wc -l < .env.production) variables"'
-                }
             }
         }
 
