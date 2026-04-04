@@ -11,8 +11,10 @@ export function ThemeToggle() {
         setTheme(isDark ? 'dark' : 'light');
     }, []);
 
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+
     const toggleTheme = () => {
-        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        const newTheme = nextTheme;
         setTheme(newTheme);
         localStorage.setItem('theme', newTheme);
         
@@ -29,13 +31,14 @@ export function ThemeToggle() {
     return (
         <button
             onClick={toggleTheme}
-            className="flex items-center justify-center size-10 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-[#1a222e] dark:hover:bg-[#283039] text-text-sub dark:text-gray-300 hover:text-primary transition-all active:scale-95"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition-all active:scale-95 theme-panel-muted theme-border-ghost text-[color:var(--text-muted-theme)] hover:text-[color:var(--text-main-theme)]"
             aria-label="Toggle Dark Mode"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={nextTheme === 'light' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
             <span className="material-symbols-outlined !text-[20px]">
-                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+                {nextTheme === 'light' ? 'light_mode' : 'dark_mode'}
             </span>
+            <span className="hidden sm:inline">{nextTheme === 'light' ? 'Light' : 'Dark'}</span>
         </button>
     );
 }

@@ -34,6 +34,7 @@ const roles = [
     { key: 'ADMIN', label: 'Administrator', desc: 'Full system access, user management, settings', icon: 'shield', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
     { key: 'MODERATOR', label: 'Moderator', desc: 'Manage comments, review content, moderation', icon: 'gavel', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
     { key: 'EDITOR', label: 'Editor', desc: 'Create, edit and publish technical articles', icon: 'edit_note', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+    { key: 'AUTHOR', label: 'Author', desc: 'Draft and submit articles for editorial review', icon: 'stylus_note', color: 'text-violet-300', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
     { key: 'VIEWER', label: 'Viewer', desc: 'Read-only access to dashboard and reports', icon: 'visibility', color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
 ];
 
@@ -218,15 +219,15 @@ export default function UsersPage() {
         <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Users & Roles</h1>
-                    <p className="mt-1 text-sm text-[#9dabb9]">
+                    <h1 className="text-2xl font-bold text-[color:var(--text-main-theme)]">Users & Roles</h1>
+                    <p className="theme-muted mt-1 text-sm">
                         Quan ly truy cap, vai tro va tinh trang hoat dong cua nguoi dung.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => void fetchUsers(true)}
-                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-border-dark bg-[#111418] px-4 text-sm font-medium text-white transition-colors hover:bg-[#283039]"
+                        className="theme-panel-muted theme-border inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-medium text-[color:var(--text-main-theme)] transition-colors hover:opacity-90"
                     >
                         <span className={`material-symbols-outlined text-[18px] ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
                         Lam moi
@@ -248,7 +249,7 @@ export default function UsersPage() {
                             className={`relative flex flex-col gap-3 overflow-hidden rounded-xl border p-5 text-left transition-all hover:shadow-lg ${
                                 roleFilter === role.key
                                     ? `${role.border} ${role.bg} ring-1 ring-current ${role.color}`
-                                    : 'border-border-dark bg-surface-dark hover:border-primary/30'
+                                    : 'theme-panel hover:border-primary/30'
                             }`}
                         >
                             <div className={`absolute left-0 top-0 h-full w-1 ${role.bg.replace('/10', '')}`} />
@@ -256,37 +257,37 @@ export default function UsersPage() {
                                 <span className="material-symbols-outlined">{role.icon}</span>
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-white">{role.label}</h3>
-                                <p className="mt-1 text-xs text-[#9dabb9]">{role.desc}</p>
+                                <h3 className="text-sm font-bold text-[color:var(--text-main-theme)]">{role.label}</h3>
+                                <p className="theme-muted mt-1 text-xs">{role.desc}</p>
                             </div>
-                            <div className="mt-2 flex items-center justify-between border-t border-border-dark pt-3 text-xs">
-                                <span className="text-[#9dabb9]">Trong trang hien tai</span>
-                                <span className="font-mono text-white">{role.count}</span>
+                            <div className="theme-border mt-2 flex items-center justify-between border-t pt-3 text-xs">
+                                <span className="theme-muted">Trong trang hien tai</span>
+                                <span className="font-mono text-[color:var(--text-main-theme)]">{role.count}</span>
                             </div>
                         </button>
                     ))
                 )}
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark">
-                <div className="flex flex-col gap-4 border-b border-border-dark bg-[#111418] p-4 md:flex-row md:items-center md:justify-between">
+            <div className="theme-panel overflow-hidden rounded-2xl">
+                <div className="theme-border flex flex-col gap-4 border-b p-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h3 className="text-base font-bold text-white">
+                        <h3 className="text-base font-bold text-[color:var(--text-main-theme)]">
                             Danh sach nguoi dung
                             {roleFilter ? (
                                 <span className="ml-2 text-sm font-normal text-primary">- {roleFilter}</span>
                             ) : null}
                         </h3>
-                        <p className="mt-1 text-xs text-[#9dabb9]">
+                        <p className="theme-muted mt-1 text-xs">
                             {loading ? 'Dang tai...' : `${totalUsers} tai khoan phu hop bo loc hien tai`}
                         </p>
                     </div>
 
                     <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
                         <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
-                            <span className="material-symbols-outlined absolute left-3 top-2.5 text-[#9dabb9] text-[18px]">search</span>
+                            <span className="material-symbols-outlined theme-muted absolute left-3 top-2.5 text-[18px]">search</span>
                             <input
-                                className="w-full rounded-lg border border-border-dark bg-[#283039] py-2 pl-9 pr-3 text-sm text-white placeholder-[#9dabb9] transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                                className="theme-input w-full rounded-2xl py-2 pl-9 pr-3 text-sm"
                                 placeholder="Tim theo ten hoac email..."
                                 value={searchInput}
                                 onChange={(event) => setSearchInput(event.target.value)}
@@ -298,7 +299,7 @@ export default function UsersPage() {
                                 setRoleFilter(event.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="cursor-pointer rounded-lg border border-border-dark bg-[#283039] px-4 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="theme-input cursor-pointer rounded-2xl px-4 py-2 text-sm"
                         >
                             <option value="">Tat ca vai tro</option>
                             {roles.map((role) => (
@@ -314,19 +315,19 @@ export default function UsersPage() {
                     {loading ? (
                         <UsersTableSkeleton />
                     ) : errorMessage ? (
-                        <div className="p-16 text-center text-[#9dabb9]">
+                        <div className="theme-muted p-16 text-center">
                             <span className="material-symbols-outlined mb-2 block text-4xl text-[#fa6238]">warning</span>
                             {errorMessage}
                         </div>
                     ) : users.length === 0 ? (
-                        <div className="p-16 text-center text-[#9dabb9]">
+                        <div className="theme-muted p-16 text-center">
                             <span className="material-symbols-outlined mb-2 block text-4xl">manage_accounts</span>
                             Khong tim thay nguoi dung nao.
                         </div>
                     ) : (
                         <table className="w-full border-collapse text-left">
                             <thead>
-                                <tr className="border-b border-border-dark bg-[#18202a] text-xs font-medium uppercase text-[#9dabb9]">
+                                <tr className="theme-border bg-[color:var(--surface-muted)] text-xs font-medium uppercase theme-muted border-b">
                                     <th className="p-4">User</th>
                                     <th className="p-4">Role</th>
                                     <th className="p-4">Status</th>
@@ -336,12 +337,12 @@ export default function UsersPage() {
                                     <th className="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-border-dark">
+                            <tbody className="divide-y theme-border">
                                 {users.map((user) => {
                                     const roleDef = getRoleBadge(user.role);
 
                                     return (
-                                        <tr key={user.id} className="group transition-colors hover:bg-[#1f2937]">
+                                        <tr key={user.id} className="group transition-colors hover:bg-[color:var(--surface-muted)]">
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-primary/20 text-sm font-bold text-primary ring-2 ring-[#283039]">
@@ -356,12 +357,12 @@ export default function UsersPage() {
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm font-medium text-white">
+                                                        <span className="text-sm font-medium text-[color:var(--text-main-theme)]">
                                                             {getUserName(user)}
                                                         </span>
-                                                        <span className="text-xs text-[#9dabb9]">{user.email}</span>
+                                                        <span className="theme-muted text-xs">{user.email}</span>
                                                         {user.bio ? (
-                                                            <span className="mt-1 line-clamp-1 text-xs text-[#586069]">
+                                                            <span className="theme-soft mt-1 line-clamp-1 text-xs">
                                                                 {user.bio}
                                                             </span>
                                                         ) : null}
@@ -375,7 +376,7 @@ export default function UsersPage() {
                                                     className={`rounded border px-2 py-1 text-xs font-bold focus:ring-1 focus:ring-primary ${roleDef.bg} ${roleDef.color} ${roleDef.border}`}
                                                 >
                                                     {roles.map((role) => (
-                                                        <option key={role.key} value={role.key} className="bg-[#111418] text-white">
+                                                        <option key={role.key} value={role.key} className="bg-white text-slate-900 dark:bg-[#111418] dark:text-white">
                                                             {role.label}
                                                         </option>
                                                     ))}
@@ -395,22 +396,22 @@ export default function UsersPage() {
                                                 </button>
                                             </td>
                                             <td className="p-4">
-                                                <div className="font-mono text-sm text-white">{user._count?.posts || 0}</div>
-                                                <div className="text-xs text-[#9dabb9]">{user._count?.comments || 0} comments</div>
+                                                <div className="font-mono text-sm text-[color:var(--text-main-theme)]">{user._count?.posts || 0}</div>
+                                                <div className="theme-muted text-xs">{user._count?.comments || 0} comments</div>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm text-[#9dabb9]">
+                                                <span className="theme-muted text-sm">
                                                     {user.lastLoginAt ? formatRelativeTime(user.lastLoginAt) : '--'}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm text-[#9dabb9]">{formatDate(user.createdAt)}</span>
+                                                <span className="theme-muted text-sm">{formatDate(user.createdAt)}</span>
                                             </td>
                                             <td className="p-4 text-right">
                                                 <div className="flex items-center justify-end gap-2 opacity-60 transition-opacity group-hover:opacity-100">
                                                     <button
                                                         onClick={() => void handleDelete(user.id)}
-                                                        className="rounded-lg p-1.5 text-[#9dabb9] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                                                        className="theme-muted rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-500"
                                                         title="Delete user"
                                                     >
                                                         <span className="material-symbols-outlined text-[20px]">delete</span>
@@ -426,22 +427,22 @@ export default function UsersPage() {
                 </div>
 
                 {totalPages > 1 ? (
-                    <div className="flex items-center justify-between border-t border-border-dark bg-[#111418] p-4">
-                        <span className="text-xs text-[#9dabb9]">
+                    <div className="theme-border flex items-center justify-between border-t p-4">
+                        <span className="theme-muted text-xs">
                             Trang {currentPage}/{totalPages} - {totalUsers} nguoi dung
                         </span>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
-                                className="rounded border border-border-dark px-3 py-1 text-xs text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="theme-panel-muted theme-border rounded border px-3 py-1 text-xs theme-muted transition-colors hover:text-[color:var(--text-main-theme)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Previous
                             </button>
                             <button
                                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
-                                className="rounded border border-border-dark px-3 py-1 text-xs text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="theme-panel-muted theme-border rounded border px-3 py-1 text-xs theme-muted transition-colors hover:text-[color:var(--text-main-theme)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Next
                             </button>

@@ -7,5 +7,5 @@ export function resolvePostLoginRoute(role?: string | null) {
         return '/admin';
     }
 
-    return '/';
+    return '/account';
 }

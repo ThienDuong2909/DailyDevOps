@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface AdminHeaderProps {
     title: string;
@@ -11,19 +12,19 @@ export function AdminHeader({ title }: AdminHeaderProps) {
     const [searchQuery, setSearchQuery] = useState('');
 
     return (
-        <header className="h-16 flex items-center justify-between px-6 lg:px-10 border-b border-border-dark bg-[#111418] shrink-0">
+        <header className="theme-surface flex h-16 shrink-0 items-center justify-between border-b px-6 lg:px-10">
             <div className="flex items-center gap-4">
-                <button className="lg:hidden text-white">
+                <button className="theme-muted lg:hidden">
                     <span className="material-symbols-outlined">menu</span>
                 </button>
-                <h2 className="text-white text-lg font-bold leading-tight tracking-tight">{title}</h2>
+                <h2 className="text-lg font-bold leading-tight tracking-tight text-[color:var(--text-main-theme)]">{title}</h2>
             </div>
 
             <div className="flex items-center gap-6">
-                <div className="hidden md:flex items-center bg-[#283039] rounded-lg h-9 w-64 px-3 border border-transparent focus-within:border-primary/50 transition-colors">
-                    <span className="material-symbols-outlined text-[#9dabb9] text-[20px]">search</span>
+                <div className="theme-input hidden h-10 w-64 items-center rounded-2xl px-3 transition-colors md:flex">
+                    <span className="material-symbols-outlined theme-soft text-[20px]">search</span>
                     <input
-                        className="bg-transparent border-none text-sm text-white placeholder-[#9dabb9] w-full focus:ring-0"
+                        className="w-full border-none bg-transparent text-sm text-[color:var(--text-main-theme)] placeholder-[color:var(--text-soft-theme)] focus:ring-0"
                         placeholder="Search logs, articles, users..."
                         type="text"
                         value={searchQuery}
@@ -32,13 +33,14 @@ export function AdminHeader({ title }: AdminHeaderProps) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button className="flex items-center justify-center size-9 rounded-lg bg-[#283039] text-[#9dabb9] hover:text-white hover:bg-[#3b4754] transition-colors relative">
+                    <ThemeToggle />
+                    <button className="theme-panel-muted relative flex size-10 items-center justify-center rounded-2xl border text-[color:var(--text-muted-theme)] transition-colors hover:text-[color:var(--text-main-theme)]">
                         <span className="material-symbols-outlined text-[20px]">notifications</span>
-                        <span className="absolute top-2 right-2 size-2 bg-[#fa6238] rounded-full border border-[#283039]" />
+                        <span className="absolute right-2 top-2 size-2 rounded-full border border-[color:var(--surface-elevated)] bg-[#fa6238]" />
                     </button>
                     <Link
                         href="/admin/articles/new"
-                        className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-primary/20"
+                        className="theme-glow-button flex h-10 items-center gap-2 rounded-2xl px-4 text-sm font-bold transition-opacity hover:opacity-95"
                     >
                         <span className="material-symbols-outlined text-[18px]">add</span>
                         <span className="hidden sm:inline">New Post</span>

@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'MODERATOR' | 'EDITOR' | 'VIEWER';
+export type Role = 'ADMIN' | 'MODERATOR' | 'EDITOR' | 'AUTHOR' | 'VIEWER';
 
 export interface User {
     id: string;
@@ -9,6 +9,8 @@ export interface User {
     bio?: string;
     role: Role;
     isActive: boolean;
+    mfaEnabled: boolean;
+    emailVerifiedAt?: string;
     lastLoginAt?: string;
     createdAt: string;
     updatedAt?: string;
@@ -21,7 +23,7 @@ export interface UserWithStats extends User {
     };
 }
 
-export type PostStatus = 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
+export type PostStatus = 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
 
 export interface Category {
     id: string;
@@ -57,6 +59,8 @@ export interface Post {
     status: PostStatus;
     viewCount: number;
     readingTime?: number;
+    rejectionReason?: string;
+    reviewedAt?: string;
     publishedAt?: string;
     scheduledAt?: string;
     createdAt: string;
@@ -72,6 +76,20 @@ export interface Post {
     tags: Tag[];
     _count?: {
         comments: number;
+    };
+}
+
+export interface PostVersion {
+    id: string;
+    title: string;
+    slug: string;
+    status: PostStatus;
+    reason?: string;
+    createdAt: string;
+    createdBy?: {
+        id: string;
+        firstName: string;
+        lastName: string;
     };
 }
 

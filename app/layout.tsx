@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Suspense } from 'react';
+import { Inter, Manrope } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
+import { AnalyticsProvider } from '@/components/analytics/analytics-provider';
+import { SentryProvider } from '@/components/observability/sentry-provider';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -125,7 +129,11 @@ export default function RootLayout({
                     }}
                 />
             </head>
-            <body className={`${inter.variable} font-display bg-background-light dark:bg-background-dark text-gray-900 dark:text-white antialiased`}>
+            <body className={`${inter.variable} ${manrope.variable} font-display bg-background-light dark:bg-background-dark text-gray-900 dark:text-white antialiased`}>
+                <SentryProvider />
+                <Suspense fallback={null}>
+                    <AnalyticsProvider />
+                </Suspense>
                 {children}
                 <Toaster
                     position="top-right"

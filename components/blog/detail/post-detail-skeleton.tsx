@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/shared/skeleton';
 
 function SidebarSkeletonCard() {
     return (
-        <div className="rounded-2xl border border-gray-100 bg-surface-light p-5 dark:border-gray-800 dark:bg-surface-dark">
+        <div className="theme-surface rounded-2xl p-5">
             <Skeleton className="mb-4 h-5 w-28" />
             <div className="space-y-3">
                 <Skeleton className="h-4 w-full" />
@@ -15,14 +15,14 @@ function SidebarSkeletonCard() {
 
 export function PostDetailSkeleton() {
     return (
-        <div className="min-h-screen bg-white dark:bg-background-dark">
+        <div className="theme-shell min-h-screen">
             <div className="mx-auto max-w-[1280px] px-4 pt-10 lg:px-8">
                 <Skeleton className="mb-6 h-4 w-56" />
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
                     <div>
                         <Skeleton className="mb-4 h-10 w-full max-w-4xl" />
                         <Skeleton className="mb-8 h-10 w-4/5 max-w-3xl" />
-                        <div className="mb-8 flex items-center gap-4 border-b border-gray-100 pb-6 dark:border-gray-800">
+                        <div className="theme-border mb-8 flex items-center gap-4 border-b pb-6">
                             <Skeleton className="size-12 rounded-full" />
                             <div className="space-y-2">
                                 <Skeleton className="h-4 w-36" />
@@ -44,7 +44,7 @@ export function PostDetailSkeleton() {
                         </div>
                         <div className="mt-14">
                             <Skeleton className="mb-6 h-8 w-40" />
-                            <div className="rounded-2xl border border-gray-100 bg-surface-light p-6 dark:border-gray-800 dark:bg-surface-dark">
+                            <div className="theme-surface rounded-2xl p-6">
                                 <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <Skeleton className="h-12 w-full rounded-lg" />
                                     <Skeleton className="h-12 w-full rounded-lg" />

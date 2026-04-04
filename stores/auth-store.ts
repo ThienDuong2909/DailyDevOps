@@ -3,7 +3,13 @@ import { persist } from 'zustand/middleware';
 
 import { apiClient } from '@/lib/api/client';
 import { getAccessToken, setAccessToken } from '@/lib/auth';
-import type { AuthResponse, LoginForm, RegisterForm, User } from '@/types';
+import type {
+    AuthResponse,
+    LoginForm,
+    RegisterForm,
+    User,
+    VerifyMfaLoginForm,
+} from '@/types';
 
 function unwrapApiData<T>(payload: unknown): T | null {
     if (!payload || typeof payload !== 'object') {
@@ -24,7 +30,8 @@ interface AuthState {
     isLoading: boolean;
     error: string | null;
     initializeAuth: () => Promise<void>;
-    login: (data: LoginForm) => Promise<void>;
+    login: (data: LoginForm) => Promise<AuthResponse | void>;
+    verifyMfaLogin: (data: VerifyMfaLoginForm) => Promise<void>;
     register: (data: RegisterForm) => Promise<void>;
     logout: () => Promise<void>;
     fetchProfile: () => Promise<void>;
@@ -70,6 +77,16 @@ export const authStore = create<AuthState>()(
                     const response = await apiClient.post<unknown>('/api/v1/auth/login', data);
                     const tokens = unwrapApiData<AuthResponse>(response);
 
+                    if (tokens?.mfaRequired && tokens?.challengeToken) {
+                        set({
+                            user: null,
+                            isAuthenticated: false,
+                            isInitialized: true,
+                            isLoading: false,
+                        });
+                        return tokens;
+                    }
+
                     setAccessToken(tokens?.accessToken || null);
                     await get().fetchProfile();
                     set({
@@ -78,7 +95,34 @@ export const authStore = create<AuthState>()(
                         isLoading: false,
                     });
                 } catch (err: any) {
-                    const message = err.response?.data?.message || 'Login failed';
+                    const message = err.response?.data?.error || err.response?.data?.message || 'Login failed';
+                    set({ error: Array.isArray(message) ? message[0] : message, isLoading: false });
+                    throw err;
+                }
+            },
+
+            verifyMfaLogin: async (data: VerifyMfaLoginForm) => {
+                set({ isLoading: true, error: null });
+
+                try {
+                    const response = await apiClient.post<unknown>(
+                        '/api/v1/auth/verify-mfa-login',
+                        data
+                    );
+                    const tokens = unwrapApiData<AuthResponse>(response);
+
+                    setAccessToken(tokens?.accessToken || null);
+                    await get().fetchProfile();
+                    set({
+                        isAuthenticated: true,
+                        isInitialized: true,
+                        isLoading: false,
+                    });
+                } catch (err: any) {
+                    const message =
+                        err.response?.data?.error ||
+                        err.response?.data?.message ||
+                        'Authentication code verification failed';
                     set({ error: Array.isArray(message) ? message[0] : message, isLoading: false });
                     throw err;
                 }

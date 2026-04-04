@@ -123,7 +123,7 @@ function SeoSkeleton() {
         <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {Array.from({ length: 4 }, (_, index) => (
-                    <div key={index} className="rounded-xl border border-border-dark bg-surface-dark p-4">
+                    <div key={index} className="theme-panel rounded-2xl p-4">
                         <Skeleton className="mb-3 h-10 w-10 rounded-lg" />
                         <Skeleton className="mb-2 h-3 w-24" />
                         <Skeleton className="h-6 w-28" />
@@ -283,7 +283,7 @@ export default function SeoPage() {
     return (
         <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
             {errorMessage ? (
-                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-xs text-yellow-300">
+                <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-xs text-yellow-300">
                     {errorMessage}
                 </div>
             ) : null}
@@ -297,21 +297,21 @@ export default function SeoPage() {
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="flex flex-col gap-6 lg:col-span-2">
-                    <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-sm">
-                        <div className="flex flex-col gap-4 border-b border-border-dark bg-[#111418] p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="theme-panel overflow-hidden rounded-2xl shadow-sm">
+                        <div className="theme-border flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-[color:var(--text-main-theme)]">
                                     <span className="material-symbols-outlined text-primary">edit_document</span>
                                     Homepage SEO
                                 </h3>
-                                <p className="mt-1 text-xs text-[#9dabb9]">
+                                <p className="theme-muted mt-1 text-xs">
                                     Chinh phan SEO toan cuc cho trang chu va cac cai dat lien quan den indexing.
                                 </p>
                             </div>
                             <button
                                 onClick={() => void handleSave()}
                                 disabled={saving}
-                                className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm text-white transition-colors hover:bg-primary/80 disabled:opacity-50"
+                                className="theme-glow-button inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                             >
                                 <span className="material-symbols-outlined text-[18px]">{saving ? 'sync' : 'save'}</span>
                                 {saving ? 'Dang luu...' : 'Save Changes'}
@@ -341,17 +341,17 @@ export default function SeoPage() {
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="mb-1 block text-sm font-medium text-[#9dabb9]">
+                                        <label className="theme-muted mb-1 block text-sm font-medium">
                                             Meta Description
                                         </label>
                                         <textarea
                                             value={dashboard.homepage.metaDescription}
                                             onChange={(event) => updateHomepageField('metaDescription', event.target.value)}
                                             rows={4}
-                                            className="w-full resize-none rounded-lg border border-border-dark bg-[#283039] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                                            className="theme-input w-full resize-none rounded-2xl px-3 py-2 text-sm"
                                         />
                                         <div className="mt-1 flex justify-end">
-                                            <span className="text-xs text-[#9dabb9]">
+                                            <span className="theme-muted text-xs">
                                                 {dashboard.homepage.metaDescription.length}/160
                                             </span>
                                         </div>
@@ -360,10 +360,10 @@ export default function SeoPage() {
                                         <label className="mb-1 block text-sm font-medium text-[#9dabb9]">
                                             Focus Keywords
                                         </label>
-                                        <div className="min-h-[42px] rounded-lg border border-border-dark bg-[#283039] p-2">
+                                        <div className="theme-input min-h-[42px] rounded-2xl p-2">
                                             <div className="mb-2 flex flex-wrap gap-2">
                                                 {dashboard.homepage.focusKeywords.map((keyword) => (
-                                                    <span key={keyword} className="flex items-center gap-1 rounded bg-primary/20 px-2 py-0.5 text-xs text-primary">
+                                                    <span key={keyword} className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">
                                                         {keyword}
                                                         <button onClick={() => handleRemoveKeyword(keyword)}>x</button>
                                                     </span>
@@ -379,26 +379,26 @@ export default function SeoPage() {
                                                     }
                                                 }}
                                                 placeholder="Add keyword..."
-                                                className="w-full border-none bg-transparent p-0 text-sm text-white focus:ring-0"
+                                                className="w-full border-none bg-transparent p-0 text-sm text-[color:var(--text-main-theme)] focus:ring-0"
                                             />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="border-t border-border-dark pt-6">
-                                <h4 className="mb-4 flex items-center gap-2 text-sm font-bold text-white">
+                            <div className="theme-border border-t pt-6">
+                                <h4 className="mb-4 flex items-center gap-2 text-sm font-bold text-[color:var(--text-main-theme)]">
                                     <span className="material-symbols-outlined text-lg text-[#9dabb9]">preview</span>
                                     Search Preview
                                 </h4>
-                                <div className="max-w-2xl rounded-lg border border-border-dark bg-[#111418] p-4">
+                                <div className="theme-panel-muted theme-border max-w-2xl rounded-2xl border p-4">
                                     <div className="mb-1 text-xs font-mono text-[#0bda5b]">
                                         {dashboard.homepage.canonicalUrl || 'https://blog.thienduong.info/'}
                                     </div>
                                     <h3 className="mb-1 text-xl font-medium text-[#8ab4f8]">
                                         {dashboard.homepage.metaTitle || 'DevOps Blog'}
                                     </h3>
-                                    <p className="text-sm leading-snug text-[#bdc1c6]">
+                                    <p className="theme-muted text-sm leading-snug">
                                         {dashboard.homepage.metaDescription || 'No meta description configured yet.'}
                                     </p>
                                 </div>
@@ -406,25 +406,25 @@ export default function SeoPage() {
                         </div>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-sm">
-                        <div className="border-b border-border-dark bg-[#111418] p-4">
-                            <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                    <div className="theme-panel overflow-hidden rounded-2xl shadow-sm">
+                        <div className="theme-border border-b p-4">
+                            <h3 className="flex items-center gap-2 text-lg font-bold text-[color:var(--text-main-theme)]">
                                 <span className="material-symbols-outlined text-yellow-500">lightbulb</span>
                                 Suggestions & Improvements
                             </h3>
                         </div>
                         <div className="divide-y divide-border-dark">
                             {dashboard.suggestions.length === 0 ? (
-                                <div className="p-4 text-sm text-[#9dabb9]">Khong co canh bao SEO nghiem trong nao luc nay.</div>
+                                <div className="theme-muted p-4 text-sm">Khong co canh bao SEO nghiem trong nao luc nay.</div>
                             ) : (
                                 dashboard.suggestions.map((suggestion, index) => (
-                                    <div key={`${suggestion.title}-${index}`} className="flex items-start gap-3 p-4 transition-colors hover:bg-[#1f2937]">
+                                    <div key={`${suggestion.title}-${index}`} className="flex items-start gap-3 p-4 transition-colors hover:bg-[color:var(--surface-muted)]">
                                         <span className={`material-symbols-outlined mt-0.5 ${getSuggestionColor(suggestion.type)}`}>
                                             {getSuggestionIcon(suggestion.type)}
                                         </span>
                                         <div className="flex-1">
-                                            <h4 className="text-sm font-medium text-white">{suggestion.title}</h4>
-                                            <p className="mt-1 text-xs text-[#9dabb9]">{suggestion.description}</p>
+                                            <h4 className="text-sm font-medium text-[color:var(--text-main-theme)]">{suggestion.title}</h4>
+                                            <p className="theme-muted mt-1 text-xs">{suggestion.description}</p>
                                         </div>
                                     </div>
                                 ))
@@ -434,9 +434,9 @@ export default function SeoPage() {
                 </div>
 
                 <div className="flex flex-col gap-6">
-                    <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-sm">
-                        <div className="border-b border-border-dark bg-[#111418] p-4">
-                            <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                    <div className="theme-panel overflow-hidden rounded-2xl shadow-sm">
+                        <div className="theme-border border-b p-4">
+                            <h3 className="flex items-center gap-2 text-lg font-bold text-[color:var(--text-main-theme)]">
                                 <span className="material-symbols-outlined text-[#9dabb9]">settings</span>
                                 Global Settings
                             </h3>
@@ -471,17 +471,17 @@ export default function SeoPage() {
                         </div>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-sm">
-                        <div className="border-b border-border-dark bg-[#111418] p-4">
-                            <h3 className="text-lg font-bold text-white">Page Audit</h3>
-                            <p className="mt-1 text-xs text-[#9dabb9]">Danh sach page va bai viet da duoc index trong dashboard.</p>
+                    <div className="theme-panel overflow-hidden rounded-2xl shadow-sm">
+                        <div className="theme-border border-b p-4">
+                            <h3 className="text-lg font-bold text-[color:var(--text-main-theme)]">Page Audit</h3>
+                            <p className="theme-muted mt-1 text-xs">Danh sach page va bai viet da duoc index trong dashboard.</p>
                         </div>
                         <div className="max-h-[360px] overflow-y-auto p-2">
                             {dashboard.pages.map((page, index) => (
                                 <button
                                     key={`${page.slug}-${index}`}
                                     onClick={() => setSelectedPageIndex(index)}
-                                    className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${selectedPageIndex === index ? 'bg-primary/10' : 'hover:bg-[#283039]/30'}`}
+                                    className={`w-full rounded-2xl px-3 py-3 text-left transition-colors ${selectedPageIndex === index ? 'bg-primary/10' : 'hover:bg-[color:var(--surface-muted)]'}`}
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0 flex-1">
@@ -491,7 +491,7 @@ export default function SeoPage() {
                                             <h4 className="line-clamp-1 text-sm font-medium text-[#8ab4f8]">
                                                 {page.title}
                                             </h4>
-                                            <p className="line-clamp-2 text-xs text-[#bdc1c6]">
+                                            <p className="theme-muted line-clamp-2 text-xs">
                                                 {page.metaDescription || 'No description'}
                                             </p>
                                         </div>
@@ -504,21 +504,21 @@ export default function SeoPage() {
                         </div>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-sm">
-                        <div className="border-b border-border-dark bg-[#111418] p-4">
-                            <h3 className="text-lg font-bold text-white">Top Performing Keywords</h3>
+                    <div className="theme-panel overflow-hidden rounded-2xl shadow-sm">
+                        <div className="theme-border border-b p-4">
+                            <h3 className="text-lg font-bold text-[color:var(--text-main-theme)]">Top Performing Keywords</h3>
                         </div>
                         <div className="space-y-4 p-4">
                             {dashboard.topKeywords.length === 0 ? (
-                                <p className="text-sm text-[#9dabb9]">Chua co du lieu tu khoa noi bat.</p>
+                                <p className="theme-muted text-sm">Chua co du lieu tu khoa noi bat.</p>
                             ) : (
                                 dashboard.topKeywords.map((keyword) => (
                                     <div key={keyword.term}>
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-white">{keyword.term}</span>
+                                            <span className="text-[color:var(--text-main-theme)]">{keyword.term}</span>
                                             <span className="font-mono font-bold text-green-500">#{keyword.position}</span>
                                         </div>
-                                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#111418]">
+                                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--surface-strong)]">
                                             <div
                                                 className="h-full rounded-full bg-primary"
                                                 style={{ width: `${Math.min(100, keyword.mentions * 20)}%` }}
@@ -532,9 +532,9 @@ export default function SeoPage() {
                 </div>
             </div>
 
-            <div className="rounded-xl border border-border-dark bg-surface-dark p-4">
-                <h3 className="mb-2 text-sm font-bold text-white">Selected Page Snapshot</h3>
-                <p className="text-xs text-[#9dabb9]">
+            <div className="theme-panel rounded-2xl p-4">
+                <h3 className="mb-2 text-sm font-bold text-[color:var(--text-main-theme)]">Selected Page Snapshot</h3>
+                <p className="theme-muted text-xs">
                     <span className="font-mono text-[#0bda5b]">{selectedPage.slug}</span>
                     {' - '}
                     {selectedPage.issues?.length
@@ -558,13 +558,13 @@ function SeoStatCard({
     color: string;
 }) {
     return (
-        <div className="flex items-center gap-4 rounded-xl border border-border-dark bg-surface-dark p-4">
+        <div className="theme-panel flex items-center gap-4 rounded-2xl p-4">
             <div className={`flex size-10 items-center justify-center rounded-lg bg-white/5 ${color}`}>
                 <span className="material-symbols-outlined">{icon}</span>
             </div>
             <div>
-                <p className="text-xs font-medium uppercase text-[#9dabb9]">{label}</p>
-                <h3 className="text-xl font-bold text-white">{value}</h3>
+                <p className="theme-muted text-xs font-medium uppercase">{label}</p>
+                <h3 className="text-xl font-bold text-[color:var(--text-main-theme)]">{value}</h3>
             </div>
         </div>
     );
@@ -585,16 +585,16 @@ function Field({
 }) {
     return (
         <div>
-            <label className="mb-1 block text-sm font-medium text-[#9dabb9]">{label}</label>
+            <label className="theme-muted mb-1 block text-sm font-medium">{label}</label>
             <div className="relative">
                 <input
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
                     placeholder={placeholder}
-                    className="w-full rounded-lg border border-border-dark bg-[#283039] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
                 />
                 {helper ? (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#9dabb9]">
+                    <span className="theme-muted absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold">
                         {helper}
                     </span>
                 ) : null}
@@ -617,8 +617,8 @@ function ToggleRow({
     return (
         <div className="flex items-center justify-between">
             <div>
-                <p className="text-sm font-medium text-white">{title}</p>
-                <p className="text-xs text-[#9dabb9]">{description}</p>
+                <p className="text-sm font-medium text-[color:var(--text-main-theme)]">{title}</p>
+                <p className="theme-muted text-xs">{description}</p>
             </div>
             <div className="relative">
                 <input
@@ -630,7 +630,7 @@ function ToggleRow({
                 />
                 <label
                     htmlFor={title}
-                    className="block h-6 w-11 cursor-pointer rounded-full bg-[#283039] transition-colors after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full"
+                    className="block h-6 w-11 cursor-pointer rounded-full bg-[color:var(--surface-strong)] transition-colors after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full"
                 />
             </div>
         </div>

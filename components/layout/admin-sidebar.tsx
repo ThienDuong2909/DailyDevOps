@@ -16,13 +16,20 @@ interface NavItem {
 const navItems: NavItem[] = [
     { label: 'Dashboard', href: '/admin', icon: 'dashboard' },
     { label: 'Articles', href: '/admin/articles', icon: 'article' },
+    { label: 'Categories', href: '/admin/categories', icon: 'folder_open' },
+    { label: 'Tags', href: '/admin/tags', icon: 'sell' },
+    { label: 'Media Library', href: '/admin/media', icon: 'imagesmode' },
     { label: 'Comments', href: '/admin/comments', icon: 'chat', badge: 23 },
+    { label: 'Newsletter', href: '/admin/newsletter', icon: 'mail' },
     { label: 'SEO Manager', href: '/admin/seo', icon: 'search' },
     { label: 'Performance', href: '/admin/performance', icon: 'monitoring' },
+    { label: 'Compliance', href: '/admin/compliance', icon: 'policy' },
+    { label: 'Backup & Export', href: '/admin/ops', icon: 'database_backup' },
     { label: 'Roles & Users', href: '/admin/users', icon: 'manage_accounts' },
 ];
 
 const bottomItems: NavItem[] = [
+    { label: 'Account Security', href: '/admin/account', icon: 'shield_lock' },
     { label: 'System Settings', href: '/admin/settings', icon: 'settings' },
 ];
 
@@ -50,7 +57,7 @@ export function AdminSidebar() {
     };
 
     return (
-        <aside className="hidden lg:flex flex-col w-[280px] h-full bg-[#111418] border-r border-border-dark flex-shrink-0">
+        <aside className="theme-surface hidden h-full w-[280px] flex-shrink-0 flex-col border-r lg:flex">
             <div className="p-6 flex flex-col h-full justify-between">
                 <div>
                     <div className="flex items-center gap-4 mb-8">
@@ -61,10 +68,10 @@ export function AdminSidebar() {
                             }}
                         />
                         <div className="flex flex-col">
-                            <h1 className="text-white text-base font-bold leading-tight">
+                            <h1 className="text-base font-bold leading-tight text-[color:var(--text-main-theme)]">
                                 {user ? `${user.firstName} ${user.lastName}` : 'DevOps Admin'}
                             </h1>
-                            <p className="text-[#9dabb9] text-xs font-mono">v2.4.0-stable</p>
+                            <p className="theme-muted text-xs font-mono">v2.4.0-stable</p>
                         </div>
                     </div>
 
@@ -74,22 +81,22 @@ export function AdminSidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-lg group transition-all ${isActive(item.href)
-                                    ? 'bg-primary/10 border-l-4 border-primary'
-                                    : 'hover:bg-surface-dark border-l-4 border-transparent'
+                                    ? 'border-l-4 border-primary bg-[color:color-mix(in_srgb,var(--primary-theme)_12%,transparent)]'
+                                    : 'border-l-4 border-transparent hover:bg-[color:var(--surface-muted)]'
                                     }`}
                             >
                                 <span
                                     className={`material-symbols-outlined ${isActive(item.href)
                                         ? 'text-primary'
-                                        : 'text-[#9dabb9] group-hover:text-white'
+                                        : 'text-[color:var(--text-muted-theme)] group-hover:text-[color:var(--text-main-theme)]'
                                         }`}
                                 >
                                     {item.icon}
                                 </span>
                                 <p
                                     className={`text-sm font-medium ${isActive(item.href)
-                                        ? 'text-white'
-                                        : 'text-[#9dabb9] group-hover:text-white'
+                                        ? 'text-[color:var(--text-main-theme)]'
+                                        : 'text-[color:var(--text-muted-theme)] group-hover:text-[color:var(--text-main-theme)]'
                                         }`}
                                 >
                                     {item.label}
@@ -104,12 +111,12 @@ export function AdminSidebar() {
                     </nav>
                 </div>
 
-                <div className="pt-4 border-t border-border-dark">
+                <div className="theme-border pt-4 border-t">
                     {bottomItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-surface-dark text-[#9dabb9] hover:text-white transition-colors"
+                            className="flex items-center gap-3 rounded-lg px-4 py-2 text-[color:var(--text-muted-theme)] transition-colors hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-main-theme)]"
                         >
                             <span className="material-symbols-outlined text-lg">{item.icon}</span>
                             <p className="text-sm font-medium">{item.label}</p>
@@ -117,7 +124,7 @@ export function AdminSidebar() {
                     ))}
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-surface-dark text-[#fa6238] hover:text-[#fa6238]/80 transition-colors"
+                        className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-[#fa6238] transition-colors hover:bg-[color:var(--surface-muted)] hover:text-[#fa6238]/80"
                     >
                         <span className="material-symbols-outlined text-lg">logout</span>
                         <p className="text-sm font-medium">Logout</p>

@@ -35,6 +35,10 @@ pipeline {
         // Per-workspace Docker config — tránh race condition khi 2 pipeline chạy song song
         // trên cùng 1 agent (mỗi pipeline có ~/.docker riêng, không ghi đè nhau)
         DOCKER_CONFIG = "${WORKSPACE}/.docker"
+        BUILD_CONTEXT = '.'
+        RUN_E2E = "${env.RUN_E2E ?: 'false'}"
+        PLAYWRIGHT_BASE_URL = 'http://localhost:3000'
+        PLAYWRIGHT_API_URL = 'http://localhost:3001'
     }
 
     stages {
@@ -53,7 +57,35 @@ pipeline {
                 // - Installs exact versions from package-lock.json (deterministic)
                 // - 2-3x faster than npm install
                 // - Fails if package-lock.json is out of sync with package.json
-                sh 'npm ci --cache ${NPM_CACHE_DIR}'
+                sh '''
+                    mkdir -p "${NPM_CACHE_DIR}" "${DOCKER_CONFIG}"
+                    npm ci --cache "${NPM_CACHE_DIR}" --prefer-offline --no-audit
+                '''
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                echo 'Running lint checks...'
+                sh 'npm run lint'
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+                echo 'Running production build before containerization...'
+                sh 'npm run build'
+            }
+        }
+
+        stage('Run E2E Smoke Tests') {
+            when {
+                expression { env.RUN_E2E == 'true' }
+            }
+            steps {
+                echo 'Installing Playwright browser and running E2E smoke suite...'
+                sh 'npm run test:e2e:install'
+                sh 'npm run test:e2e'
             }
         }
 
@@ -124,8 +156,16 @@ EOF
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         
                         // Build with specific version tag, then re-tag as latest
-                        sh "docker build -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ."
+                        sh "docker build --pull -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
                         sh "docker tag ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest"
+
+                        echo 'Running container startup smoke check...'
+                        sh """
+                            docker run -d --name client-smoke-${BUILD_NUMBER} -p 3000:3000 ${IMAGE_TAG}:${BUILD_NUMBER}
+                            sleep 15
+                            curl --fail http://127.0.0.1:3000 || (docker logs client-smoke-${BUILD_NUMBER} && exit 1)
+                            docker rm -f client-smoke-${BUILD_NUMBER}
+                        """
                         
                         // Push versioned tag
                         sh "docker push ${IMAGE_TAG}:${BUILD_NUMBER}"
@@ -200,6 +240,7 @@ EOF
         always {
             echo 'Performing post-build cleanup...'
             sh 'rm -f .env.production'
+            sh "docker rm -f client-smoke-${BUILD_NUMBER} || true"
             sh "docker logout || true"
             sh "rm -rf k8s-repo"
             // Remove Docker images from agent to free disk space

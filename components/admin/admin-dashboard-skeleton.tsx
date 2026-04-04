@@ -7,7 +7,7 @@ export function AdminDashboardSkeleton() {
                 {Array.from({ length: 4 }).map((_, index) => (
                     <div
                         key={index}
-                        className="rounded-xl border border-border-dark bg-[#1e293b] p-5"
+                        className="theme-panel rounded-2xl p-5"
                     >
                         <Skeleton className="h-4 w-28" />
                         <Skeleton className="mt-5 h-8 w-24" />
@@ -16,19 +16,19 @@ export function AdminDashboardSkeleton() {
                 ))}
             </div>
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div className="rounded-xl border border-border-dark bg-[#1e293b] p-6 xl:col-span-2">
+                <div className="theme-panel rounded-2xl p-6 xl:col-span-2">
                     <Skeleton className="h-6 w-48" />
                     <Skeleton className="mt-6 h-[280px] w-full" />
                 </div>
-                <div className="rounded-xl border border-border-dark bg-[#0f1216] p-4">
+                <div className="theme-panel rounded-2xl p-4">
                     <Skeleton className="h-[360px] w-full" />
                 </div>
             </div>
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div className="rounded-xl border border-border-dark bg-[#1e293b] p-6 xl:col-span-2">
+                <div className="theme-panel rounded-2xl p-6 xl:col-span-2">
                     <Skeleton className="h-[320px] w-full" />
                 </div>
-                <div className="rounded-xl border border-border-dark bg-[#1e293b] p-6">
+                <div className="theme-panel rounded-2xl p-6">
                     <Skeleton className="h-[320px] w-full" />
                 </div>
             </div>

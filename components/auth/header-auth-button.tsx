@@ -3,21 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard, LogOut, UserCircle2 } from 'lucide-react';
+import { LayoutDashboard, LogOut, ShieldCheck, UserCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/use-auth';
-import { resolvePostLoginRoute } from '@/lib/auth/redirects';
+import { getImageUrl } from '@/lib/utils';
 
 function getDisplayName(firstName?: string, lastName?: string) {
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
     return fullName || 'My Account';
-}
-
-function getInitials(firstName?: string, lastName?: string) {
-    return [firstName?.[0], lastName?.[0]]
-        .filter(Boolean)
-        .join('')
-        .toUpperCase() || 'U';
 }
 
 export function HeaderAuthButton() {
@@ -25,16 +18,11 @@ export function HeaderAuthButton() {
     const menuRef = useRef<HTMLDivElement | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const {
-        initializeAuth,
         isAuthenticated,
         isInitialized,
         logout,
         user,
     } = useAuthStore();
-
-    useEffect(() => {
-        void initializeAuth();
-    }, [initializeAuth]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -76,7 +64,7 @@ export function HeaderAuthButton() {
         );
     }
 
-    const workspaceHref = resolvePostLoginRoute(user.role);
+    const workspaceHref = '/account';
     const displayName = getDisplayName(user.firstName, user.lastName);
 
     const handleLogout = async () => {
@@ -100,7 +88,7 @@ export function HeaderAuthButton() {
                 {user.avatar ? (
                     <span
                         className="size-8 rounded-full bg-cover bg-center ring-1 ring-primary/30"
-                        style={{ backgroundImage: `url("${user.avatar}")` }}
+                        style={{ backgroundImage: `url("${getImageUrl(user.avatar)}")` }}
                     />
                 ) : (
                     <span className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/30">
@@ -134,6 +122,15 @@ export function HeaderAuthButton() {
                         >
                             <UserCircle2 className="size-4" />
                             Ho so cua toi
+                        </Link>
+
+                        <Link
+                            href={canManageSite ? '/admin/account' : '/account'}
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
+                            onClick={() => setIsOpen(false)}
+                        >
+                            <ShieldCheck className="size-4" />
+                            Bao mat va MFA
                         </Link>
 
                         {canManageSite ? (

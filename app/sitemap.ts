@@ -70,6 +70,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'daily',
             priority: 1.0,
         },
+        {
+            url: `${siteUrl}/newsletter`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.7,
+        },
+        {
+            url: `${siteUrl}/search`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.5,
+        },
+        {
+            url: `${siteUrl}/about`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
+        {
+            url: `${siteUrl}/contact`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.4,
+        },
+        {
+            url: `${siteUrl}/privacy-policy`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.3,
+        },
+        {
+            url: `${siteUrl}/terms-of-service`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.3,
+        },
+        {
+            url: `${siteUrl}/cookie-policy`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.3,
+        },
+        {
+            url: `${siteUrl}/dmca-policy`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.3,
+        },
     ];
 
     // Blog post pages

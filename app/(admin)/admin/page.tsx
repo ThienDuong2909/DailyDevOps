@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { formatDate, formatNumber } from '@/lib/utils';
 import type { DashboardStats, Post } from '@/types';
+import { AdminDashboardSkeleton } from '@/components/admin/admin-dashboard-skeleton';
 
 const sampleLogs = [
     { time: '10:42:01', type: 'INFO', message: 'Started scheduled backup.' },
@@ -43,6 +44,7 @@ const emptyDashboard: DashboardState = {
         totalViews: 0,
         byStatus: {
             DRAFT: 0,
+            REVIEW: 0,
             PUBLISHED: 0,
             SCHEDULED: 0,
             ARCHIVED: 0,
@@ -56,6 +58,7 @@ const emptyDashboard: DashboardState = {
             ADMIN: 0,
             MODERATOR: 0,
             EDITOR: 0,
+            AUTHOR: 0,
             VIEWER: 0,
         },
     },
@@ -77,8 +80,8 @@ function getLogTypeColor(type: string) {
             return 'text-[#eab308]';
         case 'ERR':
             return 'text-[#fa6238]';
-        default:
-            return 'text-white';
+                default:
+            return 'text-[color:var(--text-main-theme)]';
     }
 }
 
@@ -88,6 +91,8 @@ function getStatusBadge(status: string) {
             return 'bg-green-900/30 text-green-400 border-green-900';
         case 'DRAFT':
             return 'bg-yellow-900/30 text-yellow-400 border-yellow-900';
+        case 'REVIEW':
+            return 'bg-violet-900/30 text-violet-300 border-violet-900';
         case 'ARCHIVED':
             return 'bg-gray-900/30 text-gray-400 border-gray-900';
         default:
@@ -230,11 +235,15 @@ export default function AdminDashboardPage() {
         [dashboard]
     );
 
+    if (loading) {
+        return <AdminDashboardSkeleton />;
+    }
+
     return (
         <div className="mx-auto flex max-w-[1400px] flex-col gap-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-bold text-white">Overview</h1>
-                <p className="text-sm text-[#9dabb9]">
+                <h1 className="text-2xl font-bold text-[color:var(--text-main-theme)]">Overview</h1>
+                <p className="theme-muted text-sm">
                     Operational snapshot for content, traffic and subscriber
                     growth.
                 </p>
@@ -250,10 +259,10 @@ export default function AdminDashboardPage() {
                 {statsCards.map((card) => (
                     <div
                         key={card.label}
-                        className="group flex flex-col gap-3 rounded-xl border border-border-dark bg-[#1e293b] p-5 transition-colors hover:border-primary/50"
+                        className="theme-panel group flex flex-col gap-3 rounded-2xl p-5 transition-colors hover:border-primary/50"
                     >
                         <div className="flex items-start justify-between">
-                            <p className="text-sm font-medium text-[#9dabb9]">
+                            <p className="theme-muted text-sm font-medium">
                                 {card.label}
                             </p>
                             <span className="material-symbols-outlined rounded-lg bg-primary/10 p-1.5 text-lg text-primary">
@@ -261,23 +270,23 @@ export default function AdminDashboardPage() {
                             </span>
                         </div>
                         <div className="flex items-end gap-2">
-                            <p className="font-mono text-2xl font-bold text-white">
-                                {loading ? '--' : card.value}
+                            <p className="font-mono text-2xl font-bold text-[color:var(--text-main-theme)]">
+                                {card.value}
                             </p>
                         </div>
-                        <p className="text-xs text-[#9dabb9]">{card.hint}</p>
+                        <p className="theme-muted text-xs">{card.hint}</p>
                     </div>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div className="flex flex-col rounded-xl border border-border-dark bg-[#1e293b] p-6 xl:col-span-2">
+                <div className="theme-panel flex flex-col rounded-2xl p-6 xl:col-span-2">
                     <div className="mb-6 flex items-center justify-between">
                         <div>
-                            <h2 className="text-lg font-bold text-white">
+                            <h2 className="text-lg font-bold text-[color:var(--text-main-theme)]">
                                 Content Pipeline
                             </h2>
-                            <p className="mt-1 text-xs text-[#9dabb9]">
+                            <p className="theme-muted mt-1 text-xs">
                                 Real-time distribution for posts and comment
                                 moderation.
                             </p>
@@ -286,10 +295,10 @@ export default function AdminDashboardPage() {
                     <div className="space-y-8">
                         <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-semibold uppercase tracking-wide text-[#9dabb9]">
+                                <h3 className="theme-muted text-sm font-semibold uppercase tracking-wide">
                                     Posts
                                 </h3>
-                                <span className="text-xs font-mono text-[#9dabb9]">
+                                <span className="theme-muted text-xs font-mono">
                                     {dashboard.posts.total} total
                                 </span>
                             </div>
@@ -301,14 +310,14 @@ export default function AdminDashboardPage() {
                                 return (
                                     <div key={status} className="space-y-2">
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="font-medium text-white">
+                                            <span className="font-medium text-[color:var(--text-main-theme)]">
                                                 {status}
                                             </span>
-                                            <span className="font-mono text-[#9dabb9]">
+                                            <span className="theme-muted font-mono">
                                                 {count}
                                             </span>
                                         </div>
-                                        <div className="h-2 overflow-hidden rounded-full bg-[#283039]">
+                                        <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-strong)]">
                                             <div
                                                 className="h-full rounded-full bg-primary transition-all"
                                                 style={{ width }}
@@ -321,10 +330,10 @@ export default function AdminDashboardPage() {
                         </div>
                         <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-semibold uppercase tracking-wide text-[#9dabb9]">
+                                <h3 className="theme-muted text-sm font-semibold uppercase tracking-wide">
                                     Comments
                                 </h3>
-                                <span className="text-xs font-mono text-[#9dabb9]">
+                                <span className="theme-muted text-xs font-mono">
                                     {dashboard.comments.total} total
                                 </span>
                             </div>
@@ -341,14 +350,14 @@ export default function AdminDashboardPage() {
                                     return (
                                         <div key={status} className="space-y-2">
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="font-medium text-white">
+                                                <span className="font-medium text-[color:var(--text-main-theme)]">
                                                     {status}
                                                 </span>
-                                                <span className="font-mono text-[#9dabb9]">
+                                                <span className="theme-muted font-mono">
                                                     {count}
                                                 </span>
                                             </div>
-                                            <div className="h-2 overflow-hidden rounded-full bg-[#283039]">
+                                            <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-strong)]">
                                                 <div
                                                     className="h-full rounded-full bg-cyan-500 transition-all"
                                                     style={{ width }}
@@ -362,22 +371,22 @@ export default function AdminDashboardPage() {
                     </div>
                 </div>
 
-                <div className="flex flex-col rounded-xl border border-border-dark bg-[#0f1216] shadow-inner">
-                    <div className="flex items-center justify-between rounded-t-xl border-b border-[#283039] bg-[#161b22] px-4 py-3">
+                <div className="theme-panel flex flex-col rounded-2xl shadow-inner">
+                    <div className="theme-border theme-panel-muted flex items-center justify-between rounded-t-2xl border-b px-4 py-3">
                         <div className="flex gap-2">
                             <div className="size-3 rounded-full bg-[#fa6238]" />
                             <div className="size-3 rounded-full bg-[#eab308]" />
                             <div className="size-3 rounded-full bg-[#0bda5b]" />
                         </div>
-                        <span className="font-mono text-xs text-[#9dabb9]">
+                        <span className="theme-muted font-mono text-xs">
                             ops-feed
                         </span>
                     </div>
-                    <div className="custom-scrollbar flex-1 overflow-y-auto p-4 font-mono text-xs text-white">
+                    <div className="custom-scrollbar flex-1 overflow-y-auto p-4 font-mono text-xs text-[color:var(--text-main-theme)]">
                         <div className="flex flex-col gap-1.5">
                             {sampleLogs.map((log, index) => (
                                 <div key={index} className="flex gap-2">
-                                    <span className="text-[#586069]">
+                                    <span className="theme-soft">
                                         {log.time}
                                     </span>
                                     <span className={getLogTypeColor(log.type)}>
@@ -386,7 +395,7 @@ export default function AdminDashboardPage() {
                                     <span>{log.message}</span>
                                 </div>
                             ))}
-                            <div className="flex gap-2 text-[#9dabb9] animate-pulse">
+                            <div className="theme-muted flex gap-2 animate-pulse">
                                 _
                             </div>
                         </div>
@@ -395,9 +404,9 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 pb-6 xl:grid-cols-3">
-                <div className="flex flex-col overflow-hidden rounded-xl border border-border-dark bg-[#1e293b] xl:col-span-2">
-                    <div className="flex items-center justify-between border-b border-border-dark bg-[#111418] p-5">
-                        <h2 className="text-base font-bold text-white">
+                <div className="theme-panel flex flex-col overflow-hidden rounded-2xl xl:col-span-2">
+                    <div className="theme-border flex items-center justify-between border-b p-5">
+                        <h2 className="text-base font-bold text-[color:var(--text-main-theme)]">
                             Recent Articles
                         </h2>
                         <Link
@@ -409,7 +418,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse text-left">
-                            <thead className="bg-[#283039] text-xs font-semibold uppercase text-[#9dabb9]">
+                            <thead className="bg-[color:var(--surface-muted)] text-xs font-semibold uppercase theme-muted">
                                 <tr>
                                     <th className="px-6 py-4">Article Title</th>
                                     <th className="px-6 py-4">Status</th>
@@ -417,21 +426,12 @@ export default function AdminDashboardPage() {
                                     <th className="px-6 py-4">Views</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-border-dark text-sm text-white">
-                                {loading ? (
+                            <tbody className="divide-y theme-border text-sm text-[color:var(--text-main-theme)]">
+                                {dashboard.posts.recentPosts.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={4}
-                                            className="px-6 py-16 text-center text-[#9dabb9]"
-                                        >
-                                            Loading dashboard data...
-                                        </td>
-                                    </tr>
-                                ) : dashboard.posts.recentPosts.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={4}
-                                            className="px-6 py-16 text-center text-[#9dabb9]"
+                                            className="theme-muted px-6 py-16 text-center"
                                         >
                                             No recent posts available yet.
                                         </td>
@@ -441,13 +441,13 @@ export default function AdminDashboardPage() {
                                         (post: Post) => (
                                             <tr
                                                 key={post.id}
-                                                className="transition-colors hover:bg-[#283039]/50"
+                                                className="transition-colors hover:bg-[color:var(--surface-muted)]"
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="font-medium">
                                                         {post.title}
                                                     </div>
-                                                    <div className="text-xs text-[#9dabb9]">
+                                                    <div className="theme-muted text-xs">
                                                         /{post.slug}
                                                     </div>
                                                 </td>
@@ -460,7 +460,7 @@ export default function AdminDashboardPage() {
                                                         {post.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-[#9dabb9]">
+                                                <td className="theme-muted px-6 py-4">
                                                     {post.publishedAt
                                                         ? formatDate(
                                                               post.publishedAt
@@ -481,19 +481,19 @@ export default function AdminDashboardPage() {
                     </div>
                 </div>
 
-                <div className="flex flex-col rounded-xl border border-border-dark bg-[#1e293b] p-6">
-                    <h2 className="mb-6 text-base font-bold text-white">
+                <div className="theme-panel flex flex-col rounded-2xl p-6">
+                    <h2 className="mb-6 text-base font-bold text-[color:var(--text-main-theme)]">
                         Audience and Access
                     </h2>
                     <div className="space-y-8">
                         <div className="space-y-5">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-[#9dabb9]">Active Users</span>
-                                <span className="font-bold text-white">
+                                <span className="theme-muted">Active Users</span>
+                                <span className="font-bold text-[color:var(--text-main-theme)]">
                                     {dashboard.users.active}
                                 </span>
                             </div>
-                            <div className="h-2 overflow-hidden rounded-full bg-[#283039]">
+                            <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-strong)]">
                                 <div
                                     className="h-full rounded-full bg-primary"
                                     style={{
@@ -509,15 +509,15 @@ export default function AdminDashboardPage() {
                                     }}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs text-[#9dabb9]">
+                            <div className="theme-muted grid grid-cols-2 gap-2 text-xs">
                                 {Object.entries(dashboard.users.byRole).map(
                                     ([role, count]) => (
                                         <div
                                             key={role}
-                                            className="rounded-lg bg-[#111418] px-3 py-2"
+                                            className="theme-panel-muted rounded-lg px-3 py-2"
                                         >
                                             <span className="block">{role}</span>
-                                            <span className="font-mono text-white">
+                                            <span className="font-mono text-[color:var(--text-main-theme)]">
                                                 {count}
                                             </span>
                                         </div>
@@ -527,21 +527,21 @@ export default function AdminDashboardPage() {
                         </div>
                         <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-semibold uppercase tracking-wide text-[#9dabb9]">
+                                <h3 className="theme-muted text-sm font-semibold uppercase tracking-wide">
                                     Subscribers
                                 </h3>
-                                <span className="text-xs font-mono text-[#9dabb9]">
+                                <span className="theme-muted text-xs font-mono">
                                     {dashboard.subscribers.total} total
                                 </span>
                             </div>
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
-                                <span className="text-[#9dabb9]">Active</span>
-                                <span className="font-bold text-white">
+                                <span className="theme-muted">Active</span>
+                                <span className="font-bold text-[color:var(--text-main-theme)]">
                                     {dashboard.subscribers.active}
                                 </span>
                             </div>
-                            <div className="h-2 overflow-hidden rounded-full bg-[#283039]">
+                            <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-strong)]">
                                 <div
                                     className="h-full rounded-full bg-[#0bda5b]"
                                     style={{
@@ -562,12 +562,12 @@ export default function AdminDashboardPage() {
                         </div>
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
-                                <span className="text-[#9dabb9]">Inactive</span>
-                                <span className="font-bold text-white">
+                                <span className="theme-muted">Inactive</span>
+                                <span className="font-bold text-[color:var(--text-main-theme)]">
                                     {dashboard.subscribers.inactive}
                                 </span>
                             </div>
-                            <div className="h-2 overflow-hidden rounded-full bg-[#283039]">
+                            <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-strong)]">
                                 <div
                                     className="h-full rounded-full bg-[#fa6238]"
                                     style={{
@@ -588,11 +588,11 @@ export default function AdminDashboardPage() {
                         </div>
                         </div>
                     </div>
-                    <div className="mt-8 rounded-xl border border-border-dark bg-[#111418] p-4">
-                        <p className="text-xs uppercase tracking-wide text-[#9dabb9]">
+                    <div className="theme-panel-muted theme-border mt-8 rounded-2xl border p-4">
+                        <p className="theme-muted text-xs uppercase tracking-wide">
                             Total Reach
                         </p>
-                        <p className="mt-2 font-mono text-3xl font-bold text-white">
+                        <p className="mt-2 font-mono text-3xl font-bold text-[color:var(--text-main-theme)]">
                             {formatNumber(
                                 dashboard.subscribers.total + dashboard.users.total
                             )}

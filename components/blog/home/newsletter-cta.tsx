@@ -1,3 +1,6 @@
+import Link from 'next/link';
+import { NewsletterSignupForm } from '@/components/blog/newsletter-signup-form';
+
 export function NewsletterCta() {
     return (
         <section className="relative mt-8 w-full overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-500 shadow-lg">
@@ -19,23 +22,18 @@ export function NewsletterCta() {
                     </p>
                 </div>
                 <div className="w-full max-w-md">
-                    <form className="flex flex-col gap-2 sm:flex-row">
-                        <input
-                            className="flex-1 rounded-xl border-0 px-4 py-3 text-sm text-text-main outline-none ring-0"
-                            placeholder="Enter your email"
-                            required
-                            type="email"
-                        />
-                        <button
-                            className="rounded-xl bg-surface-dark px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
-                            type="submit"
-                        >
-                            Subscribe
-                        </button>
-                    </form>
-                    <p className="mt-2 text-center text-xs text-cyan-50/90 md:text-left">
-                        No spam, unsubscribe anytime.
-                    </p>
+                    <NewsletterSignupForm
+                        buttonClassName="bg-surface-dark hover:bg-gray-900"
+                        buttonLabel="Subscribe"
+                        helperText="Weekly DevOps notes, zero noise."
+                        inputClassName="flex-1"
+                    />
+                    <div className="mt-3 text-center text-xs text-cyan-50/90 md:text-left">
+                        Want the full archive?{' '}
+                        <Link className="font-semibold underline underline-offset-4" href="/newsletter">
+                            Visit the newsletter page
+                        </Link>
+                    </div>
                 </div>
             </div>
         </section>

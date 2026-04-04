@@ -1,16 +1,26 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
+import { getAccessToken } from '@/lib/auth';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
-import type { Category, Post, PostStatus, Tag } from '@/types';
+import type { Category, Post, PostStatus, PostVersion, Tag } from '@/types';
 import { formatDate, formatRelativeTime, getImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/hooks/use-auth';
 
 type PostPayload = { data?: Post } | Post;
 type TaxonomyPayload<T> = { data?: T[] } | T[];
+type VersionsPayload = { data?: PostVersion[] } | PostVersion[];
+type MediaItem = {
+    key: string;
+    url: string;
+    size: number;
+    lastModified?: string | null;
+};
+type MediaPayload = { data?: MediaItem[] } | MediaItem[];
 
 interface ArticleFormState {
     title: string;
@@ -23,6 +33,19 @@ interface ArticleFormState {
     categoryId: string;
     tagIds: string[];
     scheduledAt: string;
+}
+
+interface CategoryDraftState {
+    name: string;
+    slug: string;
+    description: string;
+    color: string;
+    icon: string;
+}
+
+interface TagDraftState {
+    name: string;
+    slug: string;
 }
 
 interface OutlineItem {
@@ -42,6 +65,19 @@ const initialFormState: ArticleFormState = {
     categoryId: '',
     tagIds: [],
     scheduledAt: '',
+};
+
+const initialCategoryDraft: CategoryDraftState = {
+    name: '',
+    slug: '',
+    description: '',
+    color: '',
+    icon: '',
+};
+
+const initialTagDraft: TagDraftState = {
+    name: '',
+    slug: '',
 };
 
 function resolveData<T>(payload: T | { data?: T }, fallback: T): T {
@@ -97,15 +133,32 @@ export default function ArticleEditPage() {
     const router = useRouter();
     const articleId = params.id as string;
     const isNewArticle = articleId === 'new';
+    const currentUser = useAuthStore((state) => state.user);
 
     const [article, setArticle] = useState<Post | null>(null);
     const [formState, setFormState] = useState<ArticleFormState>(initialFormState);
     const [categories, setCategories] = useState<Category[]>([]);
     const [tags, setTags] = useState<Tag[]>([]);
+    const [versions, setVersions] = useState<PostVersion[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
+    const [isLoadingMediaLibrary, setIsLoadingMediaLibrary] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [showCategoryCreator, setShowCategoryCreator] = useState(false);
+    const [showTagCreator, setShowTagCreator] = useState(false);
+    const [categoryDraft, setCategoryDraft] = useState<CategoryDraftState>(initialCategoryDraft);
+    const [tagDraft, setTagDraft] = useState<TagDraftState>(initialTagDraft);
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [isCreatingTag, setIsCreatingTag] = useState(false);
+
+    const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasHydratedRef = useRef(false);
+    const lastSavedSnapshotRef = useRef('');
+    const isAutosavingRef = useRef(false);
 
     const fetchTaxonomies = useCallback(async () => {
         const [categoriesPayload, tagsPayload] = await Promise.all([
@@ -121,6 +174,7 @@ export default function ArticleEditPage() {
         if (isNewArticle) {
             setArticle(null);
             setFormState(initialFormState);
+            setVersions([]);
             return;
         }
 
@@ -131,6 +185,26 @@ export default function ArticleEditPage() {
         setFormState(buildFormState(resolved || undefined));
     }, [articleId, isNewArticle]);
 
+    const fetchVersions = useCallback(async () => {
+        if (isNewArticle) {
+            setVersions([]);
+            return;
+        }
+
+        const payload = await apiClient.get<VersionsPayload>(`/api/v1/posts/${articleId}/versions`);
+        setVersions(resolveData<PostVersion[]>(payload, []));
+    }, [articleId, isNewArticle]);
+
+    const fetchMediaLibrary = useCallback(async () => {
+        try {
+            setIsLoadingMediaLibrary(true);
+            const payload = await apiClient.get<MediaPayload>('/api/v1/media');
+            setMediaLibrary(resolveData<MediaItem[]>(payload, []));
+        } finally {
+            setIsLoadingMediaLibrary(false);
+        }
+    }, []);
+
     useEffect(() => {
         let isMounted = true;
 
@@ -139,7 +213,7 @@ export default function ArticleEditPage() {
                 setLoading(true);
                 setErrorMessage('');
 
-                await Promise.all([fetchTaxonomies(), fetchArticle()]);
+                await Promise.all([fetchTaxonomies(), fetchArticle(), fetchVersions(), fetchMediaLibrary()]);
 
                 if (!isMounted) {
                     return;
@@ -162,7 +236,7 @@ export default function ArticleEditPage() {
         return () => {
             isMounted = false;
         };
-    }, [fetchArticle, fetchTaxonomies]);
+    }, [fetchArticle, fetchTaxonomies, fetchVersions, fetchMediaLibrary]);
 
     const stats = useMemo(() => {
         const words = countWords(formState.content);
@@ -190,6 +264,53 @@ export default function ArticleEditPage() {
     }, [formState.content]);
 
     const lastSavedLabel = article?.updatedAt ? formatRelativeTime(article.updatedAt) : 'Chua luu lan nao';
+    const canPublishDirectly = ['ADMIN', 'EDITOR', 'MODERATOR'].includes(currentUser?.role || '');
+    const showReviewActions = !isNewArticle && article;
+    const canManageTaxonomy = ['ADMIN', 'EDITOR'].includes(currentUser?.role || '');
+
+    const buildPayload = useCallback(() => ({
+        title: formState.title.trim(),
+        slug: formState.slug.trim() || createSlug(formState.title),
+        excerpt: formState.subtitle.trim() || null,
+        content: formState.content,
+        contentHtml: formState.content,
+        contentJson: formState.contentJson,
+        featuredImage: formState.featuredImage.trim() || null,
+        status: formState.status,
+        categoryId: formState.categoryId || null,
+        tagIds: formState.tagIds,
+        scheduledAt:
+            formState.status === 'SCHEDULED' && formState.scheduledAt
+                ? new Date(formState.scheduledAt).toISOString()
+                : null,
+    }), [formState]);
+
+    const buildAutosaveSnapshot = useCallback(
+        () =>
+            JSON.stringify({
+                title: formState.title.trim(),
+                slug: formState.slug.trim(),
+                subtitle: formState.subtitle.trim(),
+                content: formState.content,
+                contentJson: formState.contentJson,
+                featuredImage: formState.featuredImage.trim(),
+                status: formState.status,
+                categoryId: formState.categoryId,
+                tagIds: formState.tagIds,
+                scheduledAt: formState.scheduledAt,
+            }),
+        [formState]
+    );
+
+    useEffect(() => {
+        if (loading) {
+            return;
+        }
+
+        hasHydratedRef.current = true;
+        lastSavedSnapshotRef.current = buildAutosaveSnapshot();
+        setAutosaveState('idle');
+    }, [article?.id, buildAutosaveSnapshot, loading]);
 
     const handleFieldChange = <K extends keyof ArticleFormState>(
         field: K,
@@ -214,6 +335,137 @@ export default function ArticleEditPage() {
         handleFieldChange('slug', createSlug(formState.title));
     };
 
+    const resetCategoryDraft = () => {
+        setCategoryDraft(initialCategoryDraft);
+        setShowCategoryCreator(false);
+    };
+
+    const resetTagDraft = () => {
+        setTagDraft(initialTagDraft);
+        setShowTagCreator(false);
+    };
+
+    const handleCreateCategory = async () => {
+        if (!categoryDraft.name.trim()) {
+            toast.error('Ten category la bat buoc');
+            return;
+        }
+
+        try {
+            setIsCreatingCategory(true);
+            const payload = {
+                name: categoryDraft.name.trim(),
+                slug: categoryDraft.slug.trim() || null,
+                description: categoryDraft.description.trim() || null,
+                color: categoryDraft.color.trim() || null,
+                icon: categoryDraft.icon.trim() || null,
+            };
+
+            const response = await apiClient.post<{ data?: Category } | Category>('/api/v1/categories', payload);
+            const createdCategory = resolveData<Category | null>(response, null);
+
+            await fetchTaxonomies();
+            if (createdCategory?.id) {
+                handleFieldChange('categoryId', createdCategory.id);
+            }
+            resetCategoryDraft();
+            toast.success('Da tao category moi');
+        } catch {
+            toast.error('Khong the tao category luc nay');
+        } finally {
+            setIsCreatingCategory(false);
+        }
+    };
+
+    const handleCreateTag = async () => {
+        if (!tagDraft.name.trim()) {
+            toast.error('Ten tag la bat buoc');
+            return;
+        }
+
+        try {
+            setIsCreatingTag(true);
+            const payload = {
+                name: tagDraft.name.trim(),
+                slug: tagDraft.slug.trim() || null,
+            };
+
+            const response = await apiClient.post<{ data?: Tag } | Tag>('/api/v1/tags', payload);
+            const createdTag = resolveData<Tag | null>(response, null);
+
+            await fetchTaxonomies();
+            if (createdTag?.id) {
+                setFormState((previous) => ({
+                    ...previous,
+                    tagIds: previous.tagIds.includes(createdTag.id)
+                        ? previous.tagIds
+                        : [...previous.tagIds, createdTag.id],
+                }));
+            }
+            resetTagDraft();
+            toast.success('Da tao tag moi');
+        } catch {
+            toast.error('Khong the tao tag luc nay');
+        } finally {
+            setIsCreatingTag(false);
+        }
+    };
+
+    const handleFeaturedImageUpload = async (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+
+        if (!file) {
+            return;
+        }
+
+        try {
+            setIsUploadingImage(true);
+            const uploadedUrl = await uploadMediaFile(file);
+
+            handleFieldChange('featuredImage', uploadedUrl);
+            await fetchMediaLibrary();
+            toast.success('Da upload anh dai dien');
+        } catch (error) {
+            toast.error(
+                error instanceof Error ? error.message : 'Khong the upload anh luc nay'
+            );
+        } finally {
+            setIsUploadingImage(false);
+        }
+    };
+
+    const uploadMediaFile = useCallback(async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('purpose', 'post-media');
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+
+        const response = await fetch(`${apiBase}/api/v1/media/upload`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${getAccessToken() || ''}`,
+            },
+            credentials: 'include',
+            body: formData,
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+            throw new Error(payload?.message || 'Image upload failed');
+        }
+
+        const uploadedUrl = payload?.data?.url || '';
+        if (!uploadedUrl) {
+            throw new Error('Image upload failed');
+        }
+
+        return uploadedUrl;
+    }, [fetchMediaLibrary]);
+
     const handleSave = async () => {
         if (!formState.title.trim() || !formState.content.trim()) {
             toast.error('Title va content la bat buoc');
@@ -221,23 +473,7 @@ export default function ArticleEditPage() {
         }
 
         setIsSaving(true);
-
-        const payload = {
-            title: formState.title.trim(),
-            slug: formState.slug.trim() || createSlug(formState.title),
-            excerpt: formState.subtitle.trim() || null,
-            content: formState.content,
-            contentHtml: formState.content,
-            contentJson: formState.contentJson,
-            featuredImage: formState.featuredImage.trim() || null,
-            status: formState.status,
-            categoryId: formState.categoryId || null,
-            tagIds: formState.tagIds,
-            scheduledAt:
-                formState.status === 'SCHEDULED' && formState.scheduledAt
-                    ? new Date(formState.scheduledAt).toISOString()
-                    : null,
-        };
+        const payload = buildPayload();
 
         try {
             if (isNewArticle) {
@@ -247,6 +483,8 @@ export default function ArticleEditPage() {
                 toast.success('Da tao bai viet moi');
 
                 if (createdPost?.id) {
+                    lastSavedSnapshotRef.current = buildAutosaveSnapshot();
+                    setAutosaveState('saved');
                     router.replace(`/admin/articles/${createdPost.id}`);
                 }
 
@@ -258,6 +496,9 @@ export default function ArticleEditPage() {
 
             setArticle(updatedPost);
             setFormState(buildFormState(updatedPost || undefined));
+            lastSavedSnapshotRef.current = buildAutosaveSnapshot();
+            setAutosaveState('saved');
+            await fetchVersions();
             toast.success('Da luu thay doi bai viet');
         } catch {
             toast.error('Khong the luu bai viet luc nay');
@@ -288,9 +529,172 @@ export default function ArticleEditPage() {
         }
     };
 
+    const autosaveDraft = useCallback(async () => {
+        if (isSaving || isDeleting || isAutosavingRef.current) {
+            return;
+        }
+
+        if (!formState.title.trim() || !formState.content.trim()) {
+            return;
+        }
+
+        const snapshot = buildAutosaveSnapshot();
+        if (snapshot === lastSavedSnapshotRef.current) {
+            return;
+        }
+
+        isAutosavingRef.current = true;
+        setAutosaveState('saving');
+
+        try {
+            const payload = buildPayload();
+
+            if (isNewArticle) {
+                const response = await apiClient.post<PostPayload>('/api/v1/posts', payload);
+                const createdPost = resolveData<Post | null>(response, null);
+
+                if (createdPost?.id) {
+                    lastSavedSnapshotRef.current = snapshot;
+                    setAutosaveState('saved');
+                    router.replace(`/admin/articles/${createdPost.id}`);
+                }
+
+                return;
+            }
+
+            const response = await apiClient.put<PostPayload>(`/api/v1/posts/${articleId}`, {
+                ...payload,
+                createVersion: false,
+            });
+            const updatedPost = resolveData<Post | null>(response, null);
+
+            if (updatedPost) {
+                setArticle(updatedPost);
+                lastSavedSnapshotRef.current = snapshot;
+                setAutosaveState('saved');
+                await fetchVersions();
+            }
+        } catch {
+            setAutosaveState('error');
+        } finally {
+            isAutosavingRef.current = false;
+        }
+    }, [
+        articleId,
+        buildAutosaveSnapshot,
+        buildPayload,
+        formState.content,
+        formState.title,
+        isDeleting,
+        isNewArticle,
+        isSaving,
+        fetchVersions,
+        router,
+    ]);
+
+    useEffect(() => {
+        if (!hasHydratedRef.current || loading) {
+            return;
+        }
+
+        const snapshot = buildAutosaveSnapshot();
+        if (snapshot === lastSavedSnapshotRef.current) {
+            return;
+        }
+
+        if (autosaveTimerRef.current) {
+            clearTimeout(autosaveTimerRef.current);
+        }
+
+        autosaveTimerRef.current = setTimeout(() => {
+            void autosaveDraft();
+        }, 3000);
+
+        return () => {
+            if (autosaveTimerRef.current) {
+                clearTimeout(autosaveTimerRef.current);
+            }
+        };
+    }, [autosaveDraft, buildAutosaveSnapshot, loading]);
+
+    const handleSubmitForReview = async () => {
+        try {
+            await apiClient.post(`/api/v1/posts/${articleId}/submit-review`);
+            toast.success('Da gui bai viet di review');
+            await fetchArticle();
+            await fetchVersions();
+        } catch {
+            toast.error('Khong the gui bai viet di review');
+        }
+    };
+
+    const handleApprove = async () => {
+        try {
+            await apiClient.post(`/api/v1/posts/${articleId}/approve`, {
+                status:
+                    formState.status === 'SCHEDULED' && formState.scheduledAt
+                        ? 'SCHEDULED'
+                        : 'PUBLISHED',
+            });
+            toast.success('Da duyet bai viet');
+            await fetchArticle();
+            await fetchVersions();
+        } catch {
+            toast.error('Khong the duyet bai viet');
+        }
+    };
+
+    const handleReject = async () => {
+        const rejectionReason = window.prompt('Nhap ly do tu choi bai viet');
+        if (!rejectionReason) {
+            return;
+        }
+
+        try {
+            await apiClient.post(`/api/v1/posts/${articleId}/reject`, { rejectionReason });
+            toast.success('Da tra bai viet ve draft');
+            await fetchArticle();
+            await fetchVersions();
+        } catch {
+            toast.error('Khong the tu choi bai viet');
+        }
+    };
+
+    const handleRestoreVersion = async (versionId: string) => {
+        const reason = window.prompt('Nhap ghi chu rollback (khong bat buoc)') || '';
+
+        try {
+            const response = await apiClient.post<PostPayload>(
+                `/api/v1/posts/${articleId}/versions/${versionId}/restore`,
+                { reason: reason || null }
+            );
+            const restoredPost = resolveData<Post | null>(response, null);
+
+            setArticle(restoredPost);
+            setFormState(buildFormState(restoredPost || undefined));
+            lastSavedSnapshotRef.current = JSON.stringify({
+                title: restoredPost?.title?.trim() || '',
+                slug: restoredPost?.slug?.trim() || '',
+                subtitle: (restoredPost?.subtitle || restoredPost?.excerpt || '').trim(),
+                content: restoredPost?.contentHtml || restoredPost?.content || '',
+                contentJson: restoredPost?.contentJson || null,
+                featuredImage: restoredPost?.featuredImage?.trim() || '',
+                status: restoredPost?.status || 'DRAFT',
+                categoryId: restoredPost?.category?.id || '',
+                tagIds: restoredPost?.tags?.map((tag) => tag.id) || [],
+                scheduledAt: restoredPost?.scheduledAt ? restoredPost.scheduledAt.slice(0, 16) : '',
+            });
+            setAutosaveState('saved');
+            await fetchVersions();
+            toast.success('Da rollback bai viet ve phien ban da chon');
+        } catch {
+            toast.error('Khong the rollback phien ban nay');
+        }
+    };
+
     if (loading) {
         return (
-            <div className="rounded-xl border border-border-dark bg-[#1e293b] p-8 text-sm text-[#9dabb9]">
+            <div className="theme-panel rounded-2xl p-8 text-sm theme-muted">
                 Dang tai du lieu bai viet...
             </div>
         );
@@ -298,12 +702,12 @@ export default function ArticleEditPage() {
 
     if (errorMessage) {
         return (
-            <div className="rounded-xl border border-border-dark bg-[#1e293b] p-8 text-center">
+            <div className="theme-panel rounded-2xl p-8 text-center">
                 <span className="material-symbols-outlined mb-3 block text-4xl text-[#fa6238]">warning</span>
-                <p className="text-sm text-[#9dabb9]">{errorMessage}</p>
+                <p className="theme-muted text-sm">{errorMessage}</p>
                 <Link
                     href="/admin/articles"
-                    className="mt-4 inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-bold text-white"
+                    className="theme-glow-button mt-4 inline-flex h-10 items-center rounded-2xl px-4 text-sm font-bold"
                 >
                     Quay lai danh sach
                 </Link>
@@ -313,25 +717,61 @@ export default function ArticleEditPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <header className="-mx-6 -mt-6 mb-2 flex h-16 shrink-0 items-center justify-between border-b border-border-dark bg-[#111418] px-6 lg:-mx-8 lg:-mt-8 lg:mb-4 lg:px-10">
+            <header className="theme-border -mx-6 -mt-6 mb-2 flex h-16 shrink-0 items-center justify-between border-b px-6 lg:-mx-8 lg:-mt-8 lg:mb-4 lg:px-10">
                 <div className="flex items-center gap-4">
                     <Link
                         href="/admin/articles"
-                        className="flex size-8 items-center justify-center rounded-full text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white"
+                        className="theme-muted flex size-8 items-center justify-center rounded-full transition-colors hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-main-theme)]"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
                     </Link>
                     <div className="mx-1 h-6 w-px bg-border-dark" />
                     <div>
-                        <h2 className="text-lg font-bold tracking-tight text-white">
+                        <h2 className="text-lg font-bold tracking-tight text-[color:var(--text-main-theme)]">
                             {isNewArticle ? 'Bai viet moi' : 'Chinh sua bai viet'}
                         </h2>
-                        <p className="text-xs text-[#9dabb9]">
-                            Last saved: <span className="text-white">{lastSavedLabel}</span>
+                        <p className="theme-muted text-xs">
+                            Last saved: <span className="text-[color:var(--text-main-theme)]">{lastSavedLabel}</span>
+                        </p>
+                        <p className="theme-muted text-[11px]">
+                            {autosaveState === 'saving'
+                                ? 'Dang autosave...'
+                                : autosaveState === 'saved'
+                                  ? 'Autosave da cap nhat draft'
+                                  : autosaveState === 'error'
+                                    ? 'Autosave that bai, hay luu tay'
+                                    : 'Autosave sau 3 giay khi dung go'}
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    {showReviewActions && !canPublishDirectly && formState.status === 'DRAFT' ? (
+                        <button
+                            onClick={() => void handleSubmitForReview()}
+                            className="inline-flex h-9 items-center gap-2 rounded-lg border border-violet-500/20 bg-violet-500/10 px-4 text-sm font-bold text-violet-200 transition-colors hover:bg-violet-500/20"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">rate_review</span>
+                            Gui review
+                        </button>
+                    ) : null}
+                    {showReviewActions && canPublishDirectly && formState.status === 'REVIEW' ? (
+                        <>
+                            <button
+                                onClick={() => void handleReject()}
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 text-sm font-bold text-red-200 transition-colors hover:bg-red-500/20"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">cancel</span>
+                                Tu choi
+                            </button>
+                            <button
+                                onClick={() => void handleApprove()}
+                                className="inline-flex h-9 items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 px-4 text-sm font-bold text-green-200 transition-colors hover:bg-green-500/20"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">task_alt</span>
+                                Duyet bai
+                            </button>
+                        </>
+                    ) : null}
                     {!isNewArticle && formState.slug ? (
                         <Link
                             href={`/blog/${formState.slug}`}
@@ -363,20 +803,20 @@ export default function ArticleEditPage() {
                             value={formState.title}
                             onChange={(event) => handleFieldChange('title', event.target.value)}
                             placeholder="Nhap tieu de bai viet..."
-                            className="w-full border-0 border-b border-border-dark bg-transparent px-0 py-2 text-3xl font-bold text-white placeholder-[#586069] transition-colors focus:border-primary focus:ring-0"
+                            className="w-full border-0 border-b theme-border bg-transparent px-0 py-2 text-3xl font-bold text-[color:var(--text-main-theme)] placeholder-[color:var(--text-soft-theme)] transition-colors focus:border-primary focus:ring-0"
                         />
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="select-none text-[#9dabb9]">https://devops-blog.com/blog/</span>
+                            <span className="select-none theme-muted">https://devops-blog.com/blog/</span>
                             <div className="group relative flex-1">
                                 <input
                                     type="text"
                                     value={formState.slug}
                                     onChange={(event) => handleFieldChange('slug', event.target.value)}
-                                    className="w-full rounded border border-border-dark bg-[#111418] px-2 py-1 text-xs font-mono text-[#9dabb9] transition-all focus:border-primary focus:text-white focus:ring-1 focus:ring-primary"
+                                    className="theme-input w-full rounded border px-2 py-1 text-xs font-mono theme-muted transition-all focus:text-[color:var(--text-main-theme)]"
                                 />
                                 <button
                                     onClick={handleGenerateSlug}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9dabb9] opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
+                                    className="theme-muted absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
                                     title="Tao lai slug tu title"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">autorenew</span>
@@ -385,26 +825,26 @@ export default function ArticleEditPage() {
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-border-dark bg-surface-dark p-5">
-                        <label className="mb-2 block text-xs font-medium uppercase text-[#9dabb9]">Sub title</label>
+                    <div className="theme-panel rounded-2xl p-5">
+                        <label className="theme-muted mb-2 block text-xs font-medium uppercase">Sub title</label>
                         <textarea
                             value={formState.subtitle}
                             onChange={(event) => handleFieldChange('subtitle', event.target.value)}
                             rows={3}
-                            className="w-full resize-none rounded-lg border border-border-dark bg-[#111418] px-4 py-3 text-sm text-white placeholder-[#586069] focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="theme-input w-full resize-none rounded-2xl px-4 py-3 text-sm"
                             placeholder="Sub title ngan, mo ta nhanh goc nhin va gia tri cua bai viet..."
                         />
                     </div>
 
-                    <div className="flex flex-col gap-4 rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
+                    <div className="theme-panel flex flex-col gap-4 rounded-2xl p-5 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h3 className="text-sm font-bold text-white">Noi dung bai viet</h3>
-                                <p className="mt-1 text-xs text-[#9dabb9]">
+                                <h3 className="text-sm font-bold text-[color:var(--text-main-theme)]">Noi dung bai viet</h3>
+                                <p className="theme-muted mt-1 text-xs">
                                     Soan thao truc quan nhu Word: heading, dam, nghieng, can le, mau sac, quote, list, code block va link.
                                 </p>
                             </div>
-                            <span className="rounded-full border border-border-dark px-2.5 py-1 font-mono text-[11px] text-[#9dabb9]">
+                            <span className="theme-border theme-muted rounded-full border px-2.5 py-1 font-mono text-[11px]">
                                 WYSIWYG
                             </span>
                         </div>
@@ -412,6 +852,9 @@ export default function ArticleEditPage() {
                         <RichTextEditor
                             value={formState.content}
                             jsonValue={formState.contentJson}
+                            onImageUpload={uploadMediaFile}
+                            mediaItems={mediaLibrary}
+                            onRefreshMediaLibrary={fetchMediaLibrary}
                             onChange={({ html, json }) =>
                                 setFormState((previous) => ({
                                     ...previous,
@@ -421,27 +864,27 @@ export default function ArticleEditPage() {
                             }
                         />
 
-                        <div className="grid gap-3 rounded-xl border border-border-dark bg-[#111418] p-4 md:grid-cols-3">
+                        <div className="theme-panel-muted theme-border grid gap-3 rounded-2xl border p-4 md:grid-cols-3">
                             <div>
-                                <p className="text-[11px] uppercase tracking-wide text-[#9dabb9]">Words</p>
-                                <p className="mt-1 text-base font-bold text-white">{stats.words}</p>
+                                <p className="theme-muted text-[11px] uppercase tracking-wide">Words</p>
+                                <p className="mt-1 text-base font-bold text-[color:var(--text-main-theme)]">{stats.words}</p>
                             </div>
                             <div>
-                                <p className="text-[11px] uppercase tracking-wide text-[#9dabb9]">Characters</p>
-                                <p className="mt-1 text-base font-bold text-white">{stats.characters}</p>
+                                <p className="theme-muted text-[11px] uppercase tracking-wide">Characters</p>
+                                <p className="mt-1 text-base font-bold text-[color:var(--text-main-theme)]">{stats.characters}</p>
                             </div>
                             <div>
-                                <p className="text-[11px] uppercase tracking-wide text-[#9dabb9]">Reading time</p>
-                                <p className="mt-1 text-base font-bold text-white">{stats.readingTime} min</p>
+                                <p className="theme-muted text-[11px] uppercase tracking-wide">Reading time</p>
+                                <p className="mt-1 text-base font-bold text-[color:var(--text-main-theme)]">{stats.readingTime} min</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex flex-col gap-6 lg:col-span-4">
-                    <div className="rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
-                        <h3 className="mb-4 text-sm font-bold text-white">Document Outline</h3>
-                        <div className="rounded-xl border border-border-dark bg-[#111418] p-4">
+                    <div className="theme-panel rounded-2xl p-5 shadow-sm">
+                        <h3 className="mb-4 text-sm font-bold text-[color:var(--text-main-theme)]">Document Outline</h3>
+                        <div className="theme-panel-muted theme-border rounded-2xl border p-4">
                             {documentOutline.length ? (
                                 <div className="space-y-1.5">
                                     {documentOutline.map((item, index) => (
@@ -449,8 +892,8 @@ export default function ArticleEditPage() {
                                             key={`${item.text}-${index}`}
                                             className={`rounded-lg border-l-2 px-3 py-2 text-sm ${
                                                 item.level === 3
-                                                    ? 'ml-4 border-transparent text-[#9dabb9]'
-                                                    : 'border-primary/50 bg-primary/5 font-semibold text-white'
+                                                    ? 'ml-4 border-transparent theme-muted'
+                                                    : 'border-primary/50 bg-primary/5 font-semibold text-[color:var(--text-main-theme)]'
                                             }`}
                                         >
                                             {item.text}
@@ -458,24 +901,77 @@ export default function ArticleEditPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-[#9dabb9]">
+                                <p className="theme-muted text-sm">
                                     Them cac heading H2/H3 trong editor de tao muc luc cho bai viet.
                                 </p>
                             )}
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
-                        <h3 className="mb-4 text-sm font-bold text-white">Publishing</h3>
+                    <div className="theme-panel rounded-2xl p-5 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-[color:var(--text-main-theme)]">Version History</h3>
+                            <span className="theme-muted text-[11px] uppercase tracking-wide">
+                                {versions.length} versions
+                            </span>
+                        </div>
+                        <div className="space-y-3">
+                            {versions.length === 0 ? (
+                                <div className="theme-panel-muted theme-border rounded-2xl border p-4 text-sm theme-muted">
+                                    Chua co version history cho bai viet nay.
+                                </div>
+                            ) : (
+                                versions.map((version) => (
+                                    <div
+                                        key={version.id}
+                                        className="theme-panel-muted theme-border rounded-2xl border p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-semibold text-[color:var(--text-main-theme)]">
+                                                    {version.title}
+                                                </p>
+                                                <p className="theme-muted mt-1 text-xs">
+                                                    {formatRelativeTime(version.createdAt)}
+                                                    {version.createdBy
+                                                        ? ` by ${version.createdBy.firstName} ${version.createdBy.lastName}`
+                                                        : ''}
+                                                </p>
+                                                <p className="theme-muted mt-2 text-[11px] uppercase tracking-wide">
+                                                    {version.status}
+                                                </p>
+                                                {version.reason ? (
+                                                    <p className="theme-muted mt-2 text-xs">
+                                                        {version.reason}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                            <button
+                                                onClick={() => void handleRestoreVersion(version.id)}
+                                                className="theme-panel-muted theme-border inline-flex h-8 items-center gap-1 rounded-2xl border px-3 text-xs font-bold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">history</span>
+                                                Restore
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="theme-panel rounded-2xl p-5 shadow-sm">
+                        <h3 className="mb-4 text-sm font-bold text-[color:var(--text-main-theme)]">Publishing</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="mb-1.5 block text-xs font-medium text-[#9dabb9]">Status</label>
+                                <label className="theme-muted mb-1.5 block text-xs font-medium">Status</label>
                                 <select
                                     value={formState.status}
                                     onChange={(event) => handleFieldChange('status', event.target.value as PostStatus)}
-                                    className="w-full cursor-pointer rounded-lg border border-border-dark bg-[#111418] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                                    className="theme-input w-full cursor-pointer rounded-2xl px-3 py-2 text-sm"
                                 >
                                     <option value="DRAFT">Draft</option>
+                                    <option value="REVIEW">In Review</option>
                                     <option value="PUBLISHED">Published</option>
                                     <option value="SCHEDULED">Scheduled</option>
                                     <option value="ARCHIVED">Archived</option>
@@ -484,26 +980,33 @@ export default function ArticleEditPage() {
 
                             {formState.status === 'SCHEDULED' ? (
                                 <div>
-                                    <label className="mb-1.5 block text-xs font-medium text-[#9dabb9]">Scheduled time</label>
+                                    <label className="theme-muted mb-1.5 block text-xs font-medium">Scheduled time</label>
                                     <input
                                         type="datetime-local"
                                         value={formState.scheduledAt}
                                         onChange={(event) => handleFieldChange('scheduledAt', event.target.value)}
-                                        className="w-full rounded-lg border border-border-dark bg-[#111418] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary [color-scheme:dark]"
+                                        className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
                                     />
                                 </div>
                             ) : null}
 
-                            <div className="rounded-lg border border-border-dark bg-[#111418] px-4 py-3 text-xs text-[#9dabb9]">
-                                {article?.publishedAt ? (
+                            <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted">
+                                {article?.status === 'REVIEW' ? (
+                                    <span>Bai viet dang cho duyet boi editor/admin.</span>
+                                ) : article?.publishedAt ? (
                                     <span>Published at {formatDate(article.publishedAt)}</span>
                                 ) : (
                                     <span>Chua duoc publish.</span>
                                 )}
                             </div>
+                            {article?.rejectionReason ? (
+                                <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-200">
+                                    Ly do tu choi: {article.rejectionReason}
+                                </div>
+                            ) : null}
                         </div>
 
-                        <div className="mt-6 flex items-center justify-between border-t border-border-dark pt-4">
+                        <div className="theme-border mt-6 flex items-center justify-between border-t pt-4">
                             <button
                                 onClick={() => void handleDelete()}
                                 disabled={isDeleting}
@@ -512,16 +1015,16 @@ export default function ArticleEditPage() {
                                 {isDeleting ? 'Dang xoa...' : 'Move to Trash'}
                             </button>
                             {!isNewArticle ? (
-                                <span className="text-xs italic text-[#9dabb9]">
+                                <span className="theme-muted text-xs italic">
                                     {article?.createdAt ? `Created ${formatDate(article.createdAt)}` : ''}
                                 </span>
                             ) : null}
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
-                        <h3 className="mb-4 text-sm font-bold text-white">Author</h3>
-                        <div className="rounded-lg border border-border-dark bg-[#111418] p-3">
+                    <div className="theme-panel rounded-2xl p-5 shadow-sm">
+                        <h3 className="mb-4 text-sm font-bold text-[color:var(--text-main-theme)]">Author</h3>
+                        <div className="theme-panel-muted theme-border rounded-2xl border p-3">
                             {article?.author ? (
                                 <div className="flex items-center gap-3">
                                     <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-primary/15">
@@ -536,28 +1039,39 @@ export default function ArticleEditPage() {
                                         )}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-white">
+                                        <span className="text-sm font-bold text-[color:var(--text-main-theme)]">
                                             {article.author.firstName} {article.author.lastName}
                                         </span>
-                                        <span className="text-[10px] text-[#9dabb9]">Tac gia hien tai</span>
+                                        <span className="theme-muted text-[10px]">Tac gia hien tai</span>
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-sm text-[#9dabb9]">
+                                <p className="theme-muted text-sm">
                                     Bai viet moi se gan tac gia theo tai khoan dang dang nhap.
                                 </p>
                             )}
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
-                        <h3 className="mb-4 text-sm font-bold text-white">Taxonomy</h3>
+                    <div className="theme-panel rounded-2xl p-5 shadow-sm">
+                        <h3 className="mb-4 text-sm font-bold text-[color:var(--text-main-theme)]">Taxonomy</h3>
                         <div className="mb-5">
-                            <label className="mb-1.5 block text-xs font-medium text-[#9dabb9]">Category</label>
+                            <div className="mb-1.5 flex items-center justify-between gap-3">
+                                <label className="theme-muted block text-xs font-medium">Category</label>
+                                {canManageTaxonomy ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCategoryCreator((previous) => !previous)}
+                                        className="text-[11px] font-semibold text-primary hover:text-blue-400"
+                                    >
+                                        {showCategoryCreator ? 'Dong' : 'Tao moi'}
+                                    </button>
+                                ) : null}
+                            </div>
                             <select
                                 value={formState.categoryId}
                                 onChange={(event) => handleFieldChange('categoryId', event.target.value)}
-                                className="w-full cursor-pointer rounded-lg border border-border-dark bg-[#111418] px-3 py-2 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary"
+                                className="theme-input w-full cursor-pointer rounded-2xl px-3 py-2 text-sm"
                             >
                                 <option value="">Khong chon category</option>
                                 {categories.map((category) => (
@@ -566,18 +1080,116 @@ export default function ArticleEditPage() {
                                     </option>
                                 ))}
                             </select>
+                            {showCategoryCreator ? (
+                                <div className="theme-panel-muted theme-border mt-3 space-y-3 rounded-2xl border p-3">
+                                    <input
+                                        value={categoryDraft.name}
+                                        onChange={(event) => setCategoryDraft((previous) => ({ ...previous, name: event.target.value }))}
+                                        className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                        placeholder="Ten category"
+                                    />
+                                    <input
+                                        value={categoryDraft.slug}
+                                        onChange={(event) => setCategoryDraft((previous) => ({ ...previous, slug: event.target.value }))}
+                                        className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                        placeholder="Slug tuy chon"
+                                    />
+                                    <textarea
+                                        value={categoryDraft.description}
+                                        onChange={(event) => setCategoryDraft((previous) => ({ ...previous, description: event.target.value }))}
+                                        rows={3}
+                                        className="theme-input w-full resize-none rounded-2xl px-3 py-2 text-sm"
+                                        placeholder="Mo ta ngan"
+                                    />
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <input
+                                            value={categoryDraft.color}
+                                            onChange={(event) => setCategoryDraft((previous) => ({ ...previous, color: event.target.value }))}
+                                            className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                            placeholder="#0ea5e9"
+                                        />
+                                        <input
+                                            value={categoryDraft.icon}
+                                            onChange={(event) => setCategoryDraft((previous) => ({ ...previous, icon: event.target.value }))}
+                                            className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                            placeholder="Icon"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleCreateCategory()}
+                                            disabled={isCreatingCategory}
+                                            className="theme-glow-button inline-flex h-9 items-center rounded-2xl px-4 text-xs font-bold disabled:opacity-50"
+                                        >
+                                            {isCreatingCategory ? 'Dang tao...' : 'Luu category'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={resetCategoryDraft}
+                                            className="theme-muted text-xs hover:text-[color:var(--text-main-theme)]"
+                                        >
+                                            Huy
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
 
                         <div>
                             <div className="mb-2 flex items-center justify-between">
-                                <label className="text-xs font-medium text-[#9dabb9]">Tags</label>
-                                <span className="text-[10px] uppercase tracking-wide text-[#9dabb9]">
-                                    {formState.tagIds.length} selected
-                                </span>
+                                <label className="theme-muted text-xs font-medium">Tags</label>
+                                <div className="flex items-center gap-3">
+                                    <span className="theme-muted text-[10px] uppercase tracking-wide">
+                                        {formState.tagIds.length} selected
+                                    </span>
+                                    {canManageTaxonomy ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowTagCreator((previous) => !previous)}
+                                            className="text-[11px] font-semibold text-primary hover:text-blue-400"
+                                        >
+                                            {showTagCreator ? 'Dong' : 'Tao moi'}
+                                        </button>
+                                    ) : null}
+                                </div>
                             </div>
-                            <div className="custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-lg border border-border-dark bg-[#111418] p-3">
+                            {showTagCreator ? (
+                                <div className="theme-panel-muted theme-border mb-3 space-y-3 rounded-2xl border p-3">
+                                    <input
+                                        value={tagDraft.name}
+                                        onChange={(event) => setTagDraft((previous) => ({ ...previous, name: event.target.value }))}
+                                        className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                        placeholder="Ten tag"
+                                    />
+                                    <input
+                                        value={tagDraft.slug}
+                                        onChange={(event) => setTagDraft((previous) => ({ ...previous, slug: event.target.value }))}
+                                        className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                        placeholder="Slug tuy chon"
+                                    />
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleCreateTag()}
+                                            disabled={isCreatingTag}
+                                            className="theme-glow-button inline-flex h-9 items-center rounded-2xl px-4 text-xs font-bold disabled:opacity-50"
+                                        >
+                                            {isCreatingTag ? 'Dang tao...' : 'Luu tag'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={resetTagDraft}
+                                            className="theme-muted text-xs hover:text-[color:var(--text-main-theme)]"
+                                        >
+                                            Huy
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+                            <div className="theme-panel-muted theme-border custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl border p-3">
                                 {tags.length === 0 ? (
-                                    <p className="text-sm text-[#9dabb9]">Chua co tag nao de gan cho bai viet.</p>
+                                    <p className="theme-muted text-sm">Chua co tag nao de gan cho bai viet.</p>
                                 ) : (
                                     tags.map((tag) => (
                                         <label key={tag.id} className="flex cursor-pointer items-center gap-2">
@@ -587,7 +1199,7 @@ export default function ArticleEditPage() {
                                                 onChange={() => handleTagToggle(tag.id)}
                                                 className="rounded border-border-dark bg-[#283039] text-primary focus:ring-0 focus:ring-offset-0"
                                             />
-                                            <span className="text-sm text-white">{tag.name}</span>
+                                            <span className="text-sm text-[color:var(--text-main-theme)]">{tag.name}</span>
                                         </label>
                                     ))
                                 )}
@@ -595,16 +1207,27 @@ export default function ArticleEditPage() {
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-border-dark bg-surface-dark p-5 shadow-sm">
-                        <h3 className="mb-4 text-sm font-bold text-white">Featured Image</h3>
+                    <div className="theme-panel rounded-2xl p-5 shadow-sm">
+                        <h3 className="mb-4 text-sm font-bold text-[color:var(--text-main-theme)]">Featured Image</h3>
+                        <label className="theme-panel-muted theme-border mb-3 inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary">
+                            <span className="material-symbols-outlined text-[18px]">upload</span>
+                            {isUploadingImage ? 'Dang upload...' : 'Upload image'}
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp,image/gif"
+                                className="hidden"
+                                onChange={(event) => void handleFeaturedImageUpload(event)}
+                                disabled={isUploadingImage}
+                            />
+                        </label>
                         <input
                             type="url"
                             value={formState.featuredImage}
                             onChange={(event) => handleFieldChange('featuredImage', event.target.value)}
-                            placeholder="https://..."
-                            className="w-full rounded-lg border border-border-dark bg-[#111418] px-3 py-2 text-sm text-white placeholder-[#586069] focus:border-primary focus:ring-1 focus:ring-primary"
+                            placeholder="/api/v1/media/object/..."
+                            className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
                         />
-                        <div className="relative mt-4 aspect-video overflow-hidden rounded-lg border border-dashed border-[#283039] bg-[#111418]">
+                        <div className="theme-panel-muted relative mt-4 aspect-video overflow-hidden rounded-2xl border border-dashed theme-border">
                             {formState.featuredImage ? (
                                 <img
                                     src={getImageUrl(formState.featuredImage)}
@@ -612,8 +1235,62 @@ export default function ArticleEditPage() {
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <div className="flex h-full items-center justify-center text-sm text-[#9dabb9]">
+                                <div className="theme-muted flex h-full items-center justify-center text-sm">
                                     Chua co anh dai dien
+                                </div>
+                            )}
+                        </div>
+                        <div className="theme-panel-muted theme-border mt-4 rounded-2xl border p-3">
+                            <div className="mb-3 flex items-center justify-between">
+                                <p className="theme-muted text-xs font-semibold uppercase tracking-wide">
+                                    Media library
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <Link
+                                        href="/admin/media"
+                                        className="text-[11px] font-semibold text-primary hover:text-blue-400"
+                                    >
+                                        Open library
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => void fetchMediaLibrary()}
+                                        className="text-[11px] font-semibold text-primary hover:text-blue-400"
+                                    >
+                                        Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            {isLoadingMediaLibrary ? (
+                                <p className="theme-muted text-sm">Dang tai media library...</p>
+                            ) : mediaLibrary.length === 0 ? (
+                                <p className="theme-muted text-sm">Chua co anh nao trong storage.</p>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    {mediaLibrary.slice(0, 12).map((item) => (
+                                        <button
+                                            key={item.key}
+                                            type="button"
+                                            onClick={() => handleFieldChange('featuredImage', item.url)}
+                                            className="group overflow-hidden rounded-lg border border-border-dark bg-[#1e293b] text-left transition-colors hover:border-primary"
+                                        >
+                                            <div className="aspect-video overflow-hidden bg-[#0b1220]">
+                                                <img
+                                                    src={getImageUrl(item.url)}
+                                                    alt={item.key}
+                                                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                                />
+                                            </div>
+                                            <div className="p-2">
+                                                <p className="truncate text-[11px] font-semibold text-white">
+                                                    {item.key.split('/').pop()}
+                                                </p>
+                                                <p className="mt-1 text-[10px] text-[#9dabb9]">
+                                                    {Math.max(1, Math.round(item.size / 1024))} KB
+                                                </p>
+                                            </div>
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>

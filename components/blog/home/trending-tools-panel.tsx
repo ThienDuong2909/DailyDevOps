@@ -1,9 +1,20 @@
+'use client';
+
 import Link from 'next/link';
 import { BarChart3, Rocket } from 'lucide-react';
 import { SectionHeading } from '@/components/shared/section-heading';
-import { trendingTools } from '@/lib/constants/blog';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 
 export function TrendingToolsPanel() {
+    const { settings } = useSiteSettings();
+    const trendingTools = settings.content.trendingTools;
+    const accentClasses = [
+        'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300',
+        'bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300',
+        'bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300',
+        'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+    ];
+
     return (
         <aside className="hidden w-80 shrink-0 flex-col gap-8 lg:flex">
             <div className="sticky top-24 space-y-6">
@@ -19,11 +30,11 @@ export function TrendingToolsPanel() {
                                     <div className="mb-4 h-px bg-gray-100 dark:bg-gray-800" />
                                 ) : null}
                                 <Link
-                                    href="/"
+                                    href={tool.href}
                                     className="flex items-center gap-3 transition-colors hover:text-primary"
                                 >
                                     <div
-                                        className={`flex size-11 items-center justify-center rounded-xl text-sm font-bold ${tool.accentClassName}`}
+                                        className={`flex size-11 items-center justify-center rounded-xl text-sm font-bold ${accentClasses[index % accentClasses.length]}`}
                                     >
                                         {tool.shortName}
                                     </div>

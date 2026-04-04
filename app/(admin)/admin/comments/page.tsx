@@ -14,6 +14,13 @@ const statusTabs = [
     { key: 'TRASH', label: 'Trash' },
 ];
 
+const moderationQueues = [
+    { key: 'all', label: 'All queues' },
+    { key: 'guest', label: 'Guest review' },
+    { key: 'risky', label: 'Risky content' },
+    { key: 'reply', label: 'Replies' },
+] as const;
+
 function getStatusBadge(status: string) {
     switch (status) {
         case 'PENDING':
@@ -118,6 +125,27 @@ function resolveCommentsResponse(payload: unknown): PaginatedResponse<Comment> {
     };
 }
 
+function getCommentSignals(comment: Comment) {
+    const normalizedContent = (comment.content || '').toLowerCase();
+    const linkCount = (comment.content.match(/https?:\/\/|www\./gi) || []).length;
+    const hasRiskKeyword = ['telegram', 'whatsapp', 'backlink', 'casino', 'viagra', 'crypto giveaway'].some((keyword) =>
+        normalizedContent.includes(keyword)
+    );
+
+    return {
+        isGuest: !comment.user,
+        hasLinks: linkCount > 0,
+        hasManyLinks: linkCount >= 2,
+        isReply: Boolean(comment.parentId),
+        hasRiskKeyword,
+        isRisky:
+            comment.status === 'SPAM' ||
+            hasRiskKeyword ||
+            linkCount >= 2 ||
+            Boolean(comment.authorIp && !comment.user),
+    };
+}
+
 export default function CommentsPage() {
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -127,6 +155,7 @@ export default function CommentsPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalComments, setTotalComments] = useState(0);
     const [error, setError] = useState('');
+    const [queueFilter, setQueueFilter] = useState<(typeof moderationQueues)[number]['key']>('all');
 
     const fetchComments = async (params?: {
         page?: number;
@@ -171,15 +200,39 @@ export default function CommentsPage() {
     const stats = useMemo(() => {
         return comments.reduce(
             (acc, comment) => {
+                const signals = getCommentSignals(comment);
                 acc.total += 1;
                 if (comment.status === 'PENDING') acc.pending += 1;
                 if (comment.status === 'APPROVED') acc.approved += 1;
                 if (comment.status === 'SPAM') acc.spam += 1;
+                if (signals.isGuest) acc.guest += 1;
+                if (signals.isRisky) acc.risky += 1;
+                if (signals.isReply) acc.reply += 1;
                 return acc;
             },
-            { total: 0, pending: 0, approved: 0, spam: 0 }
+            { total: 0, pending: 0, approved: 0, spam: 0, guest: 0, risky: 0, reply: 0 }
         );
     }, [comments]);
+
+    const visibleComments = useMemo(() => {
+        return comments.filter((comment) => {
+            const signals = getCommentSignals(comment);
+
+            if (queueFilter === 'guest') {
+                return signals.isGuest;
+            }
+
+            if (queueFilter === 'risky') {
+                return signals.isRisky;
+            }
+
+            if (queueFilter === 'reply') {
+                return signals.isReply;
+            }
+
+            return true;
+        });
+    }, [comments, queueFilter]);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -238,15 +291,29 @@ export default function CommentsPage() {
             iconBg: 'bg-red-500/10',
             iconColor: 'text-red-500',
         },
+        {
+            key: 'guest',
+            label: 'Guest Queue',
+            icon: 'person',
+            iconBg: 'bg-violet-500/10',
+            iconColor: 'text-violet-500',
+        },
+        {
+            key: 'risky',
+            label: 'Risk Signals',
+            icon: 'warning',
+            iconBg: 'bg-orange-500/10',
+            iconColor: 'text-orange-500',
+        },
     ] as const;
 
     return (
         <div className="mx-auto flex max-w-[1600px] flex-col gap-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
                 {statCards.map((card) => (
                     <div
                         key={card.key}
-                        className="flex items-center gap-4 rounded-xl border border-border-dark bg-surface-dark p-4 transition-colors hover:border-primary/30"
+                        className="theme-panel flex items-center gap-4 rounded-2xl p-4 transition-colors hover:border-primary/30"
                     >
                         <div
                             className={`flex size-10 items-center justify-center rounded-lg ${card.iconBg} ${card.iconColor}`}
@@ -256,10 +323,10 @@ export default function CommentsPage() {
                             </span>
                         </div>
                         <div>
-                            <p className="text-xs font-medium uppercase text-[#9dabb9]">
+                            <p className="theme-muted text-xs font-medium uppercase">
                                 {card.label}
                             </p>
-                            <h3 className="text-xl font-bold text-white">
+                            <h3 className="text-xl font-bold text-[color:var(--text-main-theme)]">
                                 {stats[card.key].toLocaleString()}
                             </h3>
                         </div>
@@ -267,8 +334,8 @@ export default function CommentsPage() {
                 ))}
             </div>
 
-            <div className="flex flex-col overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-sm">
-                <div className="flex flex-col gap-4 border-b border-border-dark bg-[#111418] p-4">
+            <div className="theme-panel flex flex-col overflow-hidden rounded-2xl shadow-sm">
+                <div className="theme-border flex flex-col gap-4 border-b p-4">
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                         {statusTabs.map((tab) => (
                             <button
@@ -280,10 +347,25 @@ export default function CommentsPage() {
                                 className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                                     activeTab === tab.key
                                         ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                        : 'text-[#9dabb9] hover:bg-[#283039] hover:text-white'
+                                        : 'theme-muted hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-main-theme)]'
                                 }`}
                             >
                                 {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {moderationQueues.map((queue) => (
+                            <button
+                                key={queue.key}
+                                onClick={() => setQueueFilter(queue.key)}
+                                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                                    queueFilter === queue.key
+                                        ? 'bg-primary/15 text-primary'
+                                        : 'theme-panel-muted theme-border border text-[color:var(--text-main-theme)] hover:border-primary/40 hover:text-primary'
+                                }`}
+                            >
+                                {queue.label}
                             </button>
                         ))}
                     </div>
@@ -292,21 +374,21 @@ export default function CommentsPage() {
                             onSubmit={handleSearch}
                             className="relative w-full sm:max-w-md"
                         >
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#9dabb9] text-[18px]">
+                            <span className="material-symbols-outlined theme-muted absolute left-3 top-1/2 -translate-y-1/2 text-[18px]">
                                 search
                             </span>
                             <input
-                                className="w-full rounded-lg border border-border-dark bg-[#283039] py-2 pl-10 pr-4 text-sm text-white placeholder-[#9dabb9] transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                                className="theme-input w-full rounded-2xl py-2 pl-10 pr-4 text-sm"
                                 placeholder="Search by content, author or article..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </form>
-                        <div className="flex items-center gap-2 text-xs font-mono text-[#9dabb9]">
-                            <span>{totalComments} total comments</span>
+                        <div className="theme-muted flex items-center gap-2 text-xs font-mono">
+                            <span>{visibleComments.length}/{totalComments} visible in current queue</span>
                             <button
                                 onClick={() => void fetchComments()}
-                                className="rounded-lg p-2 text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white"
+                                className="theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-main-theme)]"
                                 title="Refresh comments"
                             >
                                 <span className="material-symbols-outlined">
@@ -320,7 +402,7 @@ export default function CommentsPage() {
                 <div className="custom-scrollbar overflow-x-auto">
                     <table className="w-full border-collapse text-left">
                         <thead>
-                            <tr className="border-b border-border-dark bg-[#18202a] text-xs font-medium uppercase text-[#9dabb9]">
+                            <tr className="theme-border bg-[color:var(--surface-muted)] text-xs font-medium uppercase theme-muted border-b">
                                 <th className="min-w-[220px] p-4">Author</th>
                                 <th className="min-w-[420px] p-4">Comment</th>
                                 <th className="min-w-[180px] p-4">Article</th>
@@ -330,7 +412,7 @@ export default function CommentsPage() {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border-dark">
+                        <tbody className="divide-y theme-border">
                             {loading ? (
                                 <tr>
                                     <td colSpan={5} className="p-16 text-center">
@@ -346,11 +428,11 @@ export default function CommentsPage() {
                                         {error}
                                     </td>
                                 </tr>
-                            ) : comments.length === 0 ? (
+                            ) : visibleComments.length === 0 ? (
                                 <tr>
                                     <td
                                         colSpan={5}
-                                        className="p-16 text-center text-[#9dabb9]"
+                                        className="theme-muted p-16 text-center"
                                     >
                                         <span className="material-symbols-outlined mb-2 block text-4xl">
                                             chat
@@ -359,22 +441,23 @@ export default function CommentsPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                comments.map((comment) => {
+                                visibleComments.map((comment) => {
                                     const badge = getStatusBadge(comment.status);
                                     const displayName = comment.user
                                         ? `${comment.user.firstName} ${comment.user.lastName}`
                                         : comment.authorName || 'Anonymous';
                                     const isSpam = comment.status === 'SPAM';
+                                    const signals = getCommentSignals(comment);
 
                                     return (
                                         <tr
-                                            key={comment.id}
-                                            className={`group transition-colors ${
-                                                isSpam
-                                                    ? 'bg-red-500/5 hover:bg-red-500/10'
-                                                    : 'hover:bg-[#1f2937]'
-                                            }`}
-                                        >
+                                                key={comment.id}
+                                                className={`group transition-colors ${
+                                                    isSpam
+                                                        ? 'bg-red-500/5 hover:bg-red-500/10'
+                                                    : 'hover:bg-[color:var(--surface-muted)]'
+                                                }`}
+                                            >
                                             <td className="p-4 align-top">
                                                 <div className="flex items-start gap-3">
                                                     <div
@@ -397,23 +480,27 @@ export default function CommentsPage() {
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm font-bold text-white">
-                                                            {displayName}
-                                                        </span>
+                                                            <span className="text-sm font-bold text-[color:var(--text-main-theme)]">
+                                                                {displayName}
+                                                            </span>
                                                         {comment.user ? (
                                                             <span className="my-0.5 w-fit rounded bg-primary/20 px-1.5 text-[10px] font-bold text-primary">
                                                                 MEMBER
                                                             </span>
-                                                        ) : null}
+                                                        ) : (
+                                                            <span className="my-0.5 w-fit rounded bg-violet-500/15 px-1.5 text-[10px] font-bold text-violet-500">
+                                                                GUEST
+                                                            </span>
+                                                        )}
                                                         {comment.authorEmail ? (
-                                                            <span className="text-xs text-[#9dabb9]">
+                                                            <span className="theme-muted text-xs">
                                                                 {
                                                                     comment.authorEmail
                                                                 }
                                                             </span>
                                                         ) : null}
                                                         {comment.authorIp ? (
-                                                            <span className="mt-1 font-mono text-[10px] text-[#586069]">
+                                                            <span className="theme-soft mt-1 font-mono text-[10px]">
                                                                 {
                                                                     comment.authorIp
                                                                 }
@@ -429,7 +516,7 @@ export default function CommentsPage() {
                                                         <div className="absolute -left-3 top-1 h-full w-1 rounded-full bg-yellow-500/50" />
                                                     ) : null}
                                                     <p
-                                                        className={`mb-2 text-sm leading-relaxed text-[#d1d5db] ${
+                                                        className={`mb-2 text-sm leading-relaxed text-[color:var(--text-main-theme)] ${
                                                             isSpam
                                                                 ? 'line-through opacity-60'
                                                                 : ''
@@ -447,11 +534,34 @@ export default function CommentsPage() {
                                                             {badge.label}
                                                         </span>
                                                         {comment.parentId ? (
-                                                            <span className="flex items-center gap-1 text-[10px] text-[#586069]">
+                                                            <span className="theme-soft flex items-center gap-1 text-[10px]">
                                                                 <span className="material-symbols-outlined text-[12px]">
                                                                     subdirectory_arrow_right
                                                                 </span>
                                                                 Reply
+                                                            </span>
+                                                        ) : null}
+                                                        {signals.isGuest ? (
+                                                            <span className="inline-flex items-center gap-1 rounded border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-500">
+                                                                <span className="material-symbols-outlined text-[12px]">person</span>
+                                                                Guest
+                                                            </span>
+                                                        ) : null}
+                                                        {signals.hasManyLinks ? (
+                                                            <span className="inline-flex items-center gap-1 rounded border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold text-orange-500">
+                                                                <span className="material-symbols-outlined text-[12px]">link</span>
+                                                                Multi-link
+                                                            </span>
+                                                        ) : signals.hasLinks ? (
+                                                            <span className="inline-flex items-center gap-1 rounded border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold text-sky-500">
+                                                                <span className="material-symbols-outlined text-[12px]">link</span>
+                                                                Link
+                                                            </span>
+                                                        ) : null}
+                                                        {signals.hasRiskKeyword ? (
+                                                            <span className="inline-flex items-center gap-1 rounded border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500">
+                                                                <span className="material-symbols-outlined text-[12px]">warning</span>
+                                                                Risk keyword
                                                             </span>
                                                         ) : null}
                                                     </div>
@@ -463,13 +573,13 @@ export default function CommentsPage() {
                                                         {comment.post.title}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm text-[#586069]">
+                                                    <span className="theme-soft text-sm">
                                                         --
                                                     </span>
                                                 )}
                                             </td>
                                             <td className="p-4 align-top">
-                                                <span className="text-sm text-[#9dabb9]">
+                                                <span className="theme-muted text-sm">
                                                     {formatDate(
                                                         comment.createdAt
                                                     )}
@@ -477,8 +587,7 @@ export default function CommentsPage() {
                                             </td>
                                             <td className="p-4 align-top text-right">
                                                 <div className="flex items-center justify-end gap-1 opacity-60 transition-opacity group-hover:opacity-100">
-                                                    {comment.status ===
-                                                    'PENDING' ? (
+                                                    {comment.status !== 'APPROVED' ? (
                                                         <button
                                                             onClick={() =>
                                                                 void handleUpdateStatus(
@@ -504,10 +613,26 @@ export default function CommentsPage() {
                                                                 )
                                                             }
                                                             className="rounded p-1.5 text-orange-400 transition-colors hover:bg-orange-400/10"
-                                                            title="Move back to pending"
+                                                            title="Keep in review"
                                                         >
                                                             <span className="material-symbols-outlined text-[20px]">
-                                                                close
+                                                                pending
+                                                            </span>
+                                                        </button>
+                                                    ) : null}
+                                                    {comment.status !== 'TRASH' ? (
+                                                        <button
+                                                            onClick={() =>
+                                                                void handleUpdateStatus(
+                                                                    comment.id,
+                                                                    'TRASH'
+                                                                )
+                                                            }
+                                                            className="theme-muted rounded p-1.5 transition-colors hover:bg-gray-500/10 hover:text-gray-400"
+                                                            title="Move to trash"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">
+                                                                delete
                                                             </span>
                                                         </button>
                                                     ) : null}
@@ -520,7 +645,7 @@ export default function CommentsPage() {
                                                                     'SPAM'
                                                                 )
                                                             }
-                                                            className="rounded p-1.5 text-[#9dabb9] transition-colors hover:bg-red-400/10 hover:text-red-400"
+                                                            className="theme-muted rounded p-1.5 transition-colors hover:bg-red-400/10 hover:text-red-400"
                                                             title="Mark as spam"
                                                         >
                                                             <span className="material-symbols-outlined text-[20px]">
@@ -549,7 +674,7 @@ export default function CommentsPage() {
                                                                 comment.id
                                                             )
                                                         }
-                                                        className="rounded p-1.5 text-[#9dabb9] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                                                        className="theme-muted rounded p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-500"
                                                         title="Delete"
                                                     >
                                                         <span className="material-symbols-outlined text-[20px]">
@@ -569,14 +694,14 @@ export default function CommentsPage() {
                 </div>
 
                 {totalPages > 1 ? (
-                    <div className="flex items-center justify-between border-t border-border-dark bg-[#111418] px-6 py-4">
-                        <div className="text-sm text-[#9dabb9]">
+                    <div className="theme-border flex items-center justify-between border-t px-6 py-4">
+                        <div className="theme-muted text-sm">
                             Page{' '}
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-[color:var(--text-main-theme)]">
                                 {currentPage}
                             </span>{' '}
                             of{' '}
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-[color:var(--text-main-theme)]">
                                 {totalPages}
                             </span>
                         </div>
@@ -588,7 +713,7 @@ export default function CommentsPage() {
                                     )
                                 }
                                 disabled={currentPage === 1}
-                                className="rounded-lg border border-border-dark px-3 py-1.5 text-sm font-medium text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="theme-panel-muted theme-border rounded-lg border px-3 py-1.5 text-sm font-medium theme-muted transition-colors hover:text-[color:var(--text-main-theme)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Previous
                             </button>
@@ -599,7 +724,7 @@ export default function CommentsPage() {
                                     )
                                 }
                                 disabled={currentPage === totalPages}
-                                className="rounded-lg border border-border-dark px-3 py-1.5 text-sm font-medium text-[#9dabb9] transition-colors hover:bg-[#283039] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="theme-panel-muted theme-border rounded-lg border px-3 py-1.5 text-sm font-medium theme-muted transition-colors hover:text-[color:var(--text-main-theme)] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Next
                             </button>

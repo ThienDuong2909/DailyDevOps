@@ -11,6 +11,18 @@ const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_URL ||
     'http://localhost:3001';
 
+function toAbsoluteUrl(value?: string | null) {
+    if (!value) {
+        return undefined;
+    }
+
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+        return value;
+    }
+
+    return `${siteUrl}${value.startsWith('/') ? '' : '/'}${value}`;
+}
+
 interface PostSeoData {
     title: string;
     slug: string;
@@ -73,7 +85,7 @@ export async function generateMetadata({
         post.seoSetting?.metaDescription ||
         post.excerpt ||
         `Read "${post.title}" on DevOps Blog`;
-    const ogImage = post.seoSetting?.ogImage || post.featuredImage;
+    const ogImage = toAbsoluteUrl(post.seoSetting?.ogImage || post.featuredImage);
     const canonicalUrl =
         post.seoSetting?.canonicalUrl || `${siteUrl}/blog/${post.slug}`;
     const authorName = `${post.author.firstName} ${post.author.lastName}`;

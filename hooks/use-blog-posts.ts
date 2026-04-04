@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { apiClient } from '@/lib/api';
-import { samplePosts } from '@/lib/constants/blog';
 import type { Post } from '@/types';
 
 interface UseBlogPostsResult {
@@ -50,14 +49,14 @@ export function useBlogPosts(): UseBlogPostsResult {
                     return;
                 }
 
-                setPosts(samplePosts);
-                setIsFallback(true);
+                setPosts([]);
+                setIsFallback(false);
             } catch {
                 if (!isMounted) {
                     return;
                 }
 
-                setPosts(samplePosts);
+                setPosts([]);
                 setIsFallback(true);
             } finally {
                 if (isMounted) {

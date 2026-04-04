@@ -11,9 +11,12 @@ export interface PaginatedResponse<T> {
 }
 
 export interface AuthResponse {
-    message: string;
-    accessToken: string;
-    accessTokenExpires: number;
+    message?: string;
+    accessToken?: string;
+    accessTokenExpires?: number;
+    mfaRequired?: boolean;
+    challengeToken?: string;
+    challengeExpiresAt?: number;
 }
 
 export interface ApiError {
@@ -41,6 +44,11 @@ export interface UpdatePostForm extends Partial<CreatePostForm> {}
 export interface LoginForm {
     email: string;
     password: string;
+}
+
+export interface VerifyMfaLoginForm {
+    challengeToken: string;
+    token: string;
 }
 
 export interface RegisterForm {

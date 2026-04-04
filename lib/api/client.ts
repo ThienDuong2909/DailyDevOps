@@ -78,12 +78,50 @@ const processQueue = (error: Error | null, token: string | null = null) => {
     failedQueue = [];
 };
 
+const shouldSkipAuthRefresh = (url?: string) => {
+    if (!url) {
+        return false;
+    }
+
+    return [
+        '/api/v1/auth/login',
+        '/api/v1/auth/register',
+        '/api/v1/auth/verify-mfa-login',
+        '/api/v1/auth/verify-email',
+        '/api/v1/auth/resend-verification',
+        '/api/v1/auth/forgot-password',
+        '/api/v1/auth/reset-password',
+    ].some((path) => url.includes(path));
+};
+
+const shouldAttemptTokenRefresh = (error: AxiosError) => {
+    const message =
+        typeof error.response?.data === 'object' && error.response?.data
+            ? ((error.response.data as { error?: string; message?: string }).error ||
+                  (error.response.data as { error?: string; message?: string }).message ||
+                  '')
+            : '';
+
+    return [
+        'No token provided',
+        'Invalid token',
+        'Token expired',
+        'Access denied',
+        'User not found or inactive',
+    ].includes(message);
+};
+
 api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+            error.response?.status === 401 &&
+            !originalRequest._retry &&
+            !shouldSkipAuthRefresh(originalRequest?.url) &&
+            shouldAttemptTokenRefresh(error)
+        ) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -103,7 +141,10 @@ api.interceptors.response.use(
 
             try {
                 const response = await api.post('/api/v1/auth/refresh');
-                const newToken = response.data?.accessToken || response.data;
+                const newToken =
+                    response.data?.data?.accessToken ||
+                    response.data?.accessToken ||
+                    response.data;
                 const resolvedToken = typeof newToken === 'string' ? newToken : newToken?.accessToken;
 
                 setAccessToken(resolvedToken);

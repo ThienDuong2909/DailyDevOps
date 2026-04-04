@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/shared/skeleton';
 export function BlogPageSkeleton() {
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
-            <div className="grid gap-6 rounded-3xl border border-gray-100 bg-surface-light p-6 dark:border-gray-800 dark:bg-surface-dark md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
+            <div className="theme-surface grid gap-6 rounded-3xl p-6 md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
                 <div className="space-y-5">
                     <Skeleton className="h-7 w-40 rounded-full" />
                     <div className="space-y-3">
@@ -29,7 +29,7 @@ export function BlogPageSkeleton() {
                     {Array.from({ length: 6 }).map((_, index) => (
                         <div
                             key={index}
-                            className="overflow-hidden rounded-2xl border border-gray-100 bg-surface-light dark:border-gray-800 dark:bg-surface-dark"
+                            className="theme-surface overflow-hidden rounded-2xl"
                         >
                             <Skeleton className="aspect-video w-full rounded-none" />
                             <div className="space-y-4 p-5">

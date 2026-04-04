@@ -20,7 +20,8 @@ module.exports = {
                 'border-dark': '#283039',
             },
             fontFamily: {
-                'display': ['Inter', 'sans-serif'],
+                'display': ['var(--font-manrope)', 'Inter', 'sans-serif'],
+                'body': ['var(--font-inter)', 'Inter', 'sans-serif'],
                 'mono': ['JetBrains Mono', 'monospace'],
             },
             borderRadius: {
