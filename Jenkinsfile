@@ -41,6 +41,8 @@ pipeline {
         PLAYWRIGHT_API_URL = 'http://localhost:3001'
         NEXT_PUBLIC_APP_ENV_DEFAULT = 'production'
         NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE_DEFAULT = "${env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?: '0'}"
+        DOCKER_BUILDKIT = '1'
+        BUILDKIT_PROGRESS = 'plain'
     }
 
     stages {
