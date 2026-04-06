@@ -130,7 +130,7 @@ EOF
                             -Dsonar.projectKey=devops-blog-client \\
                             -Dsonar.projectName='DevOps Blog Client' \\
                             -Dsonar.sources=. \\
-                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,**/*.d.ts \\
+                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,playwright-report/**,test-results/**,tests/**,**/*.d.ts \\
                             -Dsonar.coverage.exclusions=app/**,components/**,hooks/**,lib/**,stores/**,types/**,next.config.js,tailwind.config.js,postcss.config.js \\
                             -Dsonar.sourceEncoding=UTF-8
                         """
