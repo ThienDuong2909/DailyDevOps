@@ -83,6 +83,13 @@ pipeline {
                     string(credentialsId: 'NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE', variable: 'NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE')
                 ]) {
                     sh '''
+                        CLEAN_NEXT_PUBLIC_SENTRY_DSN="${NEXT_PUBLIC_SENTRY_DSN}"
+                        case "${CLEAN_NEXT_PUBLIC_SENTRY_DSN}" in
+                            '<frontend-sentry-dsn>'|'YOUR_SENTRY_DSN'|'changeme'|'CHANGE_ME')
+                                CLEAN_NEXT_PUBLIC_SENTRY_DSN=""
+                                ;;
+                        esac
+
                         cat > .env.production << EOF
 NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
@@ -90,7 +97,7 @@ NEXT_PUBLIC_APP_NAME=DevOps Blog
 NEXT_PUBLIC_SITE_URL=https://blog.thienduong.info
 INTERNAL_API_URL=http://devops-blog-server-svc
 NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV:-${NEXT_PUBLIC_APP_ENV_DEFAULT}}
-NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
+NEXT_PUBLIC_SENTRY_DSN=${CLEAN_NEXT_PUBLIC_SENTRY_DSN}
 NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:-${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE_DEFAULT}}
 EOF
                     '''
