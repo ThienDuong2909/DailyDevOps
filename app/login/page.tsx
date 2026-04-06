@@ -6,6 +6,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { ResendVerificationForm } from '@/components/auth/resend-verification-form';
 import { useAuthStore } from '@/hooks/use-auth';
+import { extractApiMessage, normalizeAuthMessage } from '@/lib/auth/messages';
 import { resolvePostLoginRoute } from '@/lib/auth/redirects';
 
 export default function LoginPage() {
@@ -87,7 +88,10 @@ export default function LoginPage() {
             );
             router.push(nextRoute);
         } catch (err) {
-            toast.error(error || 'Login failed');
+            const nextMessage = normalizeAuthMessage(
+                extractApiMessage(err, error || 'Unable to sign in right now.')
+            );
+            toast.error(nextMessage);
         }
     };
 

@@ -55,7 +55,7 @@ export function BlogPostFeed({
                 }
                 action={
                     <Link
-                        href="/"
+                        href="/blog"
                         className="inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary-dark"
                     >
                         View All

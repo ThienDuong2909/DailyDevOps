@@ -82,7 +82,7 @@ export default function ContactPage() {
                         <p className="max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
                             Use the contact form for editorial questions, partnership interest, or
                             subscriber support. Messages are delivered directly to the DevOps Daily
-                            inbox configured in the backend.
+                            inbox configured in the backend. We usually reply within 1-2 business days.
                         </p>
                     </div>
 
@@ -147,6 +147,11 @@ export default function ContactPage() {
                                     {feedback}
                                 </div>
                             ) : null}
+
+                            <p className="text-xs leading-6 text-slate-300">
+                                Use this form for editorial questions, partnerships, and subscriber support.
+                                For account access issues, include the email tied to your account.
+                            </p>
 
                             <button
                                 className="inline-flex h-12 items-center justify-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"

@@ -68,7 +68,7 @@ export function NewsletterSignupForm({
             setStatus('success');
             setMessage(
                 response?.message ||
-                    'Subscription created. Check your inbox to confirm.'
+                    'Subscription created. Check your inbox and confirm to start receiving weekly updates.'
             );
             setConfirmationUrl(nextConfirmationUrl);
             trackNewsletterSubscribe('newsletter_form');
@@ -133,12 +133,17 @@ export function NewsletterSignupForm({
             </form>
             <p className={`mt-2 text-xs ${helperColorClassName}`}>{message}</p>
             {status === 'success' && confirmationUrl ? (
-                <Link
-                    className="mt-2 inline-flex text-xs font-semibold text-white underline underline-offset-4"
-                    href={confirmationUrl}
-                >
-                    Confirm this subscription now
-                </Link>
+                <div className="mt-3 rounded-xl border border-white/15 bg-white/10 px-4 py-3">
+                    <p className="text-xs text-white/90">
+                        Confirm this subscription now if you want to skip waiting for the inbox link.
+                    </p>
+                    <Link
+                        className="mt-2 inline-flex text-xs font-semibold text-white underline underline-offset-4"
+                        href={confirmationUrl}
+                    >
+                        Open confirmation link
+                    </Link>
+                </div>
             ) : null}
         </div>
     );

@@ -41,6 +41,14 @@ async function fetchAuthor(username: string): Promise<PublicAuthor | null> {
     }
 }
 
+function sortPostsNewestFirst(posts: Post[]) {
+    return [...posts].sort(
+        (left, right) =>
+            new Date(right.publishedAt || right.createdAt).getTime() -
+            new Date(left.publishedAt || left.createdAt).getTime()
+    );
+}
+
 export async function generateMetadata({
     params,
 }: {
@@ -84,6 +92,8 @@ export default async function AuthorPage({
 
     const authorName = `${author.firstName} ${author.lastName}`;
 
+    const posts = sortPostsNewestFirst(author.posts);
+
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
             <section className="rounded-[28px] border border-gray-200 bg-white px-6 py-8 shadow-sm dark:border-gray-800 dark:bg-surface-dark md:px-8">
@@ -112,12 +122,12 @@ export default async function AuthorPage({
                         </p>
                     </div>
                     <div className="inline-flex items-center rounded-full border border-gray-200 bg-background-light px-4 py-2 text-sm font-medium text-text-sub dark:border-gray-700 dark:bg-background-dark dark:text-gray-300">
-                        {author.posts.length} bai viet published
+                        {posts.length} bai viet published
                     </div>
                 </div>
             </section>
 
-            {author.posts.length === 0 ? (
+            {posts.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 px-6 py-12 text-center dark:border-gray-700 dark:bg-surface-dark/60">
                     <h2 className="text-lg font-semibold text-text-main dark:text-white">
                         Tac gia nay chua co bai viet cong khai
@@ -128,7 +138,7 @@ export default async function AuthorPage({
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {author.posts.map((post) => (
+                    {posts.map((post) => (
                         <PostCard key={post.id} post={post} />
                     ))}
                 </div>

@@ -30,6 +30,12 @@ export function BlogHero({ post }: BlogHeroProps) {
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-sm text-text-sub dark:text-gray-400">
+                        <span>{new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                        })}</span>
+                        <span className="size-1 rounded-full bg-current opacity-40" />
                         <span>{post.readingTime || 5} min read</span>
                         <span className="size-1 rounded-full bg-current opacity-40" />
                         <span>{post.category?.name || 'General'}</span>
@@ -43,10 +49,10 @@ export function BlogHero({ post }: BlogHeroProps) {
                             <ArrowRight className="size-4" />
                         </Link>
                         <Link
-                            href="/"
+                            href="/blog"
                             className="inline-flex h-12 items-center rounded-xl border border-gray-200 px-5 text-sm font-semibold text-text-main transition-colors hover:border-cyan-500 hover:text-cyan-500 dark:border-gray-700 dark:text-white"
                         >
-                            Explore Library
+                            Browse All Articles
                         </Link>
                     </div>
                 </div>

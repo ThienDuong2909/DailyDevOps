@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { extractApiMessage, normalizeAuthMessage } from '@/lib/auth/messages';
 import { apiClient } from '@/lib/api';
 
 function ResetPasswordPageContent() {
@@ -47,8 +48,12 @@ function ResetPasswordPageContent() {
                 router.push('/login');
             }, 1200);
         } catch (error: any) {
-            const nextMessage =
-                error?.response?.data?.message || 'Unable to reset password right now.';
+            const nextMessage = normalizeAuthMessage(
+                extractApiMessage(
+                    error,
+                    'Unable to reset your password right now.'
+                )
+            );
             setMessage(nextMessage);
             toast.error(nextMessage);
         } finally {

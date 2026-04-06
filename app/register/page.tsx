@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { ResendVerificationForm } from '@/components/auth/resend-verification-form';
+import { extractApiMessage, normalizeAuthMessage } from '@/lib/auth/messages';
 import { apiClient } from '@/lib/api';
 
 export default function RegisterPage() {
@@ -45,8 +46,9 @@ export default function RegisterPage() {
                 lastName: '',
             });
         } catch (error: any) {
-            const nextMessage =
-                error?.response?.data?.message || 'Unable to create account right now.';
+            const nextMessage = normalizeAuthMessage(
+                extractApiMessage(error, 'Unable to create your account right now.')
+            );
             setMessage(nextMessage);
             setVerificationUrl('');
             toast.error(nextMessage);

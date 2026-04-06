@@ -61,13 +61,13 @@ export function TrendingToolsPanel() {
                     <p className="mt-2 text-sm leading-6 text-text-sub dark:text-gray-400">
                         Ban benchmark cloud va theo doi hieu nang he thong tren mot dashboard gon.
                     </p>
-                    <button
+                    <Link
+                        href="/search?q=monitoring"
                         className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 px-4 text-sm font-semibold text-text-main transition-colors hover:border-cyan-500 hover:text-cyan-500 dark:border-gray-700 dark:text-white"
-                        type="button"
                     >
                         <BarChart3 className="size-4" />
-                        Start Now
-                    </button>
+                        Explore monitoring guides
+                    </Link>
                 </div>
             </div>
         </aside>

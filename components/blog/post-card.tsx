@@ -26,6 +26,15 @@ export function PostCard({ post }: PostCardProps) {
                 </Link>
             </div>
             <div className="p-5 flex flex-col gap-3 flex-1">
+                <div className="theme-muted flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                    <span>{new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                    })}</span>
+                    <span className="size-1 rounded-full bg-gray-300" />
+                    <span>{post.viewCount || 0} views</span>
+                </div>
                 <Link href={`/blog/${post.slug}`}>
                     <h3 className="text-lg font-bold leading-snug text-[color:var(--text-main-theme)] transition-colors group-hover:text-primary">
                         {post.title}
@@ -37,13 +46,16 @@ export function PostCard({ post }: PostCardProps) {
                 <div className="theme-muted mt-auto flex items-center gap-2 pt-2 text-xs font-medium">
                     <span>{post.readingTime || 5} min read</span>
                     <span className="size-1 rounded-full bg-gray-300" />
-                    <span>
-                        {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                        })}
-                    </span>
+                    <span>{categoryName}</span>
+                </div>
+                <div className="pt-2">
+                    <Link
+                        href={`/blog/${post.slug}`}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary-dark"
+                    >
+                        Read article
+                        <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
+                    </Link>
                 </div>
             </div>
         </article>

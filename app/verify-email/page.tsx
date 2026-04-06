@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { extractApiMessage, normalizeAuthMessage } from '@/lib/auth/messages';
 import { apiClient } from '@/lib/api';
 
 function VerifyEmailPageContent() {
@@ -36,7 +37,12 @@ function VerifyEmailPageContent() {
                 if (!isMounted) return;
                 setStatus('error');
                 setMessage(
-                    error?.response?.data?.message || 'Unable to verify this email right now.'
+                    normalizeAuthMessage(
+                        extractApiMessage(
+                            error,
+                            'Unable to verify this email right now.'
+                        )
+                    )
                 );
             }
         };

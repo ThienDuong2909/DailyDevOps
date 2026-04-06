@@ -93,6 +93,14 @@ function SidebarCard({ title, children }: { title: string; children: React.React
     );
 }
 
+function sortPostsNewestFirst(posts: Post[]) {
+    return [...posts].sort(
+        (left, right) =>
+            new Date(right.publishedAt || right.createdAt).getTime() -
+            new Date(left.publishedAt || left.createdAt).getTime()
+    );
+}
+
 /**
  * Generates JSON-LD structured data for a blog post.
  * This helps search engines understand the content better.
@@ -265,7 +273,7 @@ export default function BlogDetailClient() {
                     apiClient.get(`/api/v1/posts/${postData.id}/related?limit=3`),
                     apiClient.get('/api/v1/posts/published?limit=5&sortBy=viewCount&sortOrder=desc'),
                 ]);
-                setRelatedPosts(unwrap<Post[]>(relatedRes, []));
+                setRelatedPosts(sortPostsNewestFirst(unwrap<Post[]>(relatedRes, [])));
                 setPopularPosts(unwrap<Post[]>(popularRes, []).filter((item) => item.slug !== postData.slug).slice(0, 4));
             } catch {
                 setErrorMessage('Khong the tai bai viet nay luc nay.');
@@ -532,10 +540,77 @@ export default function BlogDetailClient() {
                             </div>
                         </div>
 
+                        <div className="mb-8 flex flex-wrap items-center gap-3">
+                            {post.category ? (
+                                <Link
+                                    href={`/category/${post.category.slug}`}
+                                    className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
+                                >
+                                    {post.category.name}
+                                </Link>
+                            ) : null}
+                            {post.tags?.map((tag) => (
+                                <Link
+                                    key={tag.id}
+                                    href={`/tag/${tag.slug}`}
+                                    className="inline-flex rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                >
+                                    #{tag.name}
+                                </Link>
+                            ))}
+                        </div>
+
                         <div ref={contentRef} className="article-copy max-w-none" onClick={handleContentClick} dangerouslySetInnerHTML={{ __html: formattedContent }} />
 
+                        <section className="theme-surface mt-12 rounded-[28px] border border-cyan-500/10 px-6 py-8 shadow-sm">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                                Continue learning
+                            </p>
+                            <h2 className="mt-3 text-2xl font-bold text-[color:var(--text-main-theme)]">
+                                Get the next production-ready note in your inbox
+                            </h2>
+                            <p className="theme-muted mt-3 max-w-2xl text-sm leading-7">
+                                Subscribe to DevOps Daily for practical writeups on Kubernetes, CI/CD,
+                                observability, and operating real systems without the fluff.
+                            </p>
+                            <div className="mt-5 flex flex-wrap gap-3">
+                                <Link
+                                    href="/newsletter"
+                                    className="inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                                >
+                                    Join the newsletter
+                                </Link>
+                                <Link
+                                    href="/blog"
+                                    className="inline-flex h-11 items-center rounded-xl border border-gray-200 px-5 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                >
+                                    Browse all articles
+                                </Link>
+                            </div>
+                        </section>
+
                         <section className="mt-14">
-                            <h3 className="mb-6 text-[22px] font-bold text-[color:var(--text-main-theme)]">Discussion</h3>
+                            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-[22px] font-bold text-[color:var(--text-main-theme)]">Discussion</h3>
+                                    <p className="theme-muted mt-1 text-sm">
+                                        {post.comments?.length || 0} approved comment{post.comments?.length === 1 ? '' : 's'} on this article.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        void handleShare(
+                                            typeof navigator.share === 'function'
+                                                ? 'native'
+                                                : 'copy'
+                                        )
+                                    }
+                                    className="inline-flex h-10 items-center rounded-xl border border-gray-200 px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                >
+                                    Share this article
+                                </button>
+                            </div>
                             <div className="theme-surface mb-8 rounded-2xl p-6">
                                 {!isAuthenticated ? (
                                     <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -593,8 +668,109 @@ export default function BlogDetailClient() {
                                     <p className="theme-muted text-sm">No headings found</p>
                                 )}
                             </SidebarCard>
+                            <SidebarCard title="Article snapshot">
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <span className="theme-muted">Published</span>
+                                        <span className="font-semibold text-[color:var(--text-main-theme)]">
+                                            {formatDate(post.publishedAt || post.createdAt)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-4">
+                                        <span className="theme-muted">Reading time</span>
+                                        <span className="font-semibold text-[color:var(--text-main-theme)]">
+                                            {post.readingTime || 5} min
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-4">
+                                        <span className="theme-muted">Views</span>
+                                        <span className="font-semibold text-[color:var(--text-main-theme)]">
+                                            {post.viewCount || 0}
+                                        </span>
+                                    </div>
+                                </div>
+                            </SidebarCard>
 
-                            
+                            <SidebarCard title="Share and explore">
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap gap-2">
+                                        {post.tags?.map((tag) => (
+                                            <Link
+                                                key={`sidebar-${tag.id}`}
+                                                href={`/tag/${tag.slug}`}
+                                                className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                            >
+                                                #{tag.name}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleShare('copy')}
+                                            className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                                        >
+                                            Copy article link
+                                        </button>
+                                        {post.category ? (
+                                            <Link
+                                                href={`/category/${post.category.slug}`}
+                                                className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                            >
+                                                More in {post.category.name}
+                                            </Link>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            </SidebarCard>
+
+                            <SidebarCard title="Continue reading">
+                                {relatedPosts.length ? (
+                                    <div className="space-y-4">
+                                        {relatedPosts.map((item) => (
+                                            <Link
+                                                key={item.id}
+                                                href={`/blog/${item.slug}`}
+                                                className="block rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-primary/20 hover:bg-primary/5"
+                                            >
+                                                <p className="text-sm font-semibold text-[color:var(--text-main-theme)]">
+                                                    {item.title}
+                                                </p>
+                                                <p className="theme-muted mt-1 text-xs">
+                                                    {item.readingTime || 5} min read
+                                                </p>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="theme-muted text-sm">
+                                        More articles in this topic will appear here as related content grows.
+                                    </p>
+                                )}
+                            </SidebarCard>
+
+                            <SidebarCard title="Popular now">
+                                {popularPosts.length ? (
+                                    <div className="space-y-4">
+                                        {popularPosts.map((item) => (
+                                            <Link
+                                                key={`popular-${item.id}`}
+                                                href={`/blog/${item.slug}`}
+                                                className="block rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-primary/20 hover:bg-primary/5"
+                                            >
+                                                <p className="text-sm font-semibold text-[color:var(--text-main-theme)]">
+                                                    {item.title}
+                                                </p>
+                                                <p className="theme-muted mt-1 text-xs">
+                                                    {item.viewCount || 0} views
+                                                </p>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="theme-muted text-sm">Popular posts are loading from the public feed.</p>
+                                )}
+                            </SidebarCard>
                         </div>
                     </aside>
                 </div>

@@ -61,6 +61,7 @@ function SearchPageContent() {
     const [totalResults, setTotalResults] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
     const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
+    const fallbackTopics = ['Kubernetes', 'CI/CD', 'Prometheus', 'Terraform', 'Monitoring'];
 
     useEffect(() => {
         setSearchInput(query);
@@ -160,18 +161,18 @@ function SearchPageContent() {
 
     const summaryText = useMemo(() => {
         if (!query) {
-            return 'Nhap tu khoa de tim bai viet, hoac bat dau tu cac chu de pho bien ben duoi.';
+            return 'Search by technology, workflow, or incident theme to jump into the right articles faster.';
         }
 
         if (loading) {
-            return `Dang tim kiem "${query}"...`;
+            return `Searching for "${query}"...`;
         }
 
         if (errorMessage) {
             return errorMessage;
         }
 
-        return `Tim thay ${totalResults} ket qua cho "${query}"`;
+        return `Found ${totalResults} result${totalResults === 1 ? '' : 's'} for "${query}"`;
     }, [errorMessage, loading, query, totalResults]);
 
     const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -208,7 +209,7 @@ function SearchPageContent() {
                             Search
                         </p>
                         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--text-main-theme)]">
-                            Tim bai viet trong DevOps Daily
+                            Search the DevOps Daily library
                         </h1>
                         <p className="theme-muted mt-2 text-sm">
                             {summaryText}
@@ -226,7 +227,7 @@ function SearchPageContent() {
                             type="submit"
                             className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-blue-600"
                         >
-                            Tim
+                            Search
                         </button>
                     </form>
                 </div>
@@ -236,13 +237,13 @@ function SearchPageContent() {
                 <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                     <section className="theme-surface rounded-2xl border border-dashed px-6 py-12">
                         <h2 className="text-xl font-bold text-[color:var(--text-main-theme)]">
-                            Bat dau voi chu de pho bien
+                            Start with a proven topic
                         </h2>
                         <p className="theme-muted mt-2 text-sm">
-                            Chon mot chu de goi y de tim nhanh nhung bai viet phu hop voi nhu cau hien tai.
+                            Use one of these entry points to quickly find articles that match your current task.
                         </p>
                         <div className="mt-5 flex flex-wrap gap-3">
-                            {(suggestedTopics.length ? suggestedTopics : ['CI/CD', 'Kubernetes', 'Terraform']).map((topic) => (
+                            {(suggestedTopics.length ? suggestedTopics : fallbackTopics).map((topic) => (
                                 <button
                                     key={topic}
                                     type="button"
@@ -260,9 +261,9 @@ function SearchPageContent() {
                             Search Tips
                         </p>
                         <ul className="theme-muted mt-4 space-y-3 text-sm leading-7">
-                            <li>Tim theo cong nghe cu the nhu `Terraform`, `Kubernetes`, `Prometheus`.</li>
-                            <li>Tim theo workflow nhu `CI/CD`, `incident`, `release`, `monitoring`.</li>
-                            <li>Neu ket qua qua rong, thu rut gon query ve 1-2 tu khoa chinh.</li>
+                            <li>Search by a specific technology like `Terraform`, `Kubernetes`, or `Prometheus`.</li>
+                            <li>Try workflow keywords like `CI/CD`, `incident`, `release`, or `monitoring`.</li>
+                            <li>If results are too broad, shorten the query to the 1-2 most important terms.</li>
                         </ul>
                     </section>
                 </div>
@@ -278,11 +279,23 @@ function SearchPageContent() {
             ) : posts.length === 0 ? (
                 <div className="theme-surface rounded-2xl border border-dashed px-6 py-12 text-center">
                     <h2 className="text-lg font-semibold text-[color:var(--text-main-theme)]">
-                        Khong tim thay bai viet phu hop
+                        No matching articles yet
                     </h2>
                     <p className="theme-muted mt-2 text-sm">
-                        Thu doi tu khoa, rut gon cum tim kiem, hoac quay lai trang blog de duyet theo danh muc.
+                        Try a shorter query, switch to a related keyword, or jump into one of the suggested topics below.
                     </p>
+                    <div className="mt-5 flex flex-wrap justify-center gap-3">
+                        {(suggestedTopics.length ? suggestedTopics : fallbackTopics).slice(0, 5).map((topic) => (
+                            <button
+                                key={`empty-${topic}`}
+                                type="button"
+                                onClick={() => handleSuggestedTopic(topic)}
+                                className="theme-panel-muted theme-border rounded-full border px-4 py-2 text-sm font-medium text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
+                            >
+                                {topic}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             ) : (
                 <>

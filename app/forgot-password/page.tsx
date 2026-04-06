@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { extractApiMessage, normalizeAuthMessage } from '@/lib/auth/messages';
 import { apiClient } from '@/lib/api';
 
 export default function ForgotPasswordPage() {
@@ -35,8 +36,9 @@ export default function ForgotPasswordPage() {
             setResetUrl(nextResetUrl);
             toast.success('Password reset instructions processed.');
         } catch (error: any) {
-            const errorMessage =
-                error?.response?.data?.message || 'Unable to process password reset right now.';
+            const errorMessage = normalizeAuthMessage(
+                extractApiMessage(error, 'Unable to process your password reset right now.')
+            );
             setMessage(errorMessage);
             setResetUrl('');
             toast.error(errorMessage);

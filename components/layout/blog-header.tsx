@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, X } from 'lucide-react';
 
 import { HeaderAuthButton } from '@/components/auth/header-auth-button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -25,11 +26,13 @@ type SearchSuggestion = {
 
 export function BlogHeader() {
     const router = useRouter();
+    const pathname = usePathname();
     const { settings } = useSiteSettings();
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const containerRef = useRef<HTMLFormElement | null>(null);
 
     const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -95,6 +98,11 @@ export function BlogHeader() {
         return () => document.removeEventListener('mousedown', handleOutsideClick);
     }, []);
 
+    useEffect(() => {
+        setMobileMenuOpen(false);
+        setShowSuggestions(false);
+    }, [pathname]);
+
     const handleSuggestionSelect = (slug: string) => {
         setShowSuggestions(false);
         router.push(`/blog/${slug}`);
@@ -133,13 +141,13 @@ export function BlogHeader() {
                             onSubmit={handleSearchSubmit}
                             className="hidden sm:flex flex-col min-w-40 h-10 max-w-64 relative group"
                         >
-                            <div className="flex w-full flex-1 items-center rounded-lg bg-background-light dark:bg-background-dark border border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 transition-all overflow-hidden">
+                                <div className="flex w-full flex-1 items-center rounded-lg bg-background-light dark:bg-background-dark border border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 transition-all overflow-hidden">
                                 <div className="pl-3 pr-2 text-text-sub flex items-center justify-center">
                                     <span className="material-symbols-outlined !text-[20px]">search</span>
                                 </div>
                                 <input
                                     className="flex w-full flex-1 bg-transparent border-none focus:ring-0 text-sm font-normal text-text-main dark:text-white placeholder:text-text-sub h-full px-0"
-                                    placeholder="Search..."
+                                    placeholder="Search articles, tools, and topics..."
                                     value={searchQuery}
                                     onChange={(event) => setSearchQuery(event.target.value)}
                                     onFocus={() => setShowSuggestions(true)}
@@ -154,7 +162,7 @@ export function BlogHeader() {
                                             type="submit"
                                             className="block w-full px-4 py-3 text-left text-sm theme-muted transition-colors hover:bg-primary/5 hover:text-primary"
                                         >
-                                            Tim kiem toan bo cho "{searchQuery.trim()}"
+                                            Search the full library for "{searchQuery.trim()}"
                                         </button>
                                     ) : (
                                         <>
@@ -197,18 +205,62 @@ export function BlogHeader() {
                                                 type="submit"
                                                 className="theme-border block w-full border-t px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/5"
                                             >
-                                                Xem tat ca ket qua
+                                                View all search results
                                             </button>
                                         </>
                                     )}
                                 </div>
                             ) : null}
                         </form>
+                        <button
+                            type="button"
+                            onClick={() => setMobileMenuOpen((value) => !value)}
+                            className="inline-flex size-10 items-center justify-center rounded-lg border border-gray-200 text-text-main transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:text-white md:hidden"
+                            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                        >
+                            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                        </button>
                         <ThemeToggle />
                         <HeaderAuthButton />
                     </div>
                 </div>
             </div>
+            {mobileMenuOpen ? (
+                <div className="border-t border-gray-200 bg-surface-light px-4 py-4 shadow-sm dark:border-gray-800 dark:bg-surface-dark md:hidden">
+                    <form onSubmit={handleSearchSubmit} className="mb-4 flex items-center gap-2">
+                        <input
+                            className="theme-input h-11 flex-1 rounded-xl px-4 text-sm"
+                            placeholder="Search articles, tools, and topics..."
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                        />
+                        <button
+                            type="submit"
+                            className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white"
+                        >
+                            Search
+                        </button>
+                    </form>
+
+                    <nav className="flex flex-col gap-2">
+                        {settings.content.headerNavigation.map((item) => (
+                            <Link
+                                key={`mobile-${item.href}-${item.label}`}
+                                href={item.href}
+                                className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                        <Link
+                            href="/blog"
+                            className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
+                        >
+                            All Articles
+                        </Link>
+                    </nav>
+                </div>
+            ) : null}
         </header>
     );
 }
