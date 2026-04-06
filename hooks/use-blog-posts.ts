@@ -11,6 +11,22 @@ interface UseBlogPostsResult {
     isLoading: boolean;
 }
 
+function toSortableTimestamp(post: Post): number {
+    const candidate = post.publishedAt ?? post.createdAt ?? post.updatedAt;
+    if (!candidate) {
+        return 0;
+    }
+
+    const parsed = new Date(candidate).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function sortPostsNewestFirst(posts: Post[]): Post[] {
+    return [...posts].sort(
+        (left, right) => toSortableTimestamp(right) - toSortableTimestamp(left)
+    );
+}
+
 function extractPosts(payload: unknown): Post[] {
     if (Array.isArray(payload)) {
         return payload as Post[];
@@ -35,9 +51,9 @@ export function useBlogPosts(): UseBlogPostsResult {
         const fetchPosts = async () => {
             try {
                 const response = await apiClient.get<unknown>(
-                    '/api/v1/posts/published?limit=12&sortBy=publishedAt&sortOrder=asc'
+                    '/api/v1/posts/published?limit=12&sortBy=publishedAt&sortOrder=desc'
                 );
-                const resolvedPosts = extractPosts(response);
+                const resolvedPosts = sortPostsNewestFirst(extractPosts(response));
 
                 if (!isMounted) {
                     return;

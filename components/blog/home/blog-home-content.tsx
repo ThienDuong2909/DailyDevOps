@@ -57,7 +57,9 @@ export function BlogHomeContent() {
     }, []);
 
     const feedPosts = useMemo(() => {
-        const remainingPosts = posts.slice(1);
+        const remainingPosts = featuredPost
+            ? posts.filter((post) => post.id !== featuredPost.id)
+            : posts;
 
         if (selectedTopic === 'all') {
             return remainingPosts;
@@ -68,7 +70,7 @@ export function BlogHomeContent() {
                 post.category?.slug === selectedTopic ||
                 post.category?.name?.toLowerCase() === selectedTopic.toLowerCase()
         );
-    }, [posts, selectedTopic]);
+    }, [featuredPost, posts, selectedTopic]);
 
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
