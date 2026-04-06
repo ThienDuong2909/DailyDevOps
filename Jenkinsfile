@@ -41,8 +41,6 @@ pipeline {
         PLAYWRIGHT_API_URL = 'http://localhost:3001'
         NEXT_PUBLIC_APP_ENV_DEFAULT = 'production'
         NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE_DEFAULT = "${env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?: '0'}"
-        DOCKER_BUILDKIT = '1'
-        BUILDKIT_PROGRESS = 'plain'
     }
 
     stages {
@@ -254,8 +252,6 @@ EOF
             sh "rm -rf k8s-repo"
             // Remove Docker images from agent to free disk space
             sh "docker rmi ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest || true"
-            // Remove dangling images (<none> tags) created during build
-            sh 'docker image prune -f || true'
         }
         success {
             echo "Pipeline executed successfully. Image: ${IMAGE_TAG}:${BUILD_NUMBER}"
