@@ -170,7 +170,7 @@ EOF
                         sh """
                             docker run -d --name client-smoke-${BUILD_NUMBER} -p 3000:3000 ${IMAGE_TAG}:${BUILD_NUMBER}
                             for i in \$(seq 1 30); do
-                                if curl --silent --show-error --fail http://127.0.0.1:3000 > /dev/null; then
+                                if docker exec client-smoke-${BUILD_NUMBER} node -e "fetch('http://127.0.0.1:3000').then((res) => { if (!res.ok) process.exit(1); }).catch(() => process.exit(1))"; then
                                     echo "Smoke check passed on attempt \$i"
                                     break
                                 fi
