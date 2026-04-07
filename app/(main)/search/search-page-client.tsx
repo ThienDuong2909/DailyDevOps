@@ -7,6 +7,8 @@ import { trackSearch } from '@/lib/analytics';
 import { PostCard } from '@/components/blog/post-card';
 import type { Category, PaginatedResponse, Post } from '@/types';
 
+const SEARCH_POSTS_PER_PAGE = 20;
+
 type SearchPayload =
     | PaginatedResponse<Post>
     | { data?: PaginatedResponse<Post> | Post[] }
@@ -117,7 +119,7 @@ function SearchPageContent() {
                 setErrorMessage('');
 
                 const response = await apiClient.get<SearchPayload>(
-                    `/api/v1/posts/search?search=${encodeURIComponent(query)}&page=${page}&limit=12&sortBy=publishedAt&sortOrder=desc`
+                    `/api/v1/posts/search?search=${encodeURIComponent(query)}&page=${page}&limit=${SEARCH_POSTS_PER_PAGE}&sortBy=publishedAt&sortOrder=desc`
                 );
 
                 if (!isMounted) {
@@ -174,6 +176,14 @@ function SearchPageContent() {
 
         return `Found ${totalResults} result${totalResults === 1 ? '' : 's'} for "${query}"`;
     }, [errorMessage, loading, query, totalResults]);
+    const pageNumbers = useMemo(
+        () =>
+            Array.from({ length: totalPages }, (_, index) => index + 1).filter(
+                (pageNumber) =>
+                    Math.abs(pageNumber - page) <= 2 || pageNumber === 1 || pageNumber === totalPages
+            ),
+        [page, totalPages]
+    );
 
     const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -268,7 +278,7 @@ function SearchPageContent() {
                     </section>
                 </div>
             ) : loading ? (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
                     {Array.from({ length: 6 }, (_, index) => (
                         <div
                             key={index}
@@ -299,18 +309,18 @@ function SearchPageContent() {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
                         {posts.map((post) => (
                             <PostCard key={post.id} post={post} />
                         ))}
                     </div>
 
                     {totalPages > 1 ? (
-                        <div className="theme-surface flex items-center justify-between rounded-2xl px-5 py-4">
+                        <div className="theme-surface flex flex-col gap-4 rounded-2xl px-5 py-4 md:flex-row md:items-center md:justify-between">
                             <p className="theme-muted text-sm">
                                 Trang {page}/{totalPages}
                             </p>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={() => handlePageChange(Math.max(1, page - 1))}
                                     disabled={page === 1}
@@ -318,6 +328,30 @@ function SearchPageContent() {
                                 >
                                     Previous
                                 </button>
+                                {pageNumbers.map((pageNumber, index) => {
+                                    const previous = pageNumbers[index - 1];
+                                    const showGap = previous && pageNumber - previous > 1;
+
+                                    return (
+                                        <span key={pageNumber} className="contents">
+                                            {showGap ? (
+                                                <span className="theme-muted inline-flex items-center px-1 text-sm">
+                                                    ...
+                                                </span>
+                                            ) : null}
+                                            <button
+                                                onClick={() => handlePageChange(pageNumber)}
+                                                className={`theme-border inline-flex min-w-10 items-center justify-center rounded-lg border px-3 py-2 text-sm transition-colors ${
+                                                    pageNumber === page
+                                                        ? 'border-primary bg-primary text-white'
+                                                        : 'theme-panel-muted text-[color:var(--text-main-theme)] hover:border-primary hover:text-primary'
+                                                }`}
+                                            >
+                                                {pageNumber}
+                                            </button>
+                                        </span>
+                                    );
+                                })}
                                 <button
                                     onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                                     disabled={page === totalPages}

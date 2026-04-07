@@ -63,7 +63,7 @@ async function fetchCategories(): Promise<Category[]> {
 async function fetchPostsByCategory(categoryId: string): Promise<Post[]> {
     try {
         const response = await fetch(
-            `${apiBaseUrl}/api/v1/posts/published?categoryId=${encodeURIComponent(categoryId)}&limit=24&sortBy=publishedAt&sortOrder=desc`,
+            `${apiBaseUrl}/api/v1/posts/published?categoryId=${encodeURIComponent(categoryId)}&limit=20&sortBy=publishedAt&sortOrder=desc`,
             {
                 next: { revalidate: 300 },
             }
@@ -155,7 +155,7 @@ export default async function CategoryPage({
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
                     {posts.map((post) => (
                         <PostCard key={post.id} post={post} />
                     ))}

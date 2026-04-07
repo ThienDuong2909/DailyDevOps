@@ -16,7 +16,7 @@ export function TrendingToolsPanel() {
     ];
 
     return (
-        <aside className="hidden w-80 shrink-0 flex-col gap-8 lg:flex">
+        <aside className="hidden w-[18rem] shrink-0 flex-col gap-8 xl:flex">
             <div className="sticky top-24 space-y-6">
                 <div className="rounded-2xl border border-gray-100 bg-surface-light p-6 shadow-sm dark:border-gray-800 dark:bg-surface-dark">
                     <SectionHeading

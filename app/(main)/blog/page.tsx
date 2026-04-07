@@ -13,6 +13,8 @@ type PostsPayload =
     | { data?: PaginatedResponse<Post> | Post[] }
     | Post[];
 
+const POSTS_PER_PAGE = 20;
+
 function resolvePaginatedPosts(payload: PostsPayload) {
     if (Array.isArray(payload)) {
         return {
@@ -52,7 +54,7 @@ function resolvePaginatedPosts(payload: PostsPayload) {
 async function fetchPublishedPosts(page: number) {
     try {
         const response = await fetch(
-            `${apiBaseUrl}/api/v1/posts/published?limit=12&page=${page}&sortBy=publishedAt&sortOrder=desc`,
+            `${apiBaseUrl}/api/v1/posts/published?limit=${POSTS_PER_PAGE}&page=${page}&sortBy=publishedAt&sortOrder=desc`,
             { next: { revalidate: 300 } }
         );
 
@@ -62,7 +64,7 @@ async function fetchPublishedPosts(page: number) {
                 meta: {
                     total: 0,
                     page,
-                    limit: 12,
+                    limit: POSTS_PER_PAGE,
                     totalPages: 1,
                 },
             };
@@ -76,7 +78,7 @@ async function fetchPublishedPosts(page: number) {
             meta: {
                 total: 0,
                 page,
-                limit: 12,
+                limit: POSTS_PER_PAGE,
                 totalPages: 1,
             },
         };
@@ -101,6 +103,10 @@ export default async function BlogPage({
     const result = await fetchPublishedPosts(page);
     const posts = result.data || [];
     const totalPages = result.meta?.totalPages || 1;
+    const pageNumbers = Array.from(
+        { length: totalPages },
+        (_, index) => index + 1
+    ).filter((pageNumber) => Math.abs(pageNumber - page) <= 2 || pageNumber === 1 || pageNumber === totalPages);
 
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
@@ -128,18 +134,18 @@ export default async function BlogPage({
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
                         {posts.map((post) => (
                             <PostCard key={post.id} post={post} />
                         ))}
                     </div>
 
                     {totalPages > 1 ? (
-                        <div className="theme-surface flex items-center justify-between rounded-2xl px-5 py-4">
+                        <div className="theme-surface flex flex-col gap-4 rounded-2xl px-5 py-4 md:flex-row md:items-center md:justify-between">
                             <p className="theme-muted text-sm">
                                 Page {page}/{totalPages}
                             </p>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <Link
                                     href={page > 1 ? `/blog?page=${page - 1}` : '/blog'}
                                     aria-disabled={page === 1}
@@ -151,6 +157,30 @@ export default async function BlogPage({
                                 >
                                     Previous
                                 </Link>
+                                {pageNumbers.map((pageNumber, index) => {
+                                    const previous = pageNumbers[index - 1];
+                                    const showGap = previous && pageNumber - previous > 1;
+
+                                    return (
+                                        <span key={pageNumber} className="contents">
+                                            {showGap ? (
+                                                <span className="theme-muted inline-flex items-center px-1 text-sm">
+                                                    ...
+                                                </span>
+                                            ) : null}
+                                            <Link
+                                                href={pageNumber === 1 ? '/blog' : `/blog?page=${pageNumber}`}
+                                                className={`theme-border inline-flex min-w-10 items-center justify-center rounded-lg border px-3 py-2 text-sm transition-colors ${
+                                                    pageNumber === page
+                                                        ? 'border-primary bg-primary text-white'
+                                                        : 'theme-panel-muted text-[color:var(--text-main-theme)] hover:border-primary hover:text-primary'
+                                                }`}
+                                            >
+                                                {pageNumber}
+                                            </Link>
+                                        </span>
+                                    );
+                                })}
                                 <Link
                                     href={`/blog?page=${Math.min(totalPages, page + 1)}`}
                                     aria-disabled={page === totalPages}

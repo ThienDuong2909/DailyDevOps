@@ -63,7 +63,7 @@ async function fetchTags(): Promise<Tag[]> {
 async function fetchPostsByTag(tagSlug: string): Promise<Post[]> {
     try {
         const response = await fetch(
-            `${apiBaseUrl}/api/v1/posts/published?tagSlug=${encodeURIComponent(tagSlug)}&limit=24&sortBy=publishedAt&sortOrder=desc`,
+            `${apiBaseUrl}/api/v1/posts/published?tagSlug=${encodeURIComponent(tagSlug)}&limit=20&sortBy=publishedAt&sortOrder=desc`,
             {
                 next: { revalidate: 300 },
             }
@@ -152,7 +152,7 @@ export default async function TagPage({
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
                     {posts.map((post) => (
                         <PostCard key={post.id} post={post} />
                     ))}
