@@ -1,7 +1,14 @@
 import Link from 'next/link';
 import { NewsletterSignupForm } from '@/components/blog/newsletter-signup-form';
+import { authStore } from '@/stores/auth-store';
 
 export function NewsletterCta() {
+    const isAuthenticated = authStore((s) => s.isAuthenticated);
+
+    if (isAuthenticated) {
+        return null;
+    }
+
     return (
         <section className="relative mt-8 w-full overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-500 shadow-lg">
             <div

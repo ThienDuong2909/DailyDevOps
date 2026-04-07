@@ -15,6 +15,7 @@ export function BlogHomeContent() {
     const [topics, setTopics] = useState<Array<{ label: string; value: string }>>([
         { label: 'All', value: 'all' },
     ]);
+    const [isLoadingTopics, setIsLoadingTopics] = useState(true);
     const { featuredPost, isFallback, isLoading, posts } = useBlogPosts();
 
     useEffect(() => {
@@ -46,6 +47,10 @@ export function BlogHomeContent() {
                 }
 
                 setTopics([{ label: 'All', value: 'all' }]);
+            } finally {
+                if (isMounted) {
+                    setIsLoadingTopics(false);
+                }
             }
         };
 
@@ -74,8 +79,9 @@ export function BlogHomeContent() {
 
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
-            <BlogHero post={featuredPost} />
+            <BlogHero isLoading={isLoading} post={featuredPost} />
             <BlogTopics
+                isLoading={isLoadingTopics}
                 onSelect={setSelectedTopic}
                 selectedTopic={selectedTopic}
                 topics={topics}

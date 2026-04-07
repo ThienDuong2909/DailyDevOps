@@ -24,23 +24,21 @@ export function BlogPostFeed({
     if (isLoading) {
         return (
             <div className="space-y-6">
-                <SectionHeading
-                    title="Recent Posts"
-                    description="Dang tai bai viet moi nhat cho trang chu blog."
-                />
+                <SectionHeading title="Recent Posts" />
                 <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3">
                     {Array.from({ length: 9 }, (_, index) => (
                         <div
                             key={index}
-                            className="overflow-hidden rounded-[28px] border border-gray-100 bg-surface-light dark:border-gray-800 dark:bg-surface-dark"
+                            className="overflow-hidden rounded-2xl bg-[var(--surface-elevated)] shadow-[0_2px_12px_rgba(15,23,42,0.06)]"
                         >
-                            <Skeleton className="h-60 w-full rounded-none md:h-64" />
-                            <div className="space-y-4 p-6">
-                                <Skeleton className="h-5 w-20" />
-                                <Skeleton className="h-6 w-full" />
-                                <Skeleton className="h-6 w-4/5" />
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-4 w-2/3" />
+                            <Skeleton className="aspect-[16/9] w-full rounded-none" />
+                            <div className="space-y-3 px-5 pb-5 pt-4">
+                                <Skeleton className="h-5 w-full" />
+                                <Skeleton className="h-5 w-3/4" />
+                                <div className="flex items-center gap-2 pt-1">
+                                    <Skeleton className="size-7 rounded-full" />
+                                    <Skeleton className="h-4 w-32" />
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -53,11 +51,6 @@ export function BlogPostFeed({
         <div className="space-y-6">
             <SectionHeading
                 title="Recent Posts"
-                description={
-                    isFallback
-                        ? 'Dang hien du lieu mau trong luc ket noi API bai viet.'
-                        : 'Nhung bai viet moi nhat ve CI/CD, automation, cloud va observability.'
-                }
                 action={
                     <Link
                         href="/blog"

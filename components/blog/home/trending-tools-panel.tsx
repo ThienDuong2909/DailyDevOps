@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { BarChart3, Rocket } from 'lucide-react';
-import { SectionHeading } from '@/components/shared/section-heading';
+import { Eye } from 'lucide-react';
+import { Skeleton } from '@/components/shared/skeleton';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { apiClient } from '@/lib/api';
-import type { Tag } from '@/types';
+import type { Post, Tag } from '@/types';
 
 interface ToolBubble {
     name: string;
@@ -14,185 +14,271 @@ interface ToolBubble {
     count: number;
 }
 
-const bubblePositions = [
-    { top: '8%', left: '10%' },
-    { top: '10%', left: '48%' },
-    { top: '28%', left: '68%' },
-    { top: '38%', left: '18%' },
-    { top: '52%', left: '46%' },
-    { top: '68%', left: '15%' },
-    { top: '72%', left: '58%' },
-    { top: '22%', left: '28%' },
-    { top: '46%', left: '74%' },
-    { top: '82%', left: '38%' },
-];
+/* ── scaling constants ── */
+const MIN_FONT = 11;
+const MAX_FONT = 22;
+const MAX_TAGS = 12;
+const POPULAR_LIMIT = 5;
 
-const MIN_FONT_SIZE = 0.95;
-const MAX_FONT_SIZE = 1.65;
-const MIN_BUBBLE_WIDTH = 108;
-const MAX_BUBBLE_WIDTH = 186;
+function lerp(
+    value: number,
+    inMin: number,
+    inMax: number,
+    outMin: number,
+    outMax: number,
+) {
+    if (inMin === inMax) return (outMin + outMax) / 2;
+    return outMin + ((value - inMin) / (inMax - inMin)) * (outMax - outMin);
+}
 
-function scaleValue(value: number, minValue: number, maxValue: number, minScale: number, maxScale: number) {
-    if (minValue === maxValue) {
-        return (minScale + maxScale) / 2;
+/* ── shuffle array deterministically ── */
+function deterministicShuffle<T>(arr: T[]): T[] {
+    const result = [...arr];
+    let seed = 42;
+    for (let i = result.length - 1; i > 0; i--) {
+        seed = (seed * 16807) % 2147483647;
+        const j = seed % (i + 1);
+        [result[i], result[j]] = [result[j], result[i]];
     }
+    return result;
+}
 
-    const ratio = (value - minValue) / (maxValue - minValue);
-    return minScale + ratio * (maxScale - minScale);
+function formatViews(n: number): string {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return String(n);
 }
 
 export function TrendingToolsPanel() {
     const { settings } = useSiteSettings();
     const [tagCloud, setTagCloud] = useState<ToolBubble[]>([]);
+    const [popularPosts, setPopularPosts] = useState<Post[]>([]);
+    const [isLoadingTags, setIsLoadingTags] = useState(true);
+    const [isLoadingPopular, setIsLoadingPopular] = useState(true);
 
+    /* ── fetch tags ── */
     useEffect(() => {
-        let isMounted = true;
+        let alive = true;
 
-        const fallbackCloud: ToolBubble[] = settings.content.trendingTools.map((tool, index) => ({
-            name: tool.name,
-            href: tool.href,
-            count: settings.content.trendingTools.length - index,
-        }));
+        const fallback: ToolBubble[] = settings.content.trendingTools.map(
+            (t, i) => ({
+                name: t.name,
+                href: t.href,
+                count: settings.content.trendingTools.length - i,
+            }),
+        );
 
-        const fetchTrendingTags = async () => {
+        (async () => {
             try {
-                const response = await apiClient.get<{ data?: Tag[] } | Tag[]>('/api/v1/tags');
-                const tags = Array.isArray(response)
-                    ? response
-                    : Array.isArray(response?.data)
-                        ? response.data
-                        : [];
+                const res = await apiClient.get<{ data?: Tag[] } | Tag[]>(
+                    '/api/v1/tags',
+                );
+                const tags = Array.isArray(res)
+                    ? res
+                    : Array.isArray(res?.data)
+                      ? res.data
+                      : [];
 
-                if (!isMounted) {
-                    return;
-                }
+                if (!alive) return;
 
-                const derivedCloud = tags
-                    .map((tag) => ({
-                        name: tag.name,
-                        href: `/tag/${tag.slug}`,
-                        count: tag._count?.posts ?? 0,
+                const cloud = tags
+                    .map((t) => ({
+                        name: t.name,
+                        href: `/tag/${t.slug}`,
+                        count: t._count?.posts ?? 0,
                     }))
-                    .filter((tag) => tag.count > 0)
-                    .sort((left, right) => right.count - left.count)
-                    .slice(0, bubblePositions.length);
+                    .filter((t) => t.count > 0)
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, MAX_TAGS);
 
-                setTagCloud(derivedCloud.length > 0 ? derivedCloud : fallbackCloud);
+                setTagCloud(cloud.length > 0 ? cloud : fallback);
             } catch {
-                if (!isMounted) {
-                    return;
-                }
-
-                setTagCloud(fallbackCloud);
+                if (alive) setTagCloud(fallback);
+            } finally {
+                if (alive) setIsLoadingTags(false);
             }
-        };
-
-        void fetchTrendingTags();
+        })();
 
         return () => {
-            isMounted = false;
+            alive = false;
         };
     }, [settings.content.trendingTools]);
 
+    /* ── fetch popular posts ── */
+    useEffect(() => {
+        let alive = true;
+
+        (async () => {
+            try {
+                const res = await apiClient.get<{ data?: Post[] } | Post[]>(
+                    `/api/v1/posts/published?limit=${POPULAR_LIMIT}&sortBy=viewCount&sortOrder=desc`,
+                );
+                const posts = Array.isArray(res)
+                    ? res
+                    : Array.isArray((res as { data?: Post[] })?.data)
+                      ? (res as { data: Post[] }).data
+                      : [];
+
+                if (!alive) return;
+                setPopularPosts(posts.filter((p) => (p.viewCount ?? 0) > 0));
+            } catch {
+                /* silent — the section just won't render */
+            } finally {
+                if (alive) setIsLoadingPopular(false);
+            }
+        })();
+
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    /* ── compute visual props ── */
     const bubbles = useMemo(() => {
-        if (tagCloud.length === 0) {
-            return [];
-        }
+        if (tagCloud.length === 0) return [];
 
-        const counts = tagCloud.map((tool) => tool.count);
-        const minCount = Math.min(...counts);
-        const maxCount = Math.max(...counts);
+        const counts = tagCloud.map((t) => t.count);
+        const lo = Math.min(...counts);
+        const hi = Math.max(...counts);
 
-        return tagCloud.map((tool, index) => {
-            const fontSize = scaleValue(
-                tool.count,
-                minCount,
-                maxCount,
-                MIN_FONT_SIZE,
-                MAX_FONT_SIZE
-            );
-            const bubbleWidth = scaleValue(
-                tool.count,
-                minCount,
-                maxCount,
-                MIN_BUBBLE_WIDTH,
-                MAX_BUBBLE_WIDTH
-            );
-            const bubbleHeight = Math.round(bubbleWidth * 0.62);
-            const position = bubblePositions[index % bubblePositions.length];
+        /* Shuffle to avoid biggest-first layout */
+        const shuffled = deterministicShuffle(tagCloud);
+
+        return shuffled.map((tool, idx) => {
+            const fontSize = lerp(tool.count, lo, hi, MIN_FONT, MAX_FONT);
+            const dur = 6 + (idx % 5) * 1.4;
+            const delay = -(idx * 0.8);
 
             return {
                 ...tool,
                 fontSize,
-                bubbleWidth,
-                bubbleHeight,
-                position,
-                animationDuration: `${9 + (index % 4) * 1.8}s`,
-                animationDelay: `${index * 0.35}s`,
+                dur,
+                delay,
+                animType: idx % 2 === 0 ? 'bubbleDriftNarrow' : 'bubbleDriftWide',
             };
         });
     }, [tagCloud]);
 
     return (
-        <aside className="hidden w-[18rem] shrink-0 flex-col gap-8 xl:flex">
+        <aside className="hidden w-[18rem] shrink-0 flex-col gap-6 xl:flex">
             <div className="sticky top-24 space-y-6">
-                <div className="rounded-2xl border border-gray-100 bg-surface-light p-6 shadow-sm dark:border-gray-800 dark:bg-surface-dark">
-                    <SectionHeading
-                        title="Trending Tools"
-                        description="Tag cloud duoc tinh theo so bai viet da gan moi chu de, bubble lon hon tuong ung muc do xuat hien cao hon."
-                    />
-                    <div className="mt-6 rounded-[28px] border border-white/50 bg-gradient-to-br from-cyan-500/10 via-white to-sky-100/80 p-3 shadow-inner dark:border-slate-800/80 dark:from-cyan-500/10 dark:via-slate-950 dark:to-slate-900">
-                        <div className="relative h-[22rem] overflow-hidden rounded-[24px] bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.92),rgba(241,248,255,0.98))] dark:bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,rgba(8,15,29,0.96),rgba(12,20,39,0.98))]">
-                            {bubbles.map((tool, index) => (
-                                <Link
-                                    key={tool.name}
-                                    href={tool.href}
-                                    className="floating-tool-bubble group absolute flex flex-col justify-center rounded-full border border-white/60 bg-white/80 px-4 text-center shadow-[0_12px_24px_rgba(15,23,42,0.08)] backdrop-blur-md transition-transform hover:z-10 hover:scale-[1.05] dark:border-slate-700/80 dark:bg-slate-900/78"
-                                    style={{
-                                        top: tool.position.top,
-                                        left: tool.position.left,
-                                        width: `${tool.bubbleWidth}px`,
-                                        minHeight: `${tool.bubbleHeight}px`,
-                                        animationDuration: tool.animationDuration,
-                                        animationDelay: tool.animationDelay,
-                                    }}
-                                >
-                                    <span
-                                        className="font-black tracking-tight text-text-main transition-colors group-hover:text-primary dark:text-white"
-                                        style={{ fontSize: `${tool.fontSize}rem` }}
-                                    >
-                                        {tool.name}
-                                    </span>
-                                    <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-sub dark:text-gray-400">
-                                        {tool.count} posts
-                                    </span>
-                                </Link>
+                {/* ── Most Popular ── */}
+                {isLoadingPopular ? (
+                    <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
+                        <div className="px-5 pt-5 pb-1">
+                            <Skeleton className="h-5 w-32" />
+                        </div>
+                        <div className="space-y-0 divide-y divide-[var(--border-ghost-theme)] px-5 pb-4 pt-2">
+                            {Array.from({ length: POPULAR_LIMIT }, (_, i) => (
+                                <div key={i} className="flex items-start gap-3 py-3">
+                                    <Skeleton className="mt-0.5 size-6 shrink-0 rounded-md" />
+                                    <div className="min-w-0 flex-1 space-y-2">
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-3/4" />
+                                        <Skeleton className="h-3 w-24" />
+                                    </div>
+                                </div>
                             ))}
                         </div>
-                        <p className="mt-3 px-1 text-xs leading-5 text-text-sub dark:text-gray-400">
-                            Bubble size duoc gioi han trong khoang on dinh de cloud de doc va van giu duoc mat do thu giac.
-                        </p>
+                    </div>
+                ) : popularPosts.length > 0 ? (
+                    <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
+                        <div className="px-5 pt-5 pb-1">
+                            <h3 className="text-base font-extrabold tracking-tight text-[var(--text-main-theme)]">
+                                Đọc nhiều nhất
+                            </h3>
+                        </div>
+                        <ol className="divide-y divide-[var(--border-ghost-theme)] px-5 pb-4 pt-2">
+                            {popularPosts.map((post, idx) => (
+                                <li key={post.id}>
+                                    <Link
+                                        href={`/blog/${post.slug}`}
+                                        className="group flex items-start gap-3 py-3 transition-colors"
+                                    >
+                                        {/* Ranking number */}
+                                        <span
+                                            className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-extrabold ${
+                                                idx === 0
+                                                    ? 'bg-orange-500/15 text-orange-500'
+                                                    : idx === 1
+                                                      ? 'bg-amber-500/15 text-amber-500'
+                                                      : idx === 2
+                                                        ? 'bg-yellow-600/15 text-yellow-600'
+                                                        : 'bg-[var(--surface-muted)] text-[var(--text-soft-theme)]'
+                                            }`}
+                                        >
+                                            {idx + 1}
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--text-main-theme)] transition-colors group-hover:text-primary">
+                                                {post.title}
+                                            </p>
+                                            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--text-soft-theme)]">
+                                                <span className="inline-flex items-center gap-1">
+                                                    <Eye className="size-3" />
+                                                    {formatViews(post.viewCount)}
+                                                </span>
+                                                <span className="size-[3px] rounded-full bg-current opacity-40" />
+                                                <span>
+                                                    {new Date(post.updatedAt || post.publishedAt || post.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ol>
+                    </div>
+                ) : null}
+
+                {/* ── Trending Tools ── */}
+                {isLoadingTags ? (
+                    <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
+                        <div className="px-5 pt-5 pb-2">
+                            <Skeleton className="h-5 w-32" />
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-5 pt-3">
+                            {Array.from({ length: 8 }, (_, i) => (
+                                <Skeleton
+                                    key={i}
+                                    className="rounded-full"
+                                    style={{
+                                        width: 50 + (i % 3) * 24,
+                                        height: 28 + (i % 2) * 4,
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
+                    <div className="px-5 pt-5 pb-2">
+                        <h3 className="text-base font-extrabold tracking-tight text-[var(--text-main-theme)]">
+                            Trending Tools
+                        </h3>
+                    </div>
+
+                    {/* Flow-based tag cloud */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-5 pt-3">
+                        {bubbles.map((b) => (
+                            <Link
+                                key={b.name}
+                                href={b.href}
+                                className="inline-block whitespace-nowrap rounded-full border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)] font-bold text-[var(--text-main-theme)] shadow-sm transition-all duration-200 hover:z-20 hover:scale-110 hover:border-primary/40 hover:text-primary hover:shadow-md"
+                                style={{
+                                    fontSize: b.fontSize,
+                                    paddingInline: Math.max(10, b.fontSize * 0.7),
+                                    paddingBlock: Math.max(4, b.fontSize * 0.3),
+                                    animation: `${b.animType} ${b.dur}s ease-in-out ${b.delay}s infinite`,
+                                }}
+                            >
+                                {b.name}
+                            </Link>
+                        ))}
                     </div>
                 </div>
-                <div className="rounded-2xl border border-cyan-500/10 bg-gradient-to-br from-cyan-500/10 via-cyan-500/5 to-transparent p-6">
-                    <div className="mb-4 inline-flex size-12 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-500">
-                        <Rocket className="size-6" />
-                    </div>
-                    <h3 className="text-lg font-bold text-text-main dark:text-white">
-                        Deploy Faster
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-text-sub dark:text-gray-400">
-                        Ban benchmark cloud va theo doi hieu nang he thong tren mot dashboard gon.
-                    </p>
-                    <Link
-                        href="/search?q=monitoring"
-                        className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 px-4 text-sm font-semibold text-text-main transition-colors hover:border-cyan-500 hover:text-cyan-500 dark:border-gray-700 dark:text-white"
-                    >
-                        <BarChart3 className="size-4" />
-                        Explore monitoring guides
-                    </Link>
-                </div>
+                )}
             </div>
         </aside>
     );
 }
+

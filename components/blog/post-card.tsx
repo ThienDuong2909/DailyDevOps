@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Post } from '@/types';
 import { getImageUrl } from '@/lib/utils';
 
@@ -9,64 +10,77 @@ interface PostCardProps {
 
 export function PostCard({ post, imageClassName }: PostCardProps) {
     const categoryName = post.category?.name || 'General';
-    const publishedLabel = new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
+    const publishedLabel = new Date(post.publishedAt || post.createdAt).toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric',
     });
     const imageUrl =
         getImageUrl(post.featuredImage) ||
         'https://lh3.googleusercontent.com/aida-public/AB6AXuBorMuWccEsO-365PD-J3ATEJq8PhpyU_A3oQjRX1bRo89MR3qecATcyBlzJfrlU7gvmdUVmrvYoZRlf6caYDPyJTI8YWDOEd4vbt39NM6A2MJwk8h6OMS07FoiPiz6xzq35_PXPXaXD6eAy03p1nFxYGlKmDP7fso1x1UfSYLyUWrph75ulp8rbWi9phwZ2VoNLu9jQOiF1sC8JZIsOQBa-nGWDa1FfBFjqjyLJ-h0MXOsHWMMMnqDS_hVJ1PAU7YjWx9UAPPG7u8c';
 
+    const authorName = `${post.author.firstName} ${post.author.lastName}`;
+    const authorAvatar = post.author.avatar;
+    const initials = `${post.author.firstName?.[0] || ''}${post.author.lastName?.[0] || ''}`.toUpperCase();
+
     return (
-        <article className="theme-panel group flex h-full flex-col overflow-visible rounded-[28px] border border-transparent transition-all duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-            <div className="relative">
-                <div className={`relative h-60 w-full overflow-hidden rounded-t-[28px] bg-gradient-to-br from-slate-100 via-white to-cyan-50 p-3 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 md:h-64 ${imageClassName || ''}`}>
+        <Link href={`/blog/${post.slug}`} className="group block h-full">
+            <article className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--surface-elevated)] shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+                {/* Thumbnail */}
+                <div className={`relative aspect-[16/9] w-full overflow-hidden ${imageClassName || ''}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={imageUrl}
                         alt={post.title}
-                        className="h-full w-full rounded-[20px] object-contain object-center transition-transform duration-500 group-hover:scale-[1.02]"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                </div>
-                <Link
-                    href={post.category?.slug ? `/category/${post.category.slug}` : '/blog'}
-                    className="absolute left-5 top-full z-10 inline-flex -translate-y-1/2 items-center rounded-full border border-white/70 bg-cyan-500 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-cyan-500/20 transition-transform hover:scale-[1.02]"
-                >
-                    {categoryName}
-                </Link>
-            </div>
-            <div className="flex flex-1 flex-col gap-4 px-6 pb-6 pt-8">
-                <div className="theme-muted flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
-                    <span>{publishedLabel}</span>
-                    <span className="size-1 rounded-full bg-gray-300" />
-                    <span>{post.viewCount || 0} views</span>
-                    <span className="size-1 rounded-full bg-gray-300" />
-                    <span>{post.readingTime || 5} min read</span>
-                </div>
-                <Link href={`/blog/${post.slug}`}>
-                    <h3 className="text-[1.55rem] font-black leading-[1.15] tracking-tight text-[color:var(--text-main-theme)] transition-colors group-hover:text-primary">
-                        {post.title}
-                    </h3>
-                </Link>
-                <p className="theme-muted line-clamp-3 text-[0.95rem] leading-7">
-                    {post.excerpt || 'Discover the latest insights and best practices in DevOps and cloud-native technologies.'}
-                </p>
-                <div className="theme-muted mt-auto flex flex-wrap items-center gap-2 border-t border-[color:var(--border-theme)]/60 pt-4 text-sm font-medium">
-                    <span>{post.author.firstName} {post.author.lastName}</span>
-                    <span className="size-1 rounded-full bg-gray-300" />
-                    <span>{publishedLabel}</span>
-                </div>
-                <div className="pt-1">
+                    {/* Gradient overlay for badge readability */}
+                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
+
+                    {/* Category badge */}
                     <Link
-                        href={`/blog/${post.slug}`}
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary-dark"
+                        href={post.category?.slug ? `/category/${post.category.slug}` : '/blog'}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-lg backdrop-blur-sm transition-transform hover:scale-105"
                     >
-                        Read article
-                        <span className="material-symbols-outlined !text-[18px]">arrow_forward</span>
+                        <svg className="size-3" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 1.5l1.85 4.15L14.5 6.5l-3.35 2.95.9 4.55L8 11.65 3.95 14l.9-4.55L1.5 6.5l4.65-.85L8 1.5z" />
+                        </svg>
+                        {categoryName}
                     </Link>
                 </div>
-            </div>
-        </article>
+
+                {/* Content */}
+                <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
+                    {/* Title */}
+                    <h3 className="line-clamp-2 text-[1.05rem] font-extrabold leading-snug tracking-tight text-[var(--text-main-theme)] transition-colors group-hover:text-primary">
+                        {post.title}
+                    </h3>
+
+                    {/* Author + date footer */}
+                    <div className="mt-auto flex items-center gap-2.5 pt-1">
+                        {/* Avatar */}
+                        {authorAvatar ? (
+                            <Image
+                                src={getImageUrl(authorAvatar) || ''}
+                                alt={authorName}
+                                width={28}
+                                height={28}
+                                className="size-7 rounded-full object-cover ring-2 ring-white/80 dark:ring-gray-800/80"
+                            />
+                        ) : (
+                            <span className="inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-cyan-500/80 text-[10px] font-bold text-white ring-2 ring-white/80 dark:ring-gray-800/80">
+                                {initials}
+                            </span>
+                        )}
+                        <div className="flex items-center gap-1.5 text-[13px] text-[var(--text-muted-theme)]">
+                            <span className="font-semibold text-[var(--text-main-theme)]">{authorName}</span>
+                            <span className="text-[var(--text-soft-theme)]">|</span>
+                            <span>{publishedLabel}</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </Link>
     );
 }

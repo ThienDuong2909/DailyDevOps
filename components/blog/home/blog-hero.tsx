@@ -1,13 +1,43 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { Skeleton } from '@/components/shared/skeleton';
 import { getImageUrl } from '@/lib/utils';
 import type { Post } from '@/types';
 
 interface BlogHeroProps {
     post: Post | null;
+    isLoading?: boolean;
 }
 
-export function BlogHero({ post }: BlogHeroProps) {
+export function BlogHero({ post, isLoading }: BlogHeroProps) {
+    if (isLoading) {
+        return (
+            <section className="@container w-full">
+                <div className="grid gap-6 rounded-3xl border border-cyan-500/10 bg-surface-light p-6 shadow-sm dark:border-cyan-400/10 dark:bg-surface-dark md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
+                    <div className="flex flex-col justify-center gap-5">
+                        <Skeleton className="h-7 w-40 rounded-full" />
+                        <div className="space-y-3">
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-3/4" />
+                            <Skeleton className="h-5 w-full max-w-2xl" />
+                            <Skeleton className="h-5 w-2/3 max-w-2xl" />
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-4 w-16" />
+                        </div>
+                        <div className="flex items-center gap-4 pt-2">
+                            <Skeleton className="h-12 w-36 rounded-xl" />
+                            <Skeleton className="h-12 w-44 rounded-xl" />
+                        </div>
+                    </div>
+                    <Skeleton className="aspect-video w-full rounded-2xl" />
+                </div>
+            </section>
+        );
+    }
+
     if (!post) {
         return null;
     }
