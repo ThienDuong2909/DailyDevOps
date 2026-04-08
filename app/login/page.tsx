@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { ResendVerificationForm } from '@/components/auth/resend-verification-form';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/hooks/use-auth';
 import { extractApiMessage, normalizeAuthMessage } from '@/lib/auth/messages';
 import { resolvePostLoginRoute } from '@/lib/auth/redirects';
+import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -226,7 +228,7 @@ export default function LoginPage() {
                                             setMfaCode('');
                                             clearError();
                                         }}
-                                        className="text-sm font-semibold text-primary hover:text-primary/80"
+                                        className={cn(buttonVariants({ variant: 'link', size: 'sm' }), 'h-auto px-0 py-0')}
                                     >
                                         Use a different account
                                     </button>
@@ -235,22 +237,16 @@ export default function LoginPage() {
 
                             {/* Submit Button */}
                             <div className="pt-2">
-                                <button
+                                <Button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary hover:bg-blue-600 disabled:bg-primary/60 text-white text-base font-bold leading-normal tracking-[0.015em] transition-colors shadow-md shadow-blue-500/20"
+                                    loading={isLoading}
+                                    className="h-12 w-full rounded-lg text-base font-bold leading-normal tracking-[0.015em] shadow-md shadow-blue-500/20"
                                 >
-                                    {isLoading ? (
-                                        <span className="flex items-center gap-2">
-                                            <span className="size-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                            Signing in...
-                                        </span>
-                                    ) : (
-                                        <span className="truncate">
-                                            {mfaStep ? 'Verify Code' : 'Sign In'}
-                                        </span>
-                                    )}
-                                </button>
+                                    <span className="truncate">
+                                        {isLoading ? 'Signing in...' : mfaStep ? 'Verify Code' : 'Sign In'}
+                                    </span>
+                                </Button>
                             </div>
                         </form>
 

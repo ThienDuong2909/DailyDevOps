@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api';
 import { trackNewsletterSubscribe } from '@/lib/analytics';
+import { cn } from '@/lib/utils';
 
 type NewsletterSignupFormProps = {
     buttonLabel?: string;
@@ -123,13 +125,14 @@ export function NewsletterSignupForm({
                     type="email"
                     value={email}
                 />
-                <button
-                    className={`rounded-xl px-6 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${buttonClassName}`}
+                <Button
+                    className={cn('rounded-xl px-6', buttonClassName)}
                     disabled={isSubmitting}
+                    loading={isSubmitting}
                     type="submit"
                 >
                     {isSubmitting ? 'Submitting...' : buttonLabel}
-                </button>
+                </Button>
             </form>
             <p className={`mt-2 text-xs ${helperColorClassName}`}>{message}</p>
             {status === 'success' && confirmationUrl ? (

@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { LayoutDashboard, LogOut, ShieldCheck, UserCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/use-auth';
-import { getImageUrl } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
+import { cn, getImageUrl } from '@/lib/utils';
 
 function getDisplayName(firstName?: string, lastName?: string) {
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
@@ -57,7 +58,7 @@ export function HeaderAuthButton() {
         return (
             <Link
                 href="/login"
-                className="flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-bold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary-dark active:scale-95"
+                className={cn(buttonVariants(), 'h-10 rounded-lg px-5 text-sm font-bold')}
             >
                 Login
             </Link>

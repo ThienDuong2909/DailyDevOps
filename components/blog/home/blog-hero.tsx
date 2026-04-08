@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/shared/skeleton';
+import { buttonVariants } from '@/components/ui/button';
 import { getImageUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import type { Post } from '@/types';
 
 interface BlogHeroProps {
@@ -73,14 +75,17 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
                     <div className="flex flex-wrap items-center gap-4 pt-2">
                         <Link
                             href={`/blog/${post.slug}`}
-                            className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-dark"
+                            className={cn(buttonVariants({ size: 'lg' }), 'gap-2 rounded-xl px-6')}
                         >
                             Read Article
                             <ArrowRight className="size-4" />
                         </Link>
                         <Link
                             href="/blog"
-                            className="inline-flex h-12 items-center rounded-xl border border-gray-200 px-5 text-sm font-semibold text-text-main transition-colors hover:border-cyan-500 hover:text-cyan-500 dark:border-gray-700 dark:text-white"
+                            className={cn(
+                                buttonVariants({ variant: 'outline', size: 'lg' }),
+                                'rounded-xl border-[var(--border-soft-theme)] px-5'
+                            )}
                         >
                             Browse All Articles
                         </Link>

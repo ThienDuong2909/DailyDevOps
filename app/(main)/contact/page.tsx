@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { apiClient } from '@/lib/api';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const contactChannels = [
     {
@@ -153,13 +155,14 @@ export default function ContactPage() {
                                 For account access issues, include the email tied to your account.
                             </p>
 
-                            <button
-                                className="inline-flex h-12 items-center justify-center rounded-xl bg-cyan-500 px-5 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+                            <Button
+                                className="h-12 rounded-xl bg-cyan-500 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
                                 disabled={isSubmitting}
+                                loading={isSubmitting}
                                 type="submit"
                             >
                                 {isSubmitting ? 'Sending message...' : 'Send message'}
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </div>
@@ -193,19 +196,19 @@ export default function ContactPage() {
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                     <Link
-                        className="inline-flex rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-text-main hover:border-primary hover:text-primary dark:border-gray-700 dark:text-white"
+                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-full')}
                         href="/newsletter"
                     >
                         Newsletter
                     </Link>
                     <Link
-                        className="inline-flex rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-text-main hover:border-primary hover:text-primary dark:border-gray-700 dark:text-white"
+                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-full')}
                         href="/about"
                     >
                         About
                     </Link>
                     <Link
-                        className="inline-flex rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-text-main hover:border-primary hover:text-primary dark:border-gray-700 dark:text-white"
+                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-full')}
                         href="/privacy-policy"
                     >
                         Privacy

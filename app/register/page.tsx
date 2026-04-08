@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { ResendVerificationForm } from '@/components/auth/resend-verification-form';
+import { Button } from '@/components/ui/button';
 import { extractApiMessage, normalizeAuthMessage } from '@/lib/auth/messages';
 import { apiClient } from '@/lib/api';
 
@@ -159,13 +160,14 @@ export default function RegisterPage() {
                                 </div>
                             ) : null}
 
-                            <button
-                                className="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-base font-bold tracking-[0.015em] text-white transition-colors hover:bg-blue-600 disabled:bg-primary/60"
+                            <Button
+                                className="h-12 w-full rounded-lg text-base font-bold tracking-[0.015em]"
                                 disabled={isSubmitting}
+                                loading={isSubmitting}
                                 type="submit"
                             >
                                 {isSubmitting ? 'Creating account...' : 'Create account'}
-                            </button>
+                            </Button>
                         </form>
 
                         <div className="mt-6 text-center">

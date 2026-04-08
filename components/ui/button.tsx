@@ -7,11 +7,11 @@ const buttonVariants = cva(
     {
         variants: {
             variant: {
-                default: 'bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20',
+                default: 'theme-glow-button',
                 destructive: 'bg-red-500 text-white hover:bg-red-600',
-                outline: 'border border-border-dark bg-transparent text-white hover:bg-surface-dark',
-                secondary: 'bg-surface-dark text-white hover:bg-gray-700',
-                ghost: 'text-white hover:bg-surface-dark',
+                outline: 'border text-[color:var(--text-main-theme)] hover:text-primary',
+                secondary: 'bg-[color:var(--surface-muted)] text-[color:var(--text-main-theme)] hover:bg-[color:var(--surface-strong)]',
+                ghost: 'text-[color:var(--text-main-theme)] hover:bg-[color:var(--surface-muted)]',
                 link: 'text-primary underline-offset-4 hover:underline',
             },
             size: {

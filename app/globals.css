@@ -520,9 +520,77 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .theme-glow-button {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     background: var(--primary-glow-theme);
     color: white;
-    box-shadow: 0 18px 40px rgba(37, 99, 235, 0.18);
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.22);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  }
+
+  /* Specular highlight — top-right glossy spot */
+  .theme-glow-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse 55% 70% at 78% 18%,
+      rgba(255, 255, 255, 0.48) 0%,
+      rgba(255, 255, 255, 0.12) 45%,
+      transparent 75%
+    );
+    z-index: -1;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+
+  /* Liquid blob — hidden below, rises on hover */
+  .theme-glow-button::after {
+    content: '';
+    position: absolute;
+    inset: -25%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.07) 50%,
+      transparent 70%
+    );
+    border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+    transform: translateY(130%) scale(0.7);
+    z-index: -1;
+    pointer-events: none;
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                border-radius 0.55s ease,
+                opacity 0.35s ease;
+    opacity: 0;
+  }
+
+  .theme-glow-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(37, 99, 235, 0.34);
+  }
+
+  .theme-glow-button:hover::before {
+    opacity: 0.65;
+  }
+
+  .theme-glow-button:hover::after {
+    transform: translateY(0%) scale(1);
+    opacity: 1;
+    animation: liquidMorph 3s ease-in-out 0.35s infinite;
+  }
+
+  .theme-glow-button:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.2);
+    transition-duration: 0.1s;
+  }
+
+  .theme-glow-button:disabled,
+  .theme-glow-button[disabled] {
+    pointer-events: none;
+    opacity: 0.5;
   }
 
   .theme-input {
@@ -569,5 +637,24 @@ h1, h2, h3, h4, h5, h6 {
   }
   75% {
     transform: translate3d(-2px, -3px, 0);
+  }
+}
+
+@keyframes liquidMorph {
+  0%, 100% {
+    border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+    transform: translateY(0%) rotate(0deg);
+  }
+  25% {
+    border-radius: 55% 45% 40% 60% / 45% 55% 50% 50%;
+    transform: translateY(-6%) rotate(2deg);
+  }
+  50% {
+    border-radius: 45% 55% 60% 40% / 50% 50% 45% 55%;
+    transform: translateY(-2%) rotate(-1deg);
+  }
+  75% {
+    border-radius: 50% 50% 45% 55% / 55% 45% 55% 45%;
+    transform: translateY(-5%) rotate(1.5deg);
   }
 }
