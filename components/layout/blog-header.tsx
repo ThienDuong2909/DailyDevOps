@@ -36,6 +36,7 @@ export function BlogHeader() {
     const [isDesktopSearchExpanded, setIsDesktopSearchExpanded] = useState(pathname !== '/blog');
     const containerRef = useRef<HTMLFormElement | null>(null);
     const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
+    const searchNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
     const isBlogListingPage = pathname === '/blog';
 
     const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -49,13 +50,20 @@ export function BlogHeader() {
             return;
         }
 
-        if (!trimmed) {
-            router.push('/blog');
+        const destination = trimmed ? `/blog?q=${encodeURIComponent(trimmed)}` : '/blog';
+
+        setShowSuggestions(false);
+
+        if (!isBlogListingPage) {
+            setIsDesktopSearchExpanded(false);
+            clearTimeout(searchNavigationTimeoutRef.current);
+            searchNavigationTimeoutRef.current = setTimeout(() => {
+                router.push(destination);
+            }, 180);
             return;
         }
 
-        router.push(`/blog?q=${encodeURIComponent(trimmed)}`);
-        setShowSuggestions(false);
+        router.push(destination);
     };
 
     useEffect(() => {
@@ -117,6 +125,12 @@ export function BlogHeader() {
         setIsDesktopSearchExpanded(pathname !== '/blog');
     }, [pathname]);
 
+    useEffect(() => {
+        return () => {
+            clearTimeout(searchNavigationTimeoutRef.current);
+        };
+    }, []);
+
     const handleSuggestionSelect = (slug: string) => {
         setShowSuggestions(false);
         router.push(`/blog/${slug}`);
@@ -155,22 +169,20 @@ export function BlogHeader() {
                             onSubmit={handleSearchSubmit}
                             className={`relative hidden h-10 flex-col group sm:flex ${
                                 isBlogListingPage
-                                    ? isDesktopSearchExpanded
-                                        ? 'w-full max-w-64'
-                                        : 'w-10'
+                                    ? 'w-full max-w-64'
                                     : 'min-w-40 max-w-64'
                             }`}
                         >
                                 <div
-                                    className={`flex w-full flex-1 items-center overflow-hidden rounded-lg border bg-background-light transition-all duration-300 dark:bg-background-dark ${
+                                    className={`flex w-full flex-1 items-center overflow-hidden rounded-lg border bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-background-dark ${
                                         isDesktopSearchExpanded || !isBlogListingPage
-                                            ? 'border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20'
-                                            : 'border-gray-200 dark:border-gray-700'
+                                            ? 'max-w-64 border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20'
+                                            : 'max-w-10 border-gray-200 dark:border-gray-700'
                                     }`}
                                 >
                                 <button
                                     type="submit"
-                                    className="flex h-full shrink-0 items-center justify-center pl-3 pr-2 text-text-sub transition-colors hover:text-primary"
+                                    className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
                                     aria-label="Search articles"
                                     onClick={() => {
                                         if (isBlogListingPage && !isDesktopSearchExpanded) {
@@ -184,10 +196,10 @@ export function BlogHeader() {
                                 </button>
                                 <input
                                     ref={desktopSearchInputRef}
-                                    className={`h-full border-none bg-transparent px-0 text-sm font-normal text-text-main placeholder:text-text-sub transition-all duration-300 focus:ring-0 dark:text-white ${
+                                    className={`h-full min-w-0 border-none bg-transparent pl-0 pr-3 text-sm font-normal text-text-main placeholder:text-text-sub transition-[max-width,opacity,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-0 dark:text-white ${
                                         isDesktopSearchExpanded || !isBlogListingPage
-                                            ? 'w-full flex-1 opacity-100'
-                                            : 'pointer-events-none w-0 flex-none opacity-0'
+                                            ? 'max-w-52 flex-1 opacity-100'
+                                            : 'pointer-events-none max-w-0 flex-none pr-0 opacity-0'
                                     }`}
                                     placeholder="Search articles, tools, and topics..."
                                     value={searchQuery}
@@ -197,21 +209,6 @@ export function BlogHeader() {
                                         setShowSuggestions(true);
                                     }}
                                 />
-                                {isBlogListingPage && isDesktopSearchExpanded ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setShowSuggestions(false);
-                                            if (!searchQuery.trim()) {
-                                                setIsDesktopSearchExpanded(false);
-                                            }
-                                        }}
-                                        className="mr-2 inline-flex size-7 items-center justify-center rounded-full text-text-sub transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--text-main-theme)]"
-                                        aria-label="Collapse search"
-                                    >
-                                        <X className="size-4" />
-                                    </button>
-                                ) : null}
                             </div>
                             {showSuggestions && searchQuery.trim() && (isDesktopSearchExpanded || !isBlogListingPage) ? (
                                 <div className="theme-panel theme-border absolute top-12 z-50 w-full overflow-hidden rounded-2xl border shadow-2xl">
