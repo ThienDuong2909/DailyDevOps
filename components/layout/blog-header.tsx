@@ -33,11 +33,21 @@ export function BlogHeader() {
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isDesktopSearchExpanded, setIsDesktopSearchExpanded] = useState(pathname !== '/blog');
     const containerRef = useRef<HTMLFormElement | null>(null);
+    const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
+    const isBlogListingPage = pathname === '/blog';
 
     const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const trimmed = searchQuery.trim();
+
+        if (isBlogListingPage && !isDesktopSearchExpanded) {
+            setIsDesktopSearchExpanded(true);
+            setShowSuggestions(true);
+            requestAnimationFrame(() => desktopSearchInputRef.current?.focus());
+            return;
+        }
 
         if (!trimmed) {
             router.push('/blog');
@@ -91,16 +101,20 @@ export function BlogHeader() {
         const handleOutsideClick = (event: MouseEvent) => {
             if (!containerRef.current?.contains(event.target as Node)) {
                 setShowSuggestions(false);
+                if (isBlogListingPage && !searchQuery.trim()) {
+                    setIsDesktopSearchExpanded(false);
+                }
             }
         };
 
         document.addEventListener('mousedown', handleOutsideClick);
         return () => document.removeEventListener('mousedown', handleOutsideClick);
-    }, []);
+    }, [isBlogListingPage, searchQuery]);
 
     useEffect(() => {
         setMobileMenuOpen(false);
         setShowSuggestions(false);
+        setIsDesktopSearchExpanded(pathname !== '/blog');
     }, [pathname]);
 
     const handleSuggestionSelect = (slug: string) => {
@@ -139,25 +153,67 @@ export function BlogHeader() {
                         <form
                             ref={containerRef}
                             onSubmit={handleSearchSubmit}
-                            className="hidden sm:flex flex-col min-w-40 h-10 max-w-64 relative group"
+                            className={`relative hidden h-10 flex-col group sm:flex ${
+                                isBlogListingPage
+                                    ? isDesktopSearchExpanded
+                                        ? 'w-full max-w-64'
+                                        : 'w-10'
+                                    : 'min-w-40 max-w-64'
+                            }`}
                         >
-                                <div className="flex w-full flex-1 items-center rounded-lg bg-background-light dark:bg-background-dark border border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 transition-all overflow-hidden">
+                                <div
+                                    className={`flex w-full flex-1 items-center overflow-hidden rounded-lg border bg-background-light transition-all duration-300 dark:bg-background-dark ${
+                                        isDesktopSearchExpanded || !isBlogListingPage
+                                            ? 'border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20'
+                                            : 'border-gray-200 dark:border-gray-700'
+                                    }`}
+                                >
                                 <button
                                     type="submit"
-                                    className="pl-3 pr-2 text-text-sub flex items-center justify-center transition-colors hover:text-primary"
+                                    className="flex h-full shrink-0 items-center justify-center pl-3 pr-2 text-text-sub transition-colors hover:text-primary"
                                     aria-label="Search articles"
+                                    onClick={() => {
+                                        if (isBlogListingPage && !isDesktopSearchExpanded) {
+                                            setIsDesktopSearchExpanded(true);
+                                            setShowSuggestions(true);
+                                            requestAnimationFrame(() => desktopSearchInputRef.current?.focus());
+                                        }
+                                    }}
                                 >
                                     <span className="material-symbols-outlined !text-[20px]">search</span>
                                 </button>
                                 <input
-                                    className="flex w-full flex-1 bg-transparent border-none focus:ring-0 text-sm font-normal text-text-main dark:text-white placeholder:text-text-sub h-full px-0"
+                                    ref={desktopSearchInputRef}
+                                    className={`h-full border-none bg-transparent px-0 text-sm font-normal text-text-main placeholder:text-text-sub transition-all duration-300 focus:ring-0 dark:text-white ${
+                                        isDesktopSearchExpanded || !isBlogListingPage
+                                            ? 'w-full flex-1 opacity-100'
+                                            : 'pointer-events-none w-0 flex-none opacity-0'
+                                    }`}
                                     placeholder="Search articles, tools, and topics..."
                                     value={searchQuery}
                                     onChange={(event) => setSearchQuery(event.target.value)}
-                                    onFocus={() => setShowSuggestions(true)}
+                                    onFocus={() => {
+                                        setIsDesktopSearchExpanded(true);
+                                        setShowSuggestions(true);
+                                    }}
                                 />
+                                {isBlogListingPage && isDesktopSearchExpanded ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowSuggestions(false);
+                                            if (!searchQuery.trim()) {
+                                                setIsDesktopSearchExpanded(false);
+                                            }
+                                        }}
+                                        className="mr-2 inline-flex size-7 items-center justify-center rounded-full text-text-sub transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--text-main-theme)]"
+                                        aria-label="Collapse search"
+                                    >
+                                        <X className="size-4" />
+                                    </button>
+                                ) : null}
                             </div>
-                            {showSuggestions && searchQuery.trim() ? (
+                            {showSuggestions && searchQuery.trim() && (isDesktopSearchExpanded || !isBlogListingPage) ? (
                                 <div className="theme-panel theme-border absolute top-12 z-50 w-full overflow-hidden rounded-2xl border shadow-2xl">
                                     {isLoadingSuggestions ? (
                                         <div className="px-4 py-3 text-sm theme-muted">Dang tim goi y...</div>
