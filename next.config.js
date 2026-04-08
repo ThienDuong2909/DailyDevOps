@@ -1,5 +1,16 @@
 /** @type {import('next').NextConfig} */
 const apiBaseUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const parsedApiBaseUrl = new URL(apiBaseUrl);
+
+const apiRemotePattern = {
+    protocol: parsedApiBaseUrl.protocol.replace(':', ''),
+    hostname: parsedApiBaseUrl.hostname,
+    pathname: '/api/v1/media/**',
+};
+
+if (parsedApiBaseUrl.port) {
+    apiRemotePattern.port = parsedApiBaseUrl.port;
+}
 
 const nextConfig = {
     output: 'standalone',
@@ -16,6 +27,12 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: '**.googleusercontent.com',
+            },
+            apiRemotePattern,
+            {
+                protocol: 'https',
+                hostname: 'api.blog.thienduong.info',
+                pathname: '/api/v1/media/**',
             },
         ],
     },
