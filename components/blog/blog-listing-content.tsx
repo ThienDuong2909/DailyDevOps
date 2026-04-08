@@ -526,7 +526,7 @@ export function BlogListingContent() {
                             <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
                                 <div className="px-5 pb-1 pt-5">
                                     <h3 className="text-base font-extrabold tracking-tight text-[var(--text-main-theme)]">
-                                        🔥 Đọc nhiều nhất
+                                        Đọc nhiều nhất
                                     </h3>
                                 </div>
                                 <ol className="divide-y divide-[var(--border-ghost-theme)] px-5 pb-4 pt-2">
@@ -621,24 +621,6 @@ export function BlogListingContent() {
                             </div>
                         ) : null}
 
-                        {/* ── Quick Stats ── */}
-                        {!isLoading && totalPosts > 0 && (
-                            <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)] p-5">
-                                <h3 className="mb-3 text-base font-extrabold tracking-tight text-[var(--text-main-theme)]">
-                                    📊 Thống kê
-                                </h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="rounded-xl bg-[var(--surface-muted)] p-3 text-center">
-                                        <p className="text-xl font-black text-primary">{totalPosts}</p>
-                                        <p className="text-[11px] font-medium text-[var(--text-soft-theme)]">Bài viết</p>
-                                    </div>
-                                    <div className="rounded-xl bg-[var(--surface-muted)] p-3 text-center">
-                                        <p className="text-xl font-black text-primary">{categories.length}</p>
-                                        <p className="text-[11px] font-medium text-[var(--text-soft-theme)]">Danh mục</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </aside>
             </div>
