@@ -174,12 +174,27 @@ export function BlogHeader() {
                             }`}
                         >
                                 <div
-                                    className={`flex h-full items-center overflow-hidden rounded-lg border bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-background-dark ${
+                                    className={`flex h-full items-center justify-end overflow-hidden rounded-lg border bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-background-dark ${
                                         isDesktopSearchExpanded || !isBlogListingPage
                                             ? 'max-w-64 border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20'
                                             : 'max-w-10 border-gray-200 dark:border-gray-700'
                                     }`}
                                 >
+                                <input
+                                    ref={desktopSearchInputRef}
+                                    className={`h-full min-w-0 border-none bg-transparent text-sm font-normal text-text-main placeholder:text-text-sub transition-[max-width,opacity,padding,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-0 dark:text-white ${
+                                        isDesktopSearchExpanded || !isBlogListingPage
+                                            ? 'max-w-52 flex-1 pl-3 pr-1 opacity-100 translate-x-0'
+                                            : 'pointer-events-none max-w-0 flex-none pl-0 pr-0 opacity-0 translate-x-3'
+                                    }`}
+                                    placeholder="Search articles, tools, and topics..."
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    onFocus={() => {
+                                        setIsDesktopSearchExpanded(true);
+                                        setShowSuggestions(true);
+                                    }}
+                                />
                                 <button
                                     type="submit"
                                     className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
@@ -194,21 +209,6 @@ export function BlogHeader() {
                                 >
                                     <span className="material-symbols-outlined !text-[20px]">search</span>
                                 </button>
-                                <input
-                                    ref={desktopSearchInputRef}
-                                    className={`h-full min-w-0 border-none bg-transparent pl-0 text-sm font-normal text-text-main placeholder:text-text-sub transition-[max-width,opacity,padding,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-0 dark:text-white ${
-                                        isDesktopSearchExpanded || !isBlogListingPage
-                                            ? 'max-w-52 flex-1 pr-3 opacity-100 translate-x-0'
-                                            : 'pointer-events-none max-w-0 flex-none pr-0 opacity-0 translate-x-2'
-                                    }`}
-                                    placeholder="Search articles, tools, and topics..."
-                                    value={searchQuery}
-                                    onChange={(event) => setSearchQuery(event.target.value)}
-                                    onFocus={() => {
-                                        setIsDesktopSearchExpanded(true);
-                                        setShowSuggestions(true);
-                                    }}
-                                />
                             </div>
                             {showSuggestions && searchQuery.trim() && (isDesktopSearchExpanded || !isBlogListingPage) ? (
                                 <div className="theme-panel theme-border absolute top-12 z-50 w-full overflow-hidden rounded-2xl border shadow-2xl">
