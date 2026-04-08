@@ -40,11 +40,11 @@ export function BlogHeader() {
         const trimmed = searchQuery.trim();
 
         if (!trimmed) {
-            router.push('/search');
+            router.push('/blog');
             return;
         }
 
-        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+        router.push(`/blog?q=${encodeURIComponent(trimmed)}`);
         setShowSuggestions(false);
     };
 
@@ -142,9 +142,13 @@ export function BlogHeader() {
                             className="hidden sm:flex flex-col min-w-40 h-10 max-w-64 relative group"
                         >
                                 <div className="flex w-full flex-1 items-center rounded-lg bg-background-light dark:bg-background-dark border border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 transition-all overflow-hidden">
-                                <div className="pl-3 pr-2 text-text-sub flex items-center justify-center">
+                                <button
+                                    type="submit"
+                                    className="pl-3 pr-2 text-text-sub flex items-center justify-center transition-colors hover:text-primary"
+                                    aria-label="Search articles"
+                                >
                                     <span className="material-symbols-outlined !text-[20px]">search</span>
-                                </div>
+                                </button>
                                 <input
                                     className="flex w-full flex-1 bg-transparent border-none focus:ring-0 text-sm font-normal text-text-main dark:text-white placeholder:text-text-sub h-full px-0"
                                     placeholder="Search articles, tools, and topics..."
