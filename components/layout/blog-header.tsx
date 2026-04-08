@@ -169,12 +169,12 @@ export function BlogHeader() {
                             onSubmit={handleSearchSubmit}
                             className={`relative hidden h-10 flex-col group sm:flex ${
                                 isBlogListingPage
-                                    ? 'w-full max-w-64'
+                                    ? 'w-full max-w-64 items-start'
                                     : 'min-w-40 max-w-64'
                             }`}
                         >
                                 <div
-                                    className={`flex w-full flex-1 items-center overflow-hidden rounded-lg border bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-background-dark ${
+                                    className={`flex h-full items-center overflow-hidden rounded-lg border bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-background-dark ${
                                         isDesktopSearchExpanded || !isBlogListingPage
                                             ? 'max-w-64 border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20'
                                             : 'max-w-10 border-gray-200 dark:border-gray-700'
@@ -196,10 +196,10 @@ export function BlogHeader() {
                                 </button>
                                 <input
                                     ref={desktopSearchInputRef}
-                                    className={`h-full min-w-0 border-none bg-transparent pl-0 pr-3 text-sm font-normal text-text-main placeholder:text-text-sub transition-[max-width,opacity,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-0 dark:text-white ${
+                                    className={`h-full min-w-0 border-none bg-transparent pl-0 text-sm font-normal text-text-main placeholder:text-text-sub transition-[max-width,opacity,padding,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-0 dark:text-white ${
                                         isDesktopSearchExpanded || !isBlogListingPage
-                                            ? 'max-w-52 flex-1 opacity-100'
-                                            : 'pointer-events-none max-w-0 flex-none pr-0 opacity-0'
+                                            ? 'max-w-52 flex-1 pr-3 opacity-100 translate-x-0'
+                                            : 'pointer-events-none max-w-0 flex-none pr-0 opacity-0 translate-x-2'
                                     }`}
                                     placeholder="Search articles, tools, and topics..."
                                     value={searchQuery}
