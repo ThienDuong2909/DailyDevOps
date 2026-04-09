@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-    'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-bold tracking-[0.01em] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+    'group relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-bold tracking-[0.01em] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
     {
         variants: {
             variant: {
@@ -40,7 +40,7 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant, size, loading, children, disabled, ...props }, ref) => {
-        const isGlossy = !variant || variant === 'default' || variant === 'destructive' || variant === 'secondary';
+        const isGlossy = variant !== 'link';
 
         return (
             <button
@@ -58,7 +58,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 {isGlossy && !loading && (
                     <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute right-[15%] top-[6px] z-[2] h-[4px] w-[12px] rounded-full bg-white/60 blur-[1px]"
+                        className="pointer-events-none absolute right-[12%] top-[8px] z-[2] h-[6px] w-[20px] rounded-full bg-gradient-to-r from-white/90 to-white/10 mix-blend-overlay blur-[1px] opacity-80 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:scale-x-[1.8] group-hover:-translate-x-[10px] group-hover:translate-y-[2px] group-hover:-rotate-[3deg] group-hover:opacity-100 group-hover:blur-[2px] group-active:scale-x-75 group-active:translate-y-[6px] group-active:rotate-0 group-active:opacity-40 group-active:blur-[1px]"
                     />
                 )}
             </button>

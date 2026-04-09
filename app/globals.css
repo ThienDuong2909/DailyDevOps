@@ -539,20 +539,22 @@ h1, h2, h3, h4, h5, h6 {
   .theme-glow-button::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    height: 55%;
+    top: 8px;
+    right: 12%;
+    width: 20px;
+    height: 6px;
     background: radial-gradient(
-      ellipse 64% 100% at 72% 4%,
-      rgba(255, 255, 255, 0.42) 0%,
-      rgba(255, 255, 255, 0.18) 38%,
-      rgba(255, 255, 255, 0.04) 62%,
-      transparent 80%
+      ellipse at center,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.75) 38%,
+      rgba(255, 255, 255, 0.18) 72%,
+      transparent 100%
     );
     z-index: -1;
+    border-radius: 9999px;
     pointer-events: none;
-    transition: opacity 0.35s ease;
+    filter: blur(1px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
   }
 
   /* Liquid blob — hidden below, rises on hover */
@@ -587,6 +589,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .theme-glow-button:hover::before {
     opacity: 0.78;
+    transform: scale(1.04);
   }
 
   .theme-glow-button:hover::after {

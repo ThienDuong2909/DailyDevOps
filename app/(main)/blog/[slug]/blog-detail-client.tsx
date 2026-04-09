@@ -84,10 +84,13 @@ function normalizeContentHeadings(html: string): HeadingNormalizationResult {
     };
 }
 
-function SidebarCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SidebarCard({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
     return (
         <div className="theme-surface rounded-2xl p-5">
-            <h3 className="mb-4 text-base font-bold text-[color:var(--text-main-theme)]">{title}</h3>
+            <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-[color:var(--text-main-theme)]">
+                {icon ? <span className="material-symbols-outlined !text-[18px] text-primary">{icon}</span> : null}
+                {title}
+            </h3>
             {children}
         </div>
     );
@@ -495,10 +498,19 @@ export default function BlogDetailClient() {
 
     if (!post) {
         return (
-            <div className="flex h-screen items-center justify-center">
+            <div className="theme-shell flex min-h-[60vh] items-center justify-center">
                 <div className="text-center">
-                    <h1 className="mb-4 text-4xl font-bold text-white">{errorMessage || 'Post Not Found'}</h1>
-                    <Link href="/" className="text-primary hover:underline">Back to Blog</Link>
+                    <span className="material-symbols-outlined mb-4 !text-[56px] theme-soft">search_off</span>
+                    <h1 className="mb-3 text-3xl font-bold text-[color:var(--text-main-theme)]">
+                        {errorMessage || 'Post Not Found'}
+                    </h1>
+                    <p className="theme-muted mb-6 text-sm">The article you are looking for may have been removed or is temporarily unavailable.</p>
+                    <Link
+                        href="/blog"
+                        className="inline-flex h-11 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                    >
+                        Browse all articles
+                    </Link>
                 </div>
             </div>
         );
@@ -507,7 +519,7 @@ export default function BlogDetailClient() {
     const authorName = `${post.author.firstName} ${post.author.lastName}`;
 
     return (
-        <div className="theme-shell min-h-screen">
+        <div className="min-h-screen" style={{ background: 'var(--surface-muted)', color: 'var(--text-main-theme)' }}>
             {/* JSON-LD Structured Data */}
             <BlogPostJsonLd post={post} postUrl={postUrl} />
             <BreadcrumbJsonLd post={post} siteUrl={siteUrl} />
@@ -526,9 +538,12 @@ export default function BlogDetailClient() {
 
                 <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
                     <div className="min-w-0">
-                        <h1 className="mb-5 text-[30px] font-bold leading-[1.35] text-[color:var(--text-main-theme)]">{post.title}</h1>
-                        <div className="theme-border mb-8 flex items-center gap-4 border-b pb-6">
-                            <div className="size-12 rounded-full border-2 border-border-dark bg-cover bg-center" style={{ backgroundImage: `url("${getImageUrl(post.author.avatar) || '/avatar-placeholder.jpg'}")` }} />
+                        <h1 className="mb-5 text-[28px] font-bold leading-[1.35] tracking-[-0.01em] text-[color:var(--text-main-theme)] sm:text-[30px]">{post.title}</h1>
+                        <div className="mb-8 flex items-center gap-4 border-b pb-6" style={{ borderColor: 'var(--border-soft-theme)' }}>
+                            <div
+                                className="size-12 shrink-0 rounded-full bg-cover bg-center ring-2 ring-[color:var(--border-soft-theme)]"
+                                style={{ backgroundImage: `url("${getImageUrl(post.author.avatar) || '/avatar-placeholder.jpg'}")` }}
+                            />
                             <div>
                                 <Link
                                     href={`/author/${buildAuthorUsername(post.author.firstName, post.author.lastName)}`}
@@ -536,16 +551,24 @@ export default function BlogDetailClient() {
                                 >
                                     {authorName}
                                 </Link>
-                                <p className="text-sm text-[#617589]">{formatDate(post.publishedAt || post.createdAt)} · {post.readingTime || 5} min read · {post.viewCount || 0} views</p>
+                                <p className="theme-muted mt-0.5 text-sm">
+                                    {formatDate(post.publishedAt || post.createdAt)}
+                                    <span className="mx-1.5 inline-block size-1 rounded-full align-middle" style={{ background: 'var(--text-soft-theme)' }} />
+                                    {post.readingTime || 5} min read
+                                    <span className="mx-1.5 inline-block size-1 rounded-full align-middle" style={{ background: 'var(--text-soft-theme)' }} />
+                                    {post.viewCount || 0} views
+                                </p>
                             </div>
                         </div>
 
-                        <div className="mb-8 flex flex-wrap items-center gap-3">
+                        <div className="mb-8 flex flex-wrap items-center gap-2.5">
                             {post.category ? (
                                 <Link
                                     href={`/category/${post.category.slug}`}
-                                    className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary transition-colors hover:bg-primary/15"
+                                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary transition-colors hover:opacity-80"
+                                    style={{ background: 'color-mix(in srgb, var(--primary-theme) 12%, var(--surface-muted))' }}
                                 >
+                                    <span className="material-symbols-outlined !text-[14px]">folder</span>
                                     {post.category.name}
                                 </Link>
                             ) : null}
@@ -553,36 +576,61 @@ export default function BlogDetailClient() {
                                 <Link
                                     key={tag.id}
                                     href={`/tag/${tag.slug}`}
-                                    className="inline-flex rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                    className="inline-flex rounded-full px-4 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
+                                    style={{ border: '1px solid var(--border-soft-theme)' }}
                                 >
                                     #{tag.name}
                                 </Link>
                             ))}
                         </div>
 
+                        {post.featuredImage ? (
+                            <div className="mb-10 overflow-hidden rounded-2xl" style={{ border: '1px solid var(--border-soft-theme)' }}>
+                                <img
+                                    src={getImageUrl(post.featuredImage)}
+                                    alt={post.title}
+                                    className="aspect-[21/9] w-full object-cover"
+                                />
+                            </div>
+                        ) : null}
+
                         <div ref={contentRef} className="article-copy max-w-none" onClick={handleContentClick} dangerouslySetInnerHTML={{ __html: formattedContent }} />
 
-                        <section className="theme-surface mt-12 rounded-[28px] border border-cyan-500/10 px-6 py-8 shadow-sm">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                        <section
+                            className="relative mt-12 overflow-hidden rounded-[28px] px-6 py-8 sm:px-8"
+                            style={{
+                                background: 'var(--surface-base)',
+                                border: '1px solid var(--border-soft-theme)',
+                                boxShadow: 'var(--shadow-theme)',
+                            }}
+                        >
+                            {/* Decorative glow */}
+                            <div
+                                className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full opacity-30 blur-3xl"
+                                style={{ background: 'var(--primary-glow-theme)' }}
+                            />
+                            <p className="relative text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                                <span className="material-symbols-outlined mr-1.5 !text-[16px] align-middle">mail</span>
                                 Continue learning
                             </p>
-                            <h2 className="mt-3 text-2xl font-bold text-[color:var(--text-main-theme)]">
+                            <h2 className="relative mt-3 text-xl font-bold text-[color:var(--text-main-theme)] sm:text-2xl">
                                 Get the next production-ready note in your inbox
                             </h2>
-                            <p className="theme-muted mt-3 max-w-2xl text-sm leading-7">
+                            <p className="theme-muted relative mt-3 max-w-2xl text-sm leading-7">
                                 Subscribe to DevOps Daily for practical writeups on Kubernetes, CI/CD,
                                 observability, and operating real systems without the fluff.
                             </p>
-                            <div className="mt-5 flex flex-wrap gap-3">
+                            <div className="relative mt-5 flex flex-wrap gap-3">
                                 <Link
                                     href="/newsletter"
-                                    className="inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                                    className="theme-glow-button inline-flex h-11 items-center rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
                                 >
                                     Join the newsletter
                                 </Link>
                                 <Link
                                     href="/blog"
-                                    className="inline-flex h-11 items-center rounded-xl border border-gray-200 px-5 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                    className="inline-flex h-11 items-center rounded-xl px-5 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
+                                    style={{ border: '1px solid var(--border-soft-theme)' }}
                                 >
                                     Browse all articles
                                 </Link>
@@ -592,7 +640,10 @@ export default function BlogDetailClient() {
                         <section className="mt-14">
                             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                                 <div>
-                                    <h3 className="text-[22px] font-bold text-[color:var(--text-main-theme)]">Discussion</h3>
+                                    <h3 className="flex items-center gap-2 text-[22px] font-bold text-[color:var(--text-main-theme)]">
+                                        <span className="material-symbols-outlined !text-[22px] text-primary">forum</span>
+                                        Discussion
+                                    </h3>
                                     <p className="theme-muted mt-1 text-sm">
                                         {post.comments?.length || 0} approved comment{post.comments?.length === 1 ? '' : 's'} on this article.
                                     </p>
@@ -606,58 +657,90 @@ export default function BlogDetailClient() {
                                                 : 'copy'
                                         )
                                     }
-                                    className="inline-flex h-10 items-center rounded-xl border border-gray-200 px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                    className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
+                                    style={{ border: '1px solid var(--border-soft-theme)' }}
                                 >
-                                    Share this article
+                                    <span className="material-symbols-outlined !text-[18px]">share</span>
+                                    Share
                                 </button>
                             </div>
                             <div className="theme-surface mb-8 rounded-2xl p-6">
                                 {!isAuthenticated ? (
                                     <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                        <input className="theme-input w-full rounded-2xl px-4 py-3" placeholder="Your name" value={form.authorName} onChange={(e) => setForm((p) => ({ ...p, authorName: e.target.value }))} />
-                                        <input className="theme-input w-full rounded-2xl px-4 py-3" placeholder="Your email" type="email" value={form.authorEmail} onChange={(e) => setForm((p) => ({ ...p, authorEmail: e.target.value }))} />
+                                        <input className="theme-input w-full rounded-2xl px-4 py-3 text-sm" placeholder="Your name" value={form.authorName} onChange={(e) => setForm((p) => ({ ...p, authorName: e.target.value }))} />
+                                        <input className="theme-input w-full rounded-2xl px-4 py-3 text-sm" placeholder="Your email" type="email" value={form.authorEmail} onChange={(e) => setForm((p) => ({ ...p, authorEmail: e.target.value }))} />
                                     </div>
-                                ) : <p className="theme-muted mb-4 text-sm">Dang binh luan voi tu cach <span className="font-semibold text-[color:var(--text-main-theme)]">{user?.firstName} {user?.lastName}</span></p>}
-                                <textarea className="theme-input w-full rounded-2xl p-4 text-[16px]" placeholder="Leave a comment..." rows={4} value={form.content} onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))} />
-                                <button onClick={() => void handleCommentSubmit()} disabled={submitting} className="theme-glow-button mt-4 rounded-2xl px-6 py-2 font-bold transition-opacity hover:opacity-90 disabled:opacity-50">{submitting ? 'Sending...' : 'Post Comment'}</button>
-                                <p className="theme-muted mt-3 text-xs">Binh luan moi se duoc dua vao hang cho duyet truoc khi hien cong khai.</p>
+                                ) : (
+                                    <div className="mb-4 flex items-center gap-2 text-sm">
+                                        <span className="material-symbols-outlined !text-[18px] text-primary">account_circle</span>
+                                        <span className="theme-muted">Commenting as</span>
+                                        <span className="font-semibold text-[color:var(--text-main-theme)]">{user?.firstName} {user?.lastName}</span>
+                                    </div>
+                                )}
+                                <textarea className="theme-input w-full rounded-2xl p-4 text-sm leading-relaxed" placeholder="Leave a comment..." rows={4} value={form.content} onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))} />
+                                <div className="mt-4 flex items-center justify-between">
+                                    <button
+                                        onClick={() => void handleCommentSubmit()}
+                                        disabled={submitting}
+                                        className="theme-glow-button inline-flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+                                    >
+                                        <span className="material-symbols-outlined !text-[18px]">send</span>
+                                        {submitting ? 'Sending...' : 'Post Comment'}
+                                    </button>
+                                    <p className="theme-muted hidden text-xs sm:block">Comments are moderated before publishing.</p>
+                                </div>
                             </div>
 
-                            <div className="space-y-6">
+                            <div className="space-y-5">
                                 {post.comments?.length ? post.comments.map((comment) => (
-                                    <div key={comment.id} className="flex gap-4">
-                                        <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white">
+                                    <div
+                                        key={comment.id}
+                                        className="flex gap-4 rounded-2xl p-4 transition-colors"
+                                        style={{ background: 'var(--surface-muted)' }}
+                                    >
+                                        <div
+                                            className="flex size-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                                            style={{ background: 'var(--primary-glow-theme)' }}
+                                        >
                                             {comment.user ? getInitials(`${comment.user.firstName} ${comment.user.lastName}`) : getInitials(comment.authorName || 'Anonymous')}
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <span className="font-bold text-[color:var(--text-main-theme)]">{comment.user ? `${comment.user.firstName} ${comment.user.lastName}` : comment.authorName || 'Anonymous'}</span>
-                                                <span className="theme-muted text-sm">{formatDate(comment.createdAt)}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="mb-1 flex flex-wrap items-center gap-2">
+                                                <span className="text-sm font-bold text-[color:var(--text-main-theme)]">
+                                                    {comment.user ? `${comment.user.firstName} ${comment.user.lastName}` : comment.authorName || 'Anonymous'}
+                                                </span>
+                                                <span className="theme-soft text-xs">{formatDate(comment.createdAt)}</span>
                                             </div>
-                                            <p className="theme-muted text-[16px] leading-7">{comment.content}</p>
+                                            <p className="theme-muted text-sm leading-7">{comment.content}</p>
                                         </div>
                                     </div>
-                                )) : <div className="theme-surface rounded-xl p-6 text-sm theme-muted">Chua co binh luan nao. Hay de lai y kien dau tien cho bai viet nay.</div>}
+                                )) : (
+                                    <div className="flex flex-col items-center rounded-2xl py-10" style={{ background: 'var(--surface-muted)' }}>
+                                        <span className="material-symbols-outlined mb-3 !text-[36px] theme-soft">chat_bubble_outline</span>
+                                        <p className="theme-muted text-sm">No comments yet. Be the first to share your thoughts.</p>
+                                    </div>
+                                )}
                             </div>
                         </section>
                     </div>
 
                     <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
                         <div className="space-y-5">
-                            <SidebarCard title="On this page">
+                            <SidebarCard title="On this page" icon="toc">
                                 {derivedTocItems.length ? (
-                                    <ul ref={tocNavRef} className="max-h-[60vh] space-y-1.5 overflow-y-auto pr-1">
+                                    <ul ref={tocNavRef} className="custom-scrollbar max-h-[60vh] space-y-1 overflow-y-auto pr-1">
                                         {derivedTocItems.map((item) => (
                                             <li key={item.id}>
                                                 <button
                                                     type="button"
                                                     data-toc-id={item.id}
                                                     onClick={() => scrollToHeading(item.id)}
-                                                    className={`flex w-full items-start rounded-lg border-l-2 px-3 py-2 text-left transition-colors ${
+                                                    className={`flex w-full items-start rounded-lg border-l-2 px-3 py-2 text-left transition-all duration-200 ${
                                                         effectiveActiveTocId === item.id
-                                                            ? 'border-primary bg-primary/10 text-primary'
-                                                            : 'border-transparent theme-muted hover:border-primary/40 hover:bg-primary/5 hover:text-primary'
-                                                    } ${item.level === 3 ? 'ml-4 text-[13px]' : 'text-sm font-semibold'}`}
+                                                            ? 'border-primary text-primary font-semibold'
+                                                            : 'border-transparent theme-muted hover:border-primary/40 hover:text-primary'
+                                                    } ${item.level === 3 ? 'ml-4 text-[13px]' : 'text-sm'}`}
+                                                    style={effectiveActiveTocId === item.id ? { background: 'color-mix(in srgb, var(--primary-theme) 8%, transparent)' } : undefined}
                                                 >
                                                     {item.text}
                                                 </button>
@@ -668,37 +751,35 @@ export default function BlogDetailClient() {
                                     <p className="theme-muted text-sm">No headings found</p>
                                 )}
                             </SidebarCard>
-                            <SidebarCard title="Article snapshot">
+                            <SidebarCard title="Article snapshot" icon="info">
                                 <div className="space-y-3 text-sm">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <span className="theme-muted">Published</span>
-                                        <span className="font-semibold text-[color:var(--text-main-theme)]">
-                                            {formatDate(post.publishedAt || post.createdAt)}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-4">
-                                        <span className="theme-muted">Reading time</span>
-                                        <span className="font-semibold text-[color:var(--text-main-theme)]">
-                                            {post.readingTime || 5} min
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-4">
-                                        <span className="theme-muted">Views</span>
-                                        <span className="font-semibold text-[color:var(--text-main-theme)]">
-                                            {post.viewCount || 0}
-                                        </span>
-                                    </div>
+                                    {[
+                                        { label: 'Published', value: formatDate(post.publishedAt || post.createdAt), icon: 'calendar_month' },
+                                        { label: 'Reading time', value: `${post.readingTime || 5} min`, icon: 'schedule' },
+                                        { label: 'Views', value: String(post.viewCount || 0), icon: 'visibility' },
+                                    ].map((row) => (
+                                        <div key={row.label} className="flex items-center justify-between gap-4">
+                                            <span className="theme-muted flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined !text-[16px] theme-soft">{row.icon}</span>
+                                                {row.label}
+                                            </span>
+                                            <span className="font-semibold text-[color:var(--text-main-theme)]">
+                                                {row.value}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
                             </SidebarCard>
 
-                            <SidebarCard title="Share and explore">
+                            <SidebarCard title="Share and explore" icon="explore">
                                 <div className="space-y-3">
                                     <div className="flex flex-wrap gap-2">
                                         {post.tags?.map((tag) => (
                                             <Link
                                                 key={`sidebar-${tag.id}`}
                                                 href={`/tag/${tag.slug}`}
-                                                className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                                className="rounded-full px-3 py-1.5 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
+                                                style={{ border: '1px solid var(--border-soft-theme)' }}
                                             >
                                                 #{tag.name}
                                             </Link>
@@ -708,15 +789,18 @@ export default function BlogDetailClient() {
                                         <button
                                             type="button"
                                             onClick={() => void handleShare('copy')}
-                                            className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                                            className="theme-glow-button inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-opacity hover:opacity-90"
                                         >
+                                            <span className="material-symbols-outlined !text-[18px]">link</span>
                                             Copy article link
                                         </button>
                                         {post.category ? (
                                             <Link
                                                 href={`/category/${post.category.slug}`}
-                                                className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+                                                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
+                                                style={{ border: '1px solid var(--border-soft-theme)' }}
                                             >
+                                                <span className="material-symbols-outlined !text-[18px]">category</span>
                                                 More in {post.category.name}
                                             </Link>
                                         ) : null}
@@ -724,21 +808,41 @@ export default function BlogDetailClient() {
                                 </div>
                             </SidebarCard>
 
-                            <SidebarCard title="Continue reading">
+                            <SidebarCard title="Continue reading" icon="auto_stories">
                                 {relatedPosts.length ? (
-                                    <div className="space-y-4">
+                                    <div className="space-y-1">
                                         {relatedPosts.map((item) => (
                                             <Link
                                                 key={item.id}
                                                 href={`/blog/${item.slug}`}
-                                                className="block rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-primary/20 hover:bg-primary/5"
+                                                className="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:text-primary"
+                                                style={{ '--hover-bg': 'color-mix(in srgb, var(--primary-theme) 6%, transparent)' } as React.CSSProperties}
+                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--primary-theme) 6%, transparent)')}
+                                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                             >
-                                                <p className="text-sm font-semibold text-[color:var(--text-main-theme)]">
-                                                    {item.title}
-                                                </p>
-                                                <p className="theme-muted mt-1 text-xs">
-                                                    {item.readingTime || 5} min read
-                                                </p>
+                                                {item.featuredImage ? (
+                                                    <img
+                                                        src={getImageUrl(item.featuredImage)}
+                                                        alt=""
+                                                        className="size-10 shrink-0 rounded-lg object-cover"
+                                                        style={{ border: '1px solid var(--border-ghost-theme)' }}
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        className="flex size-10 shrink-0 items-center justify-center rounded-lg"
+                                                        style={{ background: 'var(--surface-muted)', border: '1px solid var(--border-ghost-theme)' }}
+                                                    >
+                                                        <span className="material-symbols-outlined !text-[16px] theme-soft">article</span>
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <p className="line-clamp-2 text-sm font-semibold text-[color:var(--text-main-theme)]">
+                                                        {item.title}
+                                                    </p>
+                                                    <p className="theme-soft mt-0.5 text-xs">
+                                                        {item.readingTime || 5} min read
+                                                    </p>
+                                                </div>
                                             </Link>
                                         ))}
                                     </div>
@@ -749,21 +853,31 @@ export default function BlogDetailClient() {
                                 )}
                             </SidebarCard>
 
-                            <SidebarCard title="Popular now">
+                            <SidebarCard title="Popular now" icon="trending_up">
                                 {popularPosts.length ? (
-                                    <div className="space-y-4">
-                                        {popularPosts.map((item) => (
+                                    <div className="space-y-1">
+                                        {popularPosts.map((item, index) => (
                                             <Link
                                                 key={`popular-${item.id}`}
                                                 href={`/blog/${item.slug}`}
-                                                className="block rounded-xl border border-transparent px-2 py-1 transition-colors hover:border-primary/20 hover:bg-primary/5"
+                                                className="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:text-primary"
+                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--primary-theme) 6%, transparent)')}
+                                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                             >
-                                                <p className="text-sm font-semibold text-[color:var(--text-main-theme)]">
-                                                    {item.title}
-                                                </p>
-                                                <p className="theme-muted mt-1 text-xs">
-                                                    {item.viewCount || 0} views
-                                                </p>
+                                                <span
+                                                    className="flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-primary"
+                                                    style={{ background: 'color-mix(in srgb, var(--primary-theme) 10%, var(--surface-muted))' }}
+                                                >
+                                                    {index + 1}
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <p className="line-clamp-2 text-sm font-semibold text-[color:var(--text-main-theme)]">
+                                                        {item.title}
+                                                    </p>
+                                                    <p className="theme-soft mt-0.5 text-xs">
+                                                        {item.viewCount || 0} views
+                                                    </p>
+                                                </div>
                                             </Link>
                                         ))}
                                     </div>
