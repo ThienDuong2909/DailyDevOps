@@ -36,6 +36,16 @@ pipeline {
         // trên cùng 1 agent (mỗi pipeline có ~/.docker riêng, không ghi đè nhau)
         DOCKER_CONFIG = "${WORKSPACE}/.docker"
         BUILD_CONTEXT = '.'
+
+        // Trivy Security Scanner Configuration
+        // Run as Docker container — no host installation needed,
+        // always up-to-date, portable across any Docker-capable agent
+        TRIVY_IMAGE = 'aquasec/trivy:latest'
+        // Persist vulnerability DB between builds to avoid re-downloading (~40 MB)
+        TRIVY_CACHE_DIR = "${WORKSPACE}/.trivy-cache"
+        // Block pipeline on CRITICAL and HIGH severity vulnerabilities only
+        // (MEDIUM/LOW are reported but do not fail the build)
+        TRIVY_SEVERITY = 'CRITICAL,HIGH'
         RUN_E2E = "${env.RUN_E2E ?: 'false'}"
         PLAYWRIGHT_BASE_URL = 'http://localhost:3000'
         PLAYWRIGHT_API_URL = 'http://localhost:3001'
@@ -137,7 +147,7 @@ EOF
                             -Dsonar.projectKey=devops-blog-client \\
                             -Dsonar.projectName='DevOps Blog Client' \\
                             -Dsonar.sources=. \\
-                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,coverage/**,playwright-report/**,test-results/**,tests/**,**/*.d.ts \\
+                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,.trivy-cache/**,coverage/**,playwright-report/**,test-results/**,tests/**,**/*.d.ts \\
                             -Dsonar.coverage.exclusions=app/**,components/**,hooks/**,lib/**,stores/**,types/**,next.config.js,tailwind.config.js,postcss.config.js \\
                             -Dsonar.sourceEncoding=UTF-8
                         """
@@ -161,19 +171,91 @@ EOF
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Trivy Filesystem Scan') {
+            steps {
+                echo 'Scanning project filesystem for vulnerable dependencies...'
+                sh "mkdir -p \"${TRIVY_CACHE_DIR}\""
+                // Export JSON report first — always produced for audit trail
+                sh """
+                    docker run --rm \\
+                        -v "${WORKSPACE}:/src" \\
+                        -v "${TRIVY_CACHE_DIR}:/root/.cache/" \\
+                        ${TRIVY_IMAGE} filesystem \\
+                            --severity "${TRIVY_SEVERITY}" \\
+                            --ignore-unfixed \\
+                            --skip-dirs node_modules \\
+                            --format json \\
+                            --output /src/trivy-fs-report.json \\
+                            /src
+                """
+                archiveArtifacts artifacts: 'trivy-fs-report.json', allowEmptyArchive: true
+                // Gate check — exit-code 1 fails the pipeline if CRITICAL/HIGH found
+                sh """
+                    docker run --rm \\
+                        -v "${WORKSPACE}:/src:ro" \\
+                        -v "${TRIVY_CACHE_DIR}:/root/.cache/" \\
+                        ${TRIVY_IMAGE} filesystem \\
+                            --severity "${TRIVY_SEVERITY}" \\
+                            --exit-code 1 \\
+                            --ignore-unfixed \\
+                            --skip-dirs node_modules \\
+                            --format table \\
+                            /src
+                """
+                echo 'Filesystem scan passed — no CRITICAL/HIGH vulnerabilities found.'
+            }
+        }
+
+        stage('Docker Build') {
             steps {
                 script {
                     echo "Building Docker image: ${IMAGE_TAG}:${BUILD_NUMBER}..."
-                    withCredentials([usernamePassword(credentialsId: DOCKER_CRED_ID, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        
-                        // Build with specific version tag, then re-tag as latest
-                        sh "docker build --pull -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
-                        sh "docker tag ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest"
+                    sh "docker build --pull -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
+                    sh "docker tag ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest"
+                }
+            }
+        }
 
-                        echo 'Running container startup smoke check...'
+        stage('Trivy Image Scan') {
+            steps {
+                echo 'Scanning Docker image for OS-level vulnerabilities and misconfigurations...'
+                // Export JSON report first — always produced for audit trail
+                sh """
+                    docker run --rm \\
+                        -v /var/run/docker.sock:/var/run/docker.sock \\
+                        -v "${TRIVY_CACHE_DIR}:/root/.cache/" \\
+                        -v "${WORKSPACE}:/output" \\
+                        ${TRIVY_IMAGE} image \\
+                            --severity "${TRIVY_SEVERITY}" \\
+                            --ignore-unfixed \\
+                            --scanners vuln,secret,misconfig \\
+                            --format json \\
+                            --output /output/trivy-image-report.json \\
+                            ${IMAGE_TAG}:${BUILD_NUMBER}
+                """
+                archiveArtifacts artifacts: 'trivy-image-report.json', allowEmptyArchive: true
+                // Gate check — exit-code 1 fails the pipeline if CRITICAL/HIGH found
+                sh """
+                    docker run --rm \\
+                        -v /var/run/docker.sock:/var/run/docker.sock \\
+                        -v "${TRIVY_CACHE_DIR}:/root/.cache/" \\
+                        ${TRIVY_IMAGE} image \\
+                            --severity "${TRIVY_SEVERITY}" \\
+                            --exit-code 1 \\
+                            --ignore-unfixed \\
+                            --scanners vuln,secret,misconfig \\
+                            --format table \\
+                            ${IMAGE_TAG}:${BUILD_NUMBER}
+                """
+                echo 'Image scan passed — no CRITICAL/HIGH vulnerabilities found.'
+            }
+        }
+
+        stage('Smoke Test & Push') {
+            steps {
+                script {
+                    echo 'Running container startup smoke check...'
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CRED_ID, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         sh """
                             docker run -d --name client-smoke-${BUILD_NUMBER} -p 3000:3000 ${IMAGE_TAG}:${BUILD_NUMBER}
                             for i in \$(seq 1 30); do
@@ -192,12 +274,12 @@ EOF
                             done
                             docker rm -f client-smoke-${BUILD_NUMBER}
                         """
-                        
-                        // Push versioned tag
+
+                        echo "Pushing verified image: ${IMAGE_TAG}:${BUILD_NUMBER}..."
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         sh "docker push ${IMAGE_TAG}:${BUILD_NUMBER}"
-                        
+
                         // Re-authenticate before pushing latest to prevent token expiry
-                        // (long push operations with retries can cause session timeout)
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         sh "docker push ${IMAGE_TAG}:latest"
                     }
@@ -266,6 +348,7 @@ EOF
         always {
             echo 'Performing post-build cleanup...'
             sh 'rm -f .env.production'
+            sh 'rm -f trivy-fs-report.json trivy-image-report.json'
             sh "docker rm -f client-smoke-${BUILD_NUMBER} || true"
             sh "docker logout || true"
             sh "rm -rf k8s-repo"
@@ -284,7 +367,9 @@ EOF
             // cleanWs moves here so .npm-cache benefits next run
             cleanWs(deleteDirs: true, patterns: [
                 // Keep npm cache between builds for faster installs
-                [pattern: '.npm-cache/**', type: 'EXCLUDE']
+                [pattern: '.npm-cache/**', type: 'EXCLUDE'],
+                // Keep Trivy vulnerability DB cache between builds (~40 MB)
+                [pattern: '.trivy-cache/**', type: 'EXCLUDE']
             ])
         }
     }
