@@ -145,7 +145,7 @@ export function BlogHeader() {
                             <img 
                                 src="/icon.png" 
                                 alt="Daily DevOps Logo" 
-                                className="w-12 h-12 md:w-12 md:h-12 object-contain drop-shadow-sm scale-[1.25]" 
+                                className="w-12 h-12 md:w-12 md:h-12 object-contain drop-shadow-sm" 
                             />
                             <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
                                 <span className="text-slate-800 dark:text-slate-100 transition-colors">Daily</span>{" "}
