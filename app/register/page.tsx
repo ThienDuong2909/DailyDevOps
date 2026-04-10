@@ -19,7 +19,7 @@ export default function RegisterPage() {
     const [message, setMessage] = useState('');
     const [verificationUrl, setVerificationUrl] = useState('');
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         try {

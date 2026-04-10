@@ -17,7 +17,7 @@ function ResetPasswordPageContent() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState('');
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (!token) {

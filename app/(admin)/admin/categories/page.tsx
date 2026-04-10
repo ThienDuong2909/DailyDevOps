@@ -77,7 +77,7 @@ export default function CategoriesAdminPage() {
         setFormState(initialFormState);
     };
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (!formState.name.trim()) {

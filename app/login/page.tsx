@@ -53,7 +53,7 @@ export default function LoginPage() {
         router.replace(resolvePostLoginRoute(user?.role));
     }, [isAuthenticated, isInitialized, router, user?.role]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         clearError();
 

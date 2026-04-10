@@ -36,7 +36,7 @@ export default function ContactPage() {
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [feedback, setFeedback] = useState('');
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         try {

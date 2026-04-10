@@ -175,7 +175,7 @@ export default function UsersPage() {
         }));
     }, [users]);
 
-    const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSearchSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         setCurrentPage(1);
         setSearchQuery(searchInput.trim());

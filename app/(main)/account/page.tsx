@@ -229,7 +229,7 @@ export default function AccountPage() {
         }
     };
 
-    const handleProfileSave = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleProfileSave = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (!user) {
@@ -253,7 +253,7 @@ export default function AccountPage() {
         }
     };
 
-    const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handlePasswordChange = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -358,7 +358,7 @@ export default function AccountPage() {
         }
     };
 
-    const handleEnableMfa = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleEnableMfa = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         try {
@@ -380,7 +380,7 @@ export default function AccountPage() {
         }
     };
 
-    const handleDisableMfa = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleDisableMfa = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         try {

@@ -234,7 +234,7 @@ export default function CommentsPage() {
         });
     }, [comments, queueFilter]);
 
-    const handleSearch = async (e: React.FormEvent) => {
+    const handleSearch = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         setCurrentPage(1);
         await fetchComments({ page: 1, search: searchQuery });

@@ -122,7 +122,7 @@ export default function ArticlesPage() {
         void fetchPosts();
     }, [fetchPosts]);
 
-    const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSearch = (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         setCurrentPage(1);
         setSearchQuery(searchInput.trim());

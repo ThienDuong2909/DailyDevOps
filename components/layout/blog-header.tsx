@@ -39,7 +39,7 @@ export function BlogHeader() {
     const searchNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
     const isBlogListingPage = pathname === '/blog';
 
-    const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSearchSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         const trimmed = searchQuery.trim();
 

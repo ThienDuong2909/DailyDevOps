@@ -185,7 +185,7 @@ function SearchPageContent() {
         [page, totalPages]
     );
 
-    const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSearchSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         const trimmed = searchInput.trim();
 
