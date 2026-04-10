@@ -141,12 +141,17 @@ export function BlogHeader() {
             <div className="layout-container flex justify-center w-full">
                 <div className="flex max-w-[1280px] w-full items-center justify-between px-4 py-3 md:px-10">
                     <div className="flex items-center gap-8">
-                        <Link href="/" className="flex items-center gap-3 text-text-main dark:text-white group">
-                            <div className="size-8 text-primary">
-                                <span className="material-symbols-outlined !text-[32px]">cloud_circle</span>
-                            </div>
-                            <h2 className="text-xl font-bold leading-tight tracking-[-0.015em] group-hover:text-primary transition-colors">
-                                {settings.general.siteName}
+                        <Link href="/" className="flex items-center gap-3 text-text-main dark:text-white group hover:opacity-90 transition-opacity">
+                            <img 
+                                src="/icon.png" 
+                                alt="Daily DevOps Logo" 
+                                className="w-8 h-8 md:w-9 md:h-9 object-contain drop-shadow-sm" 
+                            />
+                            <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
+                                <span className="text-slate-800 dark:text-slate-100 transition-colors">Daily</span>{" "}
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-cyan-400 dark:to-blue-500">
+                                    DevOps
+                                </span>
                             </h2>
                         </Link>
 
