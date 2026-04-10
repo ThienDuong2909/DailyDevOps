@@ -91,8 +91,8 @@ function resolveData<T>(payload: T | { data?: T }, fallback: T): T {
 function createSlug(value: string) {
     return value
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[đĐ]/g, 'd')
+        .replaceAll(/[\u0300-\u036f]/g, '')
+        .replaceAll(/[đĐ]/g, 'd')
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
