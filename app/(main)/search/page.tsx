@@ -10,13 +10,14 @@ export const metadata: Metadata = {
     },
 };
 
-export default function SearchPage({
+export default async function SearchPage({
     searchParams,
 }: {
-    searchParams?: { q?: string; page?: string };
+    searchParams?: Promise<{ q?: string; page?: string }>;
 }) {
-    const query = searchParams?.q?.trim();
-    const page = searchParams?.page?.trim();
+    const resolvedParams = await searchParams;
+    const query = resolvedParams?.q?.trim();
+    const page = resolvedParams?.page?.trim();
 
     if (!query) {
         redirect('/blog');

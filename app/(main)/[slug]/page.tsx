@@ -69,9 +69,10 @@ async function getPostSeo(slug: string): Promise<PostSeoData | null> {
 export async function generateMetadata({
     params,
 }: {
-    params: { slug: string };
+    params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-    const post = await getPostSeo(params.slug);
+    const { slug } = await params;
+    const post = await getPostSeo(slug);
 
     if (!post) {
         return {

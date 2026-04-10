@@ -52,9 +52,10 @@ function sortPostsNewestFirst(posts: Post[]) {
 export async function generateMetadata({
     params,
 }: {
-    params: { username: string };
+    params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-    const author = await fetchAuthor(params.username);
+    const { username } = await params;
+    const author = await fetchAuthor(username);
 
     if (!author) {
         return {
@@ -74,7 +75,7 @@ export async function generateMetadata({
             author.bio ||
             `Read published DevOps Daily articles written by ${authorName}.`,
         alternates: {
-            canonical: `/author/${params.username}`,
+            canonical: `/author/${username}`,
         },
     };
 }
@@ -82,9 +83,10 @@ export async function generateMetadata({
 export default async function AuthorPage({
     params,
 }: {
-    params: { username: string };
+    params: Promise<{ username: string }>;
 }) {
-    const author = await fetchAuthor(params.username);
+    const { username } = await params;
+    const author = await fetchAuthor(username);
 
     if (!author) {
         notFound();

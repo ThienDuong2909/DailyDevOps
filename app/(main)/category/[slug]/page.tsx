@@ -83,10 +83,11 @@ async function fetchPostsByCategory(categoryId: string): Promise<Post[]> {
 export async function generateMetadata({
     params,
 }: {
-    params: { slug: string };
+    params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
+    const { slug } = await params;
     const categories = await fetchCategories();
-    const category = categories.find((item) => item.slug === params.slug);
+    const category = categories.find((item) => item.slug === slug);
 
     if (!category) {
         return {
@@ -112,10 +113,11 @@ export async function generateMetadata({
 export default async function CategoryPage({
     params,
 }: {
-    params: { slug: string };
+    params: Promise<{ slug: string }>;
 }) {
+    const { slug } = await params;
     const categories = await fetchCategories();
-    const category = categories.find((item) => item.slug === params.slug);
+    const category = categories.find((item) => item.slug === slug);
 
     if (!category) {
         notFound();

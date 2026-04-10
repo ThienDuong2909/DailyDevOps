@@ -27,9 +27,8 @@ ENV HOSTNAME=0.0.0.0
 RUN apk upgrade --no-cache \
     && rm -rf /usr/local/lib/node_modules/npm \
     && rm -rf /usr/local/lib/node_modules/corepack \
-    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
-
-RUN addgroup --system --gid 1001 nodejs \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    && addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
