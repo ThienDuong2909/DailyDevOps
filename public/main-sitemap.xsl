@@ -104,7 +104,7 @@
 					<div class="header">
 						<h1>XML Sitemap</h1>
 						<p>This is an XML Sitemap generated dynamically for search engines like Google and Bing.</p>
-						<p>You can find more information about XML sitemaps on <a href="http://sitemaps.org" target="_blank">sitemaps.org</a>.</p>
+						<p>You can find more information about XML sitemaps on <a href="https://www.sitemaps.org" target="_blank">sitemaps.org</a>.</p>
 					</div>
 					<div class="table-container">
 						<xsl:choose>

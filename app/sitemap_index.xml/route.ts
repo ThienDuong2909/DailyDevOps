@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { siteUrl, fetchSitemapData } from '@/lib/sitemap';
+import { siteUrl, fetchSitemapData, buildSitemapIndexXml } from '@/lib/sitemap';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 export async function GET() {
-    // Optionally we could just return hardcoded sitemaps but getting real dates makes it premium
     const { posts, categories, tags } = await fetchSitemapData();
     
     const latestPostDate = posts.length > 0 
@@ -20,26 +19,14 @@ export async function GET() {
         ? new Date(Math.max(...tags.map(t => new Date(t.updatedAt).getTime())))
         : new Date();
 
-    const sitemaps = [
-        { url: `${siteUrl}/page-sitemap.xml`, lastModified: new Date() },
-        { url: `${siteUrl}/post-sitemap.xml`, lastModified: latestPostDate },
-        { url: `${siteUrl}/category-sitemap.xml`, lastModified: latestCategoryDate },
-        { url: `${siteUrl}/tag-sitemap.xml`, lastModified: latestTagDate },
+    const items = [
+        { url: `${siteUrl}/page-sitemap.xml`, lastModified: new Date().toISOString() },
+        { url: `${siteUrl}/post-sitemap.xml`, lastModified: latestPostDate.toISOString() },
+        { url: `${siteUrl}/category-sitemap.xml`, lastModified: latestCategoryDate.toISOString() },
+        { url: `${siteUrl}/tag-sitemap.xml`, lastModified: latestTagDate.toISOString() },
     ];
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="/main-sitemap.xsl"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    ${sitemaps
-        .map(
-            (sitemap) => `
-    <sitemap>
-        <loc>${sitemap.url}</loc>
-        <lastmod>${sitemap.lastModified.toISOString()}</lastmod>
-    </sitemap>`
-        )
-        .join('')}
-</sitemapindex>`;
+    const xml = buildSitemapIndexXml(items);
 
     return new NextResponse(xml, {
         headers: {

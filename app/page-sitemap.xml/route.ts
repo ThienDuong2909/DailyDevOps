@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { siteUrl } from '@/lib/sitemap';
+import { siteUrl, buildSitemapXml } from '@/lib/sitemap';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
@@ -17,21 +17,14 @@ export async function GET() {
         { url: `${siteUrl}/dmca-policy`, changeFrequency: 'monthly', priority: 0.3 },
     ];
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="/main-sitemap.xsl"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    ${pages
-        .map(
-            (page) => `
-    <url>
-        <loc>${page.url}</loc>
-        <lastmod>${new Date().toISOString()}</lastmod>
-        <changefreq>${page.changeFrequency}</changefreq>
-        <priority>${page.priority}</priority>
-    </url>`
-        )
-        .join('')}
-</urlset>`;
+    const items = pages.map((page) => ({
+        url: page.url,
+        lastModified: new Date().toISOString(),
+        changeFrequency: page.changeFrequency,
+        priority: page.priority,
+    }));
+
+    const xml = buildSitemapXml(items);
 
     return new NextResponse(xml, {
         headers: { 'Content-Type': 'application/xml' },

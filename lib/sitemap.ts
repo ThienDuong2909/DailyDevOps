@@ -28,7 +28,6 @@ export interface SitemapTag {
     _count: { posts: number };
 }
 
-// Fetch tất cả data từ backend
 export async function fetchSitemapData(): Promise<{
     posts: SitemapPost[];
     categories: SitemapCategory[];
@@ -40,14 +39,43 @@ export async function fetchSitemapData(): Promise<{
         });
 
         if (!res.ok) {
-            console.error(`Sitemap API responded with ${res.status}`);
             return { posts: [], categories: [], tags: [] };
         }
 
         const json = await res.json();
         return json.data || { posts: [], categories: [], tags: [] };
-    } catch (error) {
-        console.error('Failed to fetch sitemap data:', error);
+    } catch {
         return { posts: [], categories: [], tags: [] };
     }
+}
+
+export interface SitemapItem {
+    url: string;
+    lastModified: string;
+    changeFrequency?: string;
+    priority?: number | string;
+}
+
+export function buildSitemapXml(items: SitemapItem[]): string {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/main-sitemap.xsl"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${items.map((item) => `    <url>
+        <loc>${item.url}</loc>
+        <lastmod>${item.lastModified}</lastmod>
+        ${item.changeFrequency ? `<changefreq>${item.changeFrequency}</changefreq>` : ''}
+        ${item.priority ? `<priority>${item.priority}</priority>` : ''}
+    </url>`).join('\n')}
+</urlset>`;
+}
+
+export function buildSitemapIndexXml(items: SitemapItem[]): string {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/main-sitemap.xsl"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${items.map((item) => `    <sitemap>
+        <loc>${item.url}</loc>
+        <lastmod>${item.lastModified}</lastmod>
+    </sitemap>`).join('\n')}
+</sitemapindex>`;
 }
