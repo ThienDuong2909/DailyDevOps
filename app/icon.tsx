@@ -1,14 +1,15 @@
 import { ImageResponse } from 'next/og';
+import fs from 'fs';
+import path from 'path';
 
 export const size = { width: 32, height: 32 };
 export const contentType = 'image/png';
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export default async function Icon() {
-    // Lấy ảnh gốc public/icon.png
-    const iconData = await fetch(new URL('../public/icon.png', import.meta.url)).then((res) =>
-        res.arrayBuffer()
-    );
+    // Read file natively via Node.js to bypass Webpack's sharp loader which fails on older Jenkins CI CPUs
+    const iconPath = path.join(process.cwd(), 'public', 'icon.png');
+    const iconData = fs.readFileSync(iconPath);
 
     return new ImageResponse(
         (
