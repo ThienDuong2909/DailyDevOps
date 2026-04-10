@@ -36,7 +36,7 @@ export function BlogHeader() {
     const [isDesktopSearchExpanded, setIsDesktopSearchExpanded] = useState(pathname !== '/blog');
     const containerRef = useRef<HTMLFormElement | null>(null);
     const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
-    const searchNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+    const searchNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
     const isBlogListingPage = pathname === '/blog';
 
     const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
