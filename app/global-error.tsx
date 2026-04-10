@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import * as Sentry from '@sentry/browser';
+import Link from 'next/link';
 
 export default function GlobalError({
     error,
@@ -40,12 +41,12 @@ export default function GlobalError({
                             >
                                 Try again
                             </button>
-                            <a
+                            <Link
                                 href="/"
                                 className="inline-flex h-11 items-center rounded-lg border border-border-dark bg-[#1e293b] px-5 text-sm font-semibold text-white transition-colors hover:border-primary hover:text-primary"
                             >
                                 Back home
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>
