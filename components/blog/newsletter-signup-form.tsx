@@ -39,7 +39,7 @@ export function NewsletterSignupForm({
         return 'flex flex-col gap-2 sm:flex-row';
     }, [stacked]);
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (!email.trim()) {
