@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next';
 const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    'https://blog.thienduong.info';
+    'https://dailydevops.blog';
 
 export default function robots(): MetadataRoute.Robots {
     return {
@@ -18,6 +18,6 @@ export default function robots(): MetadataRoute.Robots {
                 allow: '/',
             },
         ],
-        sitemap: `${siteUrl}/sitemap.xml`,
+        sitemap: `${siteUrl}/sitemap_index.xml`,
     };
 }
