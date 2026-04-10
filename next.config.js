@@ -31,7 +31,7 @@ const nextConfig = {
             apiRemotePattern,
             {
                 protocol: 'https',
-                hostname: 'api.blog.thienduong.info',
+                hostname: 'api.dailydevops.blog',
                 pathname: '/api/v1/media/**',
             },
         ],
