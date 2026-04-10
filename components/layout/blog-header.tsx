@@ -219,7 +219,7 @@ export function BlogHeader() {
                                             type="submit"
                                             className="block w-full px-4 py-3 text-left text-sm theme-muted transition-colors hover:bg-primary/5 hover:text-primary"
                                         >
-                                            Search the full library for "{searchQuery.trim()}"
+                                            Search the full library for &quot;{searchQuery.trim()}&quot;
                                         </button>
                                     ) : (
                                         <>
