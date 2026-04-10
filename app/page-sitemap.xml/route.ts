@@ -6,7 +6,7 @@ export const revalidate = 3600;
 
 export async function GET() {
     const pages = [
-        { url: siteUrl, changeFrequency: 'daily', priority: 1.0 },
+        { url: siteUrl, changeFrequency: 'daily', priority: 1 },
         { url: `${siteUrl}/newsletter`, changeFrequency: 'weekly', priority: 0.7 },
         { url: `${siteUrl}/search`, changeFrequency: 'weekly', priority: 0.5 },
         { url: `${siteUrl}/about`, changeFrequency: 'monthly', priority: 0.4 },
