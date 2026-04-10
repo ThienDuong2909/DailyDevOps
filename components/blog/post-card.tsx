@@ -46,7 +46,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
     return (
         <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--surface-elevated)] shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
             <div className={`relative aspect-[16/9] w-full overflow-hidden ${imageClassName || ''}`}>
-                <Link href={`/blog/${post.slug}`} className="block h-full w-full">
+                <Link href={`/${post.slug}`} className="block h-full w-full">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={imageUrl}
@@ -68,7 +68,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
             </div>
 
             <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
-                <Link href={`/blog/${post.slug}`} className="block">
+                <Link href={`/${post.slug}`} className="block">
                     <h3 className="line-clamp-2 text-[1.05rem] font-extrabold leading-snug tracking-tight text-[var(--text-main-theme)] transition-colors group-hover:text-primary">
                         {post.title}
                     </h3>

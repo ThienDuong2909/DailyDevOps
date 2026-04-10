@@ -90,6 +90,9 @@ function resolveData<T>(payload: T | { data?: T }, fallback: T): T {
 
 function createSlug(value: string) {
     return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
@@ -159,6 +162,7 @@ export default function ArticleEditPage() {
     const hasHydratedRef = useRef(false);
     const lastSavedSnapshotRef = useRef('');
     const isAutosavingRef = useRef(false);
+    const shouldAutoGenerateSlugRef = useRef(true);
 
     const fetchTaxonomies = useCallback(async () => {
         const [categoriesPayload, tagsPayload] = await Promise.all([
@@ -175,6 +179,7 @@ export default function ArticleEditPage() {
             setArticle(null);
             setFormState(initialFormState);
             setVersions([]);
+            shouldAutoGenerateSlugRef.current = true;
             return;
         }
 
@@ -183,6 +188,7 @@ export default function ArticleEditPage() {
 
         setArticle(resolved);
         setFormState(buildFormState(resolved || undefined));
+        shouldAutoGenerateSlugRef.current = !(resolved?.slug || '').trim();
     }, [articleId, isNewArticle]);
 
     const fetchVersions = useCallback(async () => {
@@ -322,6 +328,19 @@ export default function ArticleEditPage() {
         }));
     };
 
+    const handleTitleChange = (value: string) => {
+        setFormState((previous) => ({
+            ...previous,
+            title: value,
+            slug: shouldAutoGenerateSlugRef.current ? createSlug(value) : previous.slug,
+        }));
+    };
+
+    const handleSlugChange = (value: string) => {
+        shouldAutoGenerateSlugRef.current = false;
+        handleFieldChange('slug', createSlug(value));
+    };
+
     const handleTagToggle = (tagId: string) => {
         setFormState((previous) => ({
             ...previous,
@@ -332,6 +351,7 @@ export default function ArticleEditPage() {
     };
 
     const handleGenerateSlug = () => {
+        shouldAutoGenerateSlugRef.current = true;
         handleFieldChange('slug', createSlug(formState.title));
     };
 
@@ -774,7 +794,7 @@ export default function ArticleEditPage() {
                     ) : null}
                     {!isNewArticle && formState.slug ? (
                         <Link
-                            href={`/blog/${formState.slug}`}
+                            href={`/${formState.slug}`}
                             target="_blank"
                             className="hidden h-9 items-center gap-2 rounded-lg border border-border-dark bg-[#283039] px-4 text-sm font-bold text-[#9dabb9] transition-colors hover:bg-[#3b4754] hover:text-white sm:inline-flex"
                         >
@@ -801,17 +821,17 @@ export default function ArticleEditPage() {
                         <input
                             type="text"
                             value={formState.title}
-                            onChange={(event) => handleFieldChange('title', event.target.value)}
+                            onChange={(event) => handleTitleChange(event.target.value)}
                             placeholder="Nhap tieu de bai viet..."
                             className="w-full border-0 border-b theme-border bg-transparent px-0 py-2 text-3xl font-bold text-[color:var(--text-main-theme)] placeholder-[color:var(--text-soft-theme)] transition-colors focus:border-primary focus:ring-0"
                         />
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="select-none theme-muted">https://devops-blog.com/blog/</span>
+                            <span className="select-none theme-muted">https://blog.thienduong.info/</span>
                             <div className="group relative flex-1">
                                 <input
                                     type="text"
                                     value={formState.slug}
-                                    onChange={(event) => handleFieldChange('slug', event.target.value)}
+                                    onChange={(event) => handleSlugChange(event.target.value)}
                                     className="theme-input w-full rounded border px-2 py-1 text-xs font-mono theme-muted transition-all focus:text-[color:var(--text-main-theme)]"
                                 />
                                 <button

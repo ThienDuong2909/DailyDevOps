@@ -74,7 +74,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
                     </div>
                     <div className="flex flex-wrap items-center gap-4 pt-2">
                         <Link
-                            href={`/blog/${post.slug}`}
+                            href={`/${post.slug}`}
                             className={cn(buttonVariants({ size: 'lg' }), 'gap-2 rounded-xl px-6')}
                         >
                             Read Article

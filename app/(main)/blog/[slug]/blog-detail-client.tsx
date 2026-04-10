@@ -194,7 +194,7 @@ function BreadcrumbJsonLd({
 
     items.push({
         name: post.title,
-        url: `${siteUrl}/blog/${post.slug}`,
+        url: `${siteUrl}/${post.slug}`,
     });
 
     const jsonLd = {
@@ -231,7 +231,7 @@ export default function BlogDetailClient() {
 
     const contentRef = useRef<HTMLDivElement>(null);
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://blog.thienduong.info';
-    const postUrl = `${siteUrl}/blog/${slug}`;
+    const postUrl = `${siteUrl}/${slug}`;
 
     const scrollToHeading = useCallback((headingId: string, options?: { updateHash?: boolean }) => {
         const heading = document.getElementById(headingId);
@@ -814,7 +814,7 @@ export default function BlogDetailClient() {
                                         {relatedPosts.map((item) => (
                                             <Link
                                                 key={item.id}
-                                                href={`/blog/${item.slug}`}
+                                                href={`/${item.slug}`}
                                                 className="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:text-primary"
                                                 style={{ '--hover-bg': 'color-mix(in srgb, var(--primary-theme) 6%, transparent)' } as React.CSSProperties}
                                                 onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--primary-theme) 6%, transparent)')}
@@ -859,7 +859,7 @@ export default function BlogDetailClient() {
                                         {popularPosts.map((item, index) => (
                                             <Link
                                                 key={`popular-${item.id}`}
-                                                href={`/blog/${item.slug}`}
+                                                href={`/${item.slug}`}
                                                 className="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:text-primary"
                                                 onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--primary-theme) 6%, transparent)')}
                                                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}

@@ -133,7 +133,7 @@ export function BlogHeader() {
 
     const handleSuggestionSelect = (slug: string) => {
         setShowSuggestions(false);
-        router.push(`/blog/${slug}`);
+        router.push(`/${slug}`);
     };
 
     return (

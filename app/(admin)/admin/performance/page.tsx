@@ -82,7 +82,7 @@ function getEventDescription(event: AnalyticsOverviewPayload['recentEvents'][num
         case 'NEWSLETTER_SUBSCRIBE':
             return event.details.placement || 'newsletter_form';
         case 'COMMENT_SUBMIT':
-            return event.details.postSlug ? `/blog/${event.details.postSlug}` : 'Unknown post';
+            return event.details.postSlug ? `/${event.details.postSlug}` : 'Unknown post';
         default:
             return 'No details';
     }

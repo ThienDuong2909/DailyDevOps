@@ -191,7 +191,7 @@ export function TrendingToolsPanel() {
                             {popularPosts.map((post, idx) => (
                                 <li key={post.id}>
                                     <Link
-                                        href={`/blog/${post.slug}`}
+                                        href={`/${post.slug}`}
                                         className="group flex items-start gap-3 py-3 transition-colors"
                                     >
                                         {/* Ranking number */}
@@ -281,4 +281,3 @@ export function TrendingToolsPanel() {
         </aside>
     );
 }
-

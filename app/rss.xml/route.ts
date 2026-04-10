@@ -58,7 +58,7 @@ export async function GET() {
 
     const items = posts
         .map((post) => {
-            const link = `${siteUrl}/blog/${post.slug}`;
+            const link = `${siteUrl}/${post.slug}`;
             const authorName = [post.author?.firstName, post.author?.lastName]
                 .filter(Boolean)
                 .join(' ')
