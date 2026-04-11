@@ -379,6 +379,29 @@ export default function ArticleEditPage() {
     const selectedTagNames = tags
         .filter((tag) => formState.tagIds.includes(tag.id))
         .map((tag) => tag.name);
+    const isThumbnailJobRunning =
+        thumbnailJob?.status === 'PENDING' || thumbnailJob?.status === 'PROCESSING';
+
+    let thumbnailButtonLabel = 'Gen thumbnail';
+    if (isGeneratingImage) {
+        thumbnailButtonLabel = 'Dang tao job...';
+    } else if (isThumbnailJobRunning) {
+        thumbnailButtonLabel = 'Dang gen thumbnail...';
+    } else if (formState.featuredImage) {
+        thumbnailButtonLabel = 'Regen thumbnail';
+    }
+
+    let thumbnailJobMessage = 'Trang thai job da duoc cap nhat.';
+    if (isThumbnailJobRunning) {
+        thumbnailJobMessage =
+            'Backend dang tao anh nen o background. Ban co the tiep tuc chinh sua, doi trang, hoac dong trinh duyet.';
+    } else if (thumbnailJob?.status === 'SUCCEEDED') {
+        thumbnailJobMessage = 'Anh thumbnail moi da duoc tao va luu vao media library.';
+    } else if (thumbnailJob?.status === 'FAILED') {
+        thumbnailJobMessage = thumbnailJob.errorMessage || 'Qua trinh tao thumbnail that bai.';
+    } else if (thumbnailJob?.status === 'CANCELLED') {
+        thumbnailJobMessage = 'Job cu da bi huy vi co yeu cau moi hon.';
+    }
 
     const buildPayload = useCallback(() => ({
         title: formState.title.trim(),
@@ -1432,21 +1455,14 @@ export default function ArticleEditPage() {
                                 disabled={
                                     isGeneratingImage ||
                                     isUploadingImage ||
-                                    thumbnailJob?.status === 'PENDING' ||
-                                    thumbnailJob?.status === 'PROCESSING'
+                                    isThumbnailJobRunning
                                 }
                                 className="theme-panel-muted theme-border inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 <span className="material-symbols-outlined text-[18px]">
                                     auto_awesome
                                 </span>
-                                {isGeneratingImage
-                                    ? 'Dang tao job...'
-                                    : thumbnailJob?.status === 'PENDING' || thumbnailJob?.status === 'PROCESSING'
-                                      ? 'Dang gen thumbnail...'
-                                      : formState.featuredImage
-                                        ? 'Regen thumbnail'
-                                        : 'Gen thumbnail'}
+                                {thumbnailButtonLabel}
                             </button>
                         </div>
                         {thumbnailJob ? (
@@ -1454,17 +1470,7 @@ export default function ArticleEditPage() {
                                 <p className="font-semibold text-[color:var(--text-main-theme)]">
                                     Thumbnail job: {thumbnailJob.status}
                                 </p>
-                                <p className="theme-muted mt-1">
-                                    {thumbnailJob.status === 'PENDING' || thumbnailJob.status === 'PROCESSING'
-                                        ? 'Backend dang tao anh nen o background. Ban co the tiep tuc chinh sua, doi trang, hoac dong trinh duyet.'
-                                        : thumbnailJob.status === 'SUCCEEDED'
-                                          ? 'Anh thumbnail moi da duoc tao va luu vao media library.'
-                                          : thumbnailJob.status === 'FAILED'
-                                            ? thumbnailJob.errorMessage || 'Qua trinh tao thumbnail that bai.'
-                                            : thumbnailJob.status === 'CANCELLED'
-                                              ? 'Job cu da bi huy vi co yeu cau moi hon.'
-                                              : 'Trang thai job da duoc cap nhat.'}
-                                </p>
+                                <p className="theme-muted mt-1">{thumbnailJobMessage}</p>
                             </div>
                         ) : null}
                         <input
