@@ -373,18 +373,19 @@ export default function BlogDetailClient() {
 
                   return normalizedSource.slice(valueStart + 1, valueEnd);
               };
+              const matchRegex = (value: string, regex: RegExp) => regex.exec(value);
 
               const preLanguageMatch =
-                  String(preAttrs).match(/data-language=["']([^"']+)["']/i) ||
-                  String(preAttrs).match(/data-lang=["']([^"']+)["']/i);
+                  matchRegex(String(preAttrs), /data-language=["']([^"']+)["']/i) ||
+                  matchRegex(String(preAttrs), /data-lang=["']([^"']+)["']/i);
               const codeClassValue = extractAttributeValue(String(codeAttrs), 'class');
               const codeLanguageFromClass = codeClassValue
                   .split(/\s+/)
                   .find((className) => className.startsWith('language-'))
                   ?.slice('language-'.length);
               const codeLanguageMatch =
-                  String(codeAttrs).match(/data-language=["']([^"']+)["']/i) ||
-                  String(codeAttrs).match(/data-lang=["']([^"']+)["']/i);
+                  matchRegex(String(codeAttrs), /data-language=["']([^"']+)["']/i) ||
+                  matchRegex(String(codeAttrs), /data-lang=["']([^"']+)["']/i);
               const language = (
                   preLanguageMatch?.[1] ||
                   codeLanguageMatch?.[1] ||
