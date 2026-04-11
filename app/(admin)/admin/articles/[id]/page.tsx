@@ -21,12 +21,36 @@ type MediaItem = {
     lastModified?: string | null;
 };
 type MediaPayload = { data?: MediaItem[] } | MediaItem[];
-type GeneratedImagePayload = {
+type ThumbnailJob = {
+    id: string;
+    postId: string;
+    status: 'PENDING' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
+    imageUrl?: string | null;
+    storageKey?: string | null;
+    mimeType?: string | null;
+    prompt?: string | null;
+    errorMessage?: string | null;
+    attemptCount?: number;
+    startedAt?: string | null;
+    completedAt?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+};
+type ThumbnailJobPayload = {
     data?: {
-        imageUrl: string;
-        mimeType?: string;
-        prompt?: string;
-        storageKey?: string;
+        id: string;
+        postId: string;
+        status: 'PENDING' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
+        imageUrl?: string | null;
+        storageKey?: string | null;
+        mimeType?: string | null;
+        prompt?: string | null;
+        errorMessage?: string | null;
+        attemptCount?: number;
+        startedAt?: string | null;
+        completedAt?: string | null;
+        createdAt?: string | null;
+        updatedAt?: string | null;
     };
 };
 
@@ -182,6 +206,7 @@ export default function ArticleEditPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+    const [thumbnailJob, setThumbnailJob] = useState<ThumbnailJob | null>(null);
     const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
     const [isLoadingMediaLibrary, setIsLoadingMediaLibrary] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -246,6 +271,42 @@ export default function ArticleEditPage() {
         }
     }, []);
 
+    const fetchLatestThumbnailJob = useCallback(async (targetArticleId?: string) => {
+        const resolvedArticleId = targetArticleId || articleId;
+
+        if (!resolvedArticleId || resolvedArticleId === 'new') {
+            setThumbnailJob(null);
+            return null;
+        }
+
+        try {
+            const payload = await apiClient.get<ThumbnailJobPayload>(
+                `/api/v1/posts/${resolvedArticleId}/thumbnail-jobs/latest`
+            );
+            const resolvedJob = resolveData<ThumbnailJob | null>(payload, null);
+
+            setThumbnailJob(resolvedJob);
+
+            if (resolvedJob?.status === 'SUCCEEDED' && resolvedJob.imageUrl) {
+                const normalizedImage = normalizeFeaturedImageValue(resolvedJob.imageUrl);
+                setFormState((previous) =>
+                    previous.featuredImage === normalizedImage
+                        ? previous
+                        : { ...previous, featuredImage: normalizedImage }
+                );
+                setArticle((previous) =>
+                    previous && previous.featuredImage !== normalizedImage
+                        ? { ...previous, featuredImage: normalizedImage }
+                        : previous
+                );
+            }
+
+            return resolvedJob;
+        } catch {
+            return null;
+        }
+    }, [articleId]);
+
     useEffect(() => {
         let isMounted = true;
 
@@ -254,7 +315,13 @@ export default function ArticleEditPage() {
                 setLoading(true);
                 setErrorMessage('');
 
-                await Promise.all([fetchTaxonomies(), fetchArticle(), fetchVersions(), fetchMediaLibrary()]);
+                await Promise.all([
+                    fetchTaxonomies(),
+                    fetchArticle(),
+                    fetchVersions(),
+                    fetchMediaLibrary(),
+                    fetchLatestThumbnailJob(isNewArticle ? undefined : articleId),
+                ]);
 
                 if (!isMounted) {
                     return;
@@ -277,7 +344,7 @@ export default function ArticleEditPage() {
         return () => {
             isMounted = false;
         };
-    }, [fetchArticle, fetchTaxonomies, fetchVersions, fetchMediaLibrary]);
+    }, [articleId, fetchArticle, fetchLatestThumbnailJob, fetchTaxonomies, fetchVersions, fetchMediaLibrary, isNewArticle]);
 
     const stats = useMemo(() => {
         const words = countWords(formState.content);
@@ -346,6 +413,22 @@ export default function ArticleEditPage() {
             }),
         [formState]
     );
+
+    useEffect(() => {
+        if (!articleId || articleId === 'new') {
+            return;
+        }
+
+        if (!thumbnailJob || !['PENDING', 'PROCESSING'].includes(thumbnailJob.status)) {
+            return;
+        }
+
+        const timer = setInterval(() => {
+            void fetchLatestThumbnailJob(articleId);
+        }, 5000);
+
+        return () => clearInterval(timer);
+    }, [articleId, fetchLatestThumbnailJob, thumbnailJob]);
 
     useEffect(() => {
         if (loading) {
@@ -504,8 +587,38 @@ export default function ArticleEditPage() {
 
         try {
             setIsGeneratingImage(true);
-            const response = await apiClient.post<GeneratedImagePayload>(
-                '/api/v1/posts/generate-featured-image',
+            let targetArticleId = articleId;
+
+            if (isNewArticle) {
+                const draftResponse = await apiClient.post<PostPayload>('/api/v1/posts', buildPayload());
+                const createdPost = resolveData<Post | null>(draftResponse, null);
+
+                if (!createdPost?.id) {
+                    throw new Error('Khong the tao draft bai viet de gen thumbnail');
+                }
+
+                const nextState = buildFormState(createdPost);
+                setArticle(createdPost);
+                setFormState(nextState);
+                lastSavedSnapshotRef.current = JSON.stringify({
+                    title: nextState.title.trim(),
+                    slug: nextState.slug.trim(),
+                    subtitle: nextState.subtitle.trim(),
+                    content: nextState.content,
+                    contentJson: nextState.contentJson,
+                    featuredImage: nextState.featuredImage.trim(),
+                    status: nextState.status,
+                    categoryId: nextState.categoryId,
+                    tagIds: nextState.tagIds,
+                    scheduledAt: nextState.scheduledAt,
+                });
+                setAutosaveState('saved');
+                targetArticleId = createdPost.id;
+                router.replace(`/admin/articles/${createdPost.id}`);
+            }
+
+            const response = await apiClient.post<ThumbnailJobPayload>(
+                `/api/v1/posts/${targetArticleId}/thumbnail-jobs`,
                 {
                     title: formState.title.trim(),
                     subtitle: formState.subtitle.trim(),
@@ -516,14 +629,10 @@ export default function ArticleEditPage() {
                 }
             );
 
-            const imageUrl = response?.data?.imageUrl?.trim();
-            if (!imageUrl) {
-                throw new Error('Model khong tra ve image');
-            }
+            const job = resolveData<ThumbnailJob | null>(response, null);
+            setThumbnailJob(job);
 
-            handleFieldChange('featuredImage', imageUrl);
-            await fetchMediaLibrary();
-            toast.success('Da tao anh dai dien tu noi dung bai viet');
+            toast.success('Da bat dau tao thumbnail nen. Ban co the tiep tuc lam viec hoac tat trinh duyet.');
         } catch (error) {
             toast.error(
                 error instanceof Error ? error.message : 'Khong the gen image luc nay'
@@ -1320,15 +1429,44 @@ export default function ArticleEditPage() {
                             <button
                                 type="button"
                                 onClick={() => void handleGenerateFeaturedImage()}
-                                disabled={isGeneratingImage || isUploadingImage}
+                                disabled={
+                                    isGeneratingImage ||
+                                    isUploadingImage ||
+                                    thumbnailJob?.status === 'PENDING' ||
+                                    thumbnailJob?.status === 'PROCESSING'
+                                }
                                 className="theme-panel-muted theme-border inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 <span className="material-symbols-outlined text-[18px]">
                                     auto_awesome
                                 </span>
-                                {isGeneratingImage ? 'Dang gen image...' : 'Gen image'}
+                                {isGeneratingImage
+                                    ? 'Dang tao job...'
+                                    : thumbnailJob?.status === 'PENDING' || thumbnailJob?.status === 'PROCESSING'
+                                      ? 'Dang gen thumbnail...'
+                                      : formState.featuredImage
+                                        ? 'Regen thumbnail'
+                                        : 'Gen thumbnail'}
                             </button>
                         </div>
+                        {thumbnailJob ? (
+                            <div className="theme-panel-muted theme-border mb-3 rounded-2xl border p-3 text-xs">
+                                <p className="font-semibold text-[color:var(--text-main-theme)]">
+                                    Thumbnail job: {thumbnailJob.status}
+                                </p>
+                                <p className="theme-muted mt-1">
+                                    {thumbnailJob.status === 'PENDING' || thumbnailJob.status === 'PROCESSING'
+                                        ? 'Backend dang tao anh nen o background. Ban co the tiep tuc chinh sua, doi trang, hoac dong trinh duyet.'
+                                        : thumbnailJob.status === 'SUCCEEDED'
+                                          ? 'Anh thumbnail moi da duoc tao va luu vao media library.'
+                                          : thumbnailJob.status === 'FAILED'
+                                            ? thumbnailJob.errorMessage || 'Qua trinh tao thumbnail that bai.'
+                                            : thumbnailJob.status === 'CANCELLED'
+                                              ? 'Job cu da bi huy vi co yeu cau moi hon.'
+                                              : 'Trang thai job da duoc cap nhat.'}
+                                </p>
+                            </div>
+                        ) : null}
                         <input
                             type="url"
                             value={formState.featuredImage}
