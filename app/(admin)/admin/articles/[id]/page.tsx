@@ -282,6 +282,10 @@ export default function ArticleEditPage() {
     const canPublishDirectly = ['ADMIN', 'EDITOR', 'MODERATOR'].includes(currentUser?.role || '');
     const showReviewActions = !isNewArticle && article;
     const canManageTaxonomy = ['ADMIN', 'EDITOR'].includes(currentUser?.role || '');
+    const selectedCategory = categories.find((category) => category.id === formState.categoryId) || null;
+    const selectedTagNames = tags
+        .filter((tag) => formState.tagIds.includes(tag.id))
+        .map((tag) => tag.name);
 
     const buildPayload = useCallback(() => ({
         title: formState.title.trim(),
@@ -481,6 +485,8 @@ export default function ArticleEditPage() {
                     subtitle: formState.subtitle.trim(),
                     content: formState.content,
                     contentHtml: formState.content,
+                    categoryName: selectedCategory?.name || '',
+                    tagNames: selectedTagNames,
                 }
             );
 
