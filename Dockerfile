@@ -1,17 +1,13 @@
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci && npm cache clean --force
-
 FROM node:20-alpine AS builder
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 
-COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+RUN npm ci && npm cache clean --force
+
 COPY . .
 
 RUN npm run build
