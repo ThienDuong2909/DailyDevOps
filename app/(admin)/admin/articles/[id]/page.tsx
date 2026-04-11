@@ -110,6 +110,32 @@ function createSlug(value: string) {
         .slice(0, 80);
 }
 
+function normalizeFeaturedImageValue(value: string | null | undefined) {
+    const normalized = String(value || '').trim();
+
+    if (!normalized) {
+        return '';
+    }
+
+    if (
+        normalized.startsWith('http://') ||
+        normalized.startsWith('https://') ||
+        normalized.startsWith('/api/v1/media/object?key=')
+    ) {
+        return normalized;
+    }
+
+    if (normalized.startsWith('api/v1/media/object?key=')) {
+        return `/${normalized}`;
+    }
+
+    if (normalized.startsWith('media/') || normalized.startsWith('avatars/')) {
+        return `/api/v1/media/object?key=${encodeURIComponent(normalized)}`;
+    }
+
+    return normalized;
+}
+
 function buildFormState(post?: Post): ArticleFormState {
     if (!post) {
         return initialFormState;
@@ -121,7 +147,7 @@ function buildFormState(post?: Post): ArticleFormState {
         slug: post.slug || '',
         content: post.contentHtml || post.content || '',
         contentJson: (post.contentJson as Record<string, unknown> | null) || null,
-        featuredImage: post.featuredImage || '',
+        featuredImage: normalizeFeaturedImageValue(post.featuredImage),
         status: post.status || 'DRAFT',
         categoryId: post.category?.id || '',
         tagIds: post.tags?.map((tag) => tag.id) || [],
@@ -294,7 +320,7 @@ export default function ArticleEditPage() {
         content: formState.content,
         contentHtml: formState.content,
         contentJson: formState.contentJson,
-        featuredImage: formState.featuredImage.trim() || null,
+        featuredImage: normalizeFeaturedImageValue(formState.featuredImage) || null,
         status: formState.status,
         categoryId: formState.categoryId || null,
         tagIds: formState.tagIds,
