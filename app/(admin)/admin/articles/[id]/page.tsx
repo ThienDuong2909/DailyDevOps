@@ -826,7 +826,7 @@ export default function ArticleEditPage() {
                             className="w-full border-0 border-b theme-border bg-transparent px-0 py-2 text-3xl font-bold text-[color:var(--text-main-theme)] placeholder-[color:var(--text-soft-theme)] transition-colors focus:border-primary focus:ring-0"
                         />
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="select-none theme-muted">https://blog.thienduong.info/</span>
+                            <span className="select-none theme-muted">https://dailydevops.blog/</span>
                             <div className="group relative flex-1">
                                 <input
                                     type="text"

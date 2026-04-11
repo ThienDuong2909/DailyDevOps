@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const commands = [
-    { prompt: '$ curl -I https://blog.thienduong.info/unknown-page', delay: 0 },
+    { prompt: '$ curl -I https://dailydevops.blog/unknown-page', delay: 0 },
     { output: 'HTTP/1.1 404 Not Found', delay: 800, class: 'text-[#fa6238]' },
     { output: 'Content-Type: text/html; charset=UTF-8', delay: 1000, class: 'text-[#586069]' },
     { output: 'X-Powered-By: DevOps Blog v2.4.0', delay: 1200, class: 'text-[#586069]' },

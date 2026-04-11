@@ -75,7 +75,7 @@ const emptyDashboard: SeoDashboardPayload = {
         slug: '/',
         metaTitle: 'DevOps Blog',
         metaDescription: '',
-        canonicalUrl: 'https://blog.thienduong.info/',
+        canonicalUrl: 'https://dailydevops.blog/',
         focusKeywords: [],
         ogImage: '',
         noIndex: false,
@@ -393,7 +393,7 @@ export default function SeoPage() {
                                 </h4>
                                 <div className="theme-panel-muted theme-border max-w-2xl rounded-2xl border p-4">
                                     <div className="mb-1 text-xs font-mono text-[#0bda5b]">
-                                        {dashboard.homepage.canonicalUrl || 'https://blog.thienduong.info/'}
+                                        {dashboard.homepage.canonicalUrl || 'https://dailydevops.blog/'}
                                     </div>
                                     <h3 className="mb-1 text-xl font-medium text-[#8ab4f8]">
                                         {dashboard.homepage.metaTitle || 'DevOps Blog'}

@@ -126,7 +126,7 @@ function BlogPostJsonLd({ post, postUrl }: { post: PostWithComments; postUrl: st
         publisher: {
             '@type': 'Organization',
             name: 'DevOps Blog',
-            url: 'https://blog.thienduong.info',
+            url: 'https://dailydevops.blog',
         },
         ...(post.featuredImage && {
             image: {
@@ -230,7 +230,7 @@ export default function BlogDetailClient() {
     const [form, setForm] = useState({ authorName: '', authorEmail: '', content: '' });
 
     const contentRef = useRef<HTMLDivElement>(null);
-    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://blog.thienduong.info';
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dailydevops.blog';
     const postUrl = `${siteUrl}/${slug}`;
 
     const scrollToHeading = useCallback((headingId: string, options?: { updateHash?: boolean }) => {

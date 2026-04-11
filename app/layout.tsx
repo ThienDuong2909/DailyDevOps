@@ -11,7 +11,7 @@ const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    'https://blog.thienduong.info';
+    'https://dailydevops.blog';
 
 export const metadata: Metadata = {
     metadataBase: new URL(siteUrl),
