@@ -351,14 +351,46 @@ export default function BlogDetailClient() {
         ? primaryContent
             .replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, '')
             .replace(/<pre([^>]*)>\s*<code([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_m, preAttrs, codeAttrs, content) => {
+              const extractAttributeValue = (source: string, attributeName: string) => {
+                  const normalizedSource = String(source || '');
+                  const marker = `${attributeName}=`;
+                  const attributeIndex = normalizedSource.toLowerCase().indexOf(marker);
+
+                  if (attributeIndex === -1) {
+                      return '';
+                  }
+
+                  const valueStart = attributeIndex + marker.length;
+                  const quote = normalizedSource[valueStart];
+                  if (quote !== '"' && quote !== "'") {
+                      return '';
+                  }
+
+                  const valueEnd = normalizedSource.indexOf(quote, valueStart + 1);
+                  if (valueEnd === -1) {
+                      return '';
+                  }
+
+                  return normalizedSource.slice(valueStart + 1, valueEnd);
+              };
+
               const preLanguageMatch =
                   String(preAttrs).match(/data-language=["']([^"']+)["']/i) ||
                   String(preAttrs).match(/data-lang=["']([^"']+)["']/i);
+              const codeClassValue = extractAttributeValue(String(codeAttrs), 'class');
+              const codeLanguageFromClass = codeClassValue
+                  .split(/\s+/)
+                  .find((className) => className.startsWith('language-'))
+                  ?.slice('language-'.length);
               const codeLanguageMatch =
                   String(codeAttrs).match(/data-language=["']([^"']+)["']/i) ||
-                  String(codeAttrs).match(/data-lang=["']([^"']+)["']/i) ||
-                  String(codeAttrs).match(/class=["'][^"']*language-([^"'\s]+)[^"']*["']/i);
-              const language = (preLanguageMatch?.[1] || codeLanguageMatch?.[1] || 'plaintext').toLowerCase();
+                  String(codeAttrs).match(/data-lang=["']([^"']+)["']/i);
+              const language = (
+                  preLanguageMatch?.[1] ||
+                  codeLanguageMatch?.[1] ||
+                  codeLanguageFromClass ||
+                  'plaintext'
+              ).toLowerCase();
               const withClass = codeAttrs.includes('class=')
                   ? codeAttrs.replace(/class=["'](.*?)["']/, 'class="$1 !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"')
                   : `${codeAttrs} class="!bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"`;
