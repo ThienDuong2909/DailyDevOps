@@ -21,6 +21,14 @@ type MediaItem = {
     lastModified?: string | null;
 };
 type MediaPayload = { data?: MediaItem[] } | MediaItem[];
+type GeneratedImagePayload = {
+    data?: {
+        imageUrl: string;
+        mimeType?: string;
+        prompt?: string;
+        storageKey?: string;
+    };
+};
 
 interface ArticleFormState {
     title: string;
@@ -147,6 +155,7 @@ export default function ArticleEditPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
     const [isLoadingMediaLibrary, setIsLoadingMediaLibrary] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -457,6 +466,41 @@ export default function ArticleEditPage() {
         }
     };
 
+    const handleGenerateFeaturedImage = async () => {
+        if (!formState.title.trim() && !formState.content.trim()) {
+            toast.error('Can co title hoac noi dung de gen image');
+            return;
+        }
+
+        try {
+            setIsGeneratingImage(true);
+            const response = await apiClient.post<GeneratedImagePayload>(
+                '/api/v1/posts/generate-featured-image',
+                {
+                    title: formState.title.trim(),
+                    subtitle: formState.subtitle.trim(),
+                    content: formState.content,
+                    contentHtml: formState.content,
+                }
+            );
+
+            const imageUrl = response?.data?.imageUrl?.trim();
+            if (!imageUrl) {
+                throw new Error('Model khong tra ve image');
+            }
+
+            handleFieldChange('featuredImage', imageUrl);
+            await fetchMediaLibrary();
+            toast.success('Da tao anh dai dien tu noi dung bai viet');
+        } catch (error) {
+            toast.error(
+                error instanceof Error ? error.message : 'Khong the gen image luc nay'
+            );
+        } finally {
+            setIsGeneratingImage(false);
+        }
+    };
+
     const uploadMediaFile = useCallback(async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -484,7 +528,7 @@ export default function ArticleEditPage() {
         }
 
         return uploadedUrl;
-    }, [fetchMediaLibrary]);
+    }, []);
 
     const handleSave = async () => {
         if (!formState.title.trim() || !formState.content.trim()) {
@@ -1229,17 +1273,30 @@ export default function ArticleEditPage() {
 
                     <div className="theme-panel rounded-2xl p-5 shadow-sm">
                         <h3 className="mb-4 text-sm font-bold text-[color:var(--text-main-theme)]">Featured Image</h3>
-                        <label className="theme-panel-muted theme-border mb-3 inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary">
-                            <span className="material-symbols-outlined text-[18px]">upload</span>
-                            {isUploadingImage ? 'Dang upload...' : 'Upload image'}
-                            <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp,image/gif"
-                                className="hidden"
-                                onChange={(event) => void handleFeaturedImageUpload(event)}
-                                disabled={isUploadingImage}
-                            />
-                        </label>
+                        <div className="mb-3 flex flex-wrap items-center gap-3">
+                            <label className="theme-panel-muted theme-border inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary">
+                                <span className="material-symbols-outlined text-[18px]">upload</span>
+                                {isUploadingImage ? 'Dang upload...' : 'Upload image'}
+                                <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp,image/gif"
+                                    className="hidden"
+                                    onChange={(event) => void handleFeaturedImageUpload(event)}
+                                    disabled={isUploadingImage || isGeneratingImage}
+                                />
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => void handleGenerateFeaturedImage()}
+                                disabled={isGeneratingImage || isUploadingImage}
+                                className="theme-panel-muted theme-border inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">
+                                    auto_awesome
+                                </span>
+                                {isGeneratingImage ? 'Dang gen image...' : 'Gen image'}
+                            </button>
+                        </div>
                         <input
                             type="url"
                             value={formState.featuredImage}
