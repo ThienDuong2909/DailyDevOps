@@ -350,11 +350,19 @@ export default function BlogDetailClient() {
     const transformedContent = primaryContent
         ? primaryContent
             .replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, '')
-            .replace(/<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/gi, (_m, attrs, content) => {
-              const withClass = attrs.includes('class=')
-                  ? attrs.replace(/class=["'](.*?)["']/, 'class="$1 !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"')
-                  : `${attrs} class="!bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"`;
-              return `<div class="macos-mockup relative rounded-xl overflow-hidden bg-[#1e293b] my-8 shadow-xl border border-[#283039] font-mono group"><div class="flex items-center justify-between pl-4 pr-3 py-2 bg-[#0f172a] border-b border-[#283039]"><div class="flex gap-2"><div class="size-3 rounded-full bg-[#ff5f56]"></div><div class="size-3 rounded-full bg-[#ffbd2e]"></div><div class="size-3 rounded-full bg-[#27c93f]"></div></div><button class="copy-code-btn flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[#9dabb9] hover:text-white transition-colors text-[13px] font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100">Copy</button></div><div class="code-wrapper-scroll overflow-x-auto text-[13px] sm:text-sm leading-relaxed whitespace-pre font-mono text-[#e2e8f0]"><pre class="!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none"><code${withClass}>${content}</code></pre></div></div>`;
+            .replace(/<pre([^>]*)>\s*<code([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_m, preAttrs, codeAttrs, content) => {
+              const preLanguageMatch =
+                  String(preAttrs).match(/data-language=["']([^"']+)["']/i) ||
+                  String(preAttrs).match(/data-lang=["']([^"']+)["']/i);
+              const codeLanguageMatch =
+                  String(codeAttrs).match(/data-language=["']([^"']+)["']/i) ||
+                  String(codeAttrs).match(/data-lang=["']([^"']+)["']/i) ||
+                  String(codeAttrs).match(/class=["'][^"']*language-([^"'\s]+)[^"']*["']/i);
+              const language = (preLanguageMatch?.[1] || codeLanguageMatch?.[1] || 'plaintext').toLowerCase();
+              const withClass = codeAttrs.includes('class=')
+                  ? codeAttrs.replace(/class=["'](.*?)["']/, 'class="$1 !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"')
+                  : `${codeAttrs} class="!bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"`;
+              return `<div class="macos-mockup relative rounded-xl overflow-hidden bg-[#1e293b] my-8 shadow-xl border border-[#283039] font-mono group"><div class="flex items-center justify-between pl-4 pr-3 py-2 bg-[#0f172a] border-b border-[#283039]"><div class="flex gap-2"><div class="size-3 rounded-full bg-[#ff5f56]"></div><div class="size-3 rounded-full bg-[#ffbd2e]"></div><div class="size-3 rounded-full bg-[#27c93f]"></div></div><div class="flex items-center gap-3"><span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f84a1]">${language}</span><button class="copy-code-btn flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[#9dabb9] hover:text-white transition-colors text-[13px] font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100">Copy</button></div></div><div class="code-wrapper-scroll overflow-x-auto text-[13px] sm:text-sm leading-relaxed whitespace-pre font-mono text-[#e2e8f0]"><pre class="!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none"><code${withClass}>${content}</code></pre></div></div>`;
             })
         : '';
 
@@ -903,6 +911,8 @@ export default function BlogDetailClient() {
                 .article-copy a { color: #137fec; font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; }
                 .article-copy blockquote { margin: 1.5rem 0; border-left: 3px solid #137fec; padding-left: 1rem; color: var(--text-muted-theme); font-style: italic; }
                 .article-copy code { background: color-mix(in srgb, var(--primary-theme) 10%, var(--surface-muted)); color: var(--text-main-theme); border-radius: 0.375rem; padding: 0.15rem 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.92em; }
+                .article-copy pre { margin: 1.75rem 0; overflow-x: auto; border-radius: 1rem; background: color-mix(in srgb, var(--surface-strong) 88%, black 12%); border: 1px solid var(--border-soft-theme); color: #e6eef8; }
+                .article-copy pre code { display: block; background: transparent; color: inherit; border-radius: 0; padding: 1.1rem 1.25rem; white-space: pre; }
                 .article-copy img { display: block; max-width: 100%; height: auto; border-radius: 1rem; border: 1px solid var(--border-soft-theme); margin: 1.5rem auto; }
                 .article-copy img[data-align="left"] { margin-left: 0; margin-right: auto; }
                 .article-copy img[data-align="right"] { margin-left: auto; margin-right: 0; }
