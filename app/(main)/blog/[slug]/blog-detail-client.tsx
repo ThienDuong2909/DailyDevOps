@@ -395,44 +395,8 @@ function transformPostContent(primaryContent: string): string {
         });
 }
 
-export default function BlogDetailClient() {
-    const { slug } = useParams<{ slug: string }>();
-    const { user, isAuthenticated, initializeAuth } = useAuthStore();
-    const [post, setPost] = useState<PostWithComments | null>(null);
-    const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
-    const [popularPosts, setPopularPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+function useReadingProgress() {
     const [progress, setProgress] = useState(0);
-    const [activeTocId, setActiveTocId] = useState('');
-    const [form, setForm] = useState({ authorName: '', authorEmail: '', content: '' });
-
-    const contentRef = useRef<HTMLDivElement>(null);
-    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dailydevops.blog';
-    const postUrl = `${siteUrl}/${slug}`;
-
-    const scrollToHeading = useCallback((headingId: string, options?: { updateHash?: boolean }) => {
-        const heading = document.getElementById(headingId);
-        if (!heading) return;
-
-        if (options?.updateHash !== false) {
-            const targetUrl = `${window.location.pathname}#${headingId}`;
-            window.history.replaceState(window.history.state ?? {}, '', targetUrl);
-        }
-
-        heading.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-        });
-
-        setActiveTocId(headingId);
-    }, []);
-
-    useEffect(() => {
-        void initializeAuth();
-    }, [initializeAuth]);
-
     useEffect(() => {
         const onScroll = () => {
             const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -441,6 +405,15 @@ export default function BlogDetailClient() {
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
+    return progress;
+}
+
+function useFetchPostData(slug: string) {
+    const [post, setPost] = useState<PostWithComments | null>(null);
+    const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
+    const [popularPosts, setPopularPosts] = useState<Post[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -467,20 +440,12 @@ export default function BlogDetailClient() {
         if (slug) void fetchData();
     }, [slug]);
 
-    const handleContentClick = useCallback((event: React.MouseEvent) => {
-        const target = event.target as HTMLElement;
-        const button = target.closest('.copy-code-btn');
-        if (!button) return;
-        const code = button.closest('.macos-mockup')?.querySelector('code');
-        if (!code) return;
-        navigator.clipboard.writeText(code.textContent || '').then(() => {
-            const html = button.innerHTML;
-            button.innerHTML = 'Copied!';
-            setTimeout(() => {
-                button.innerHTML = html;
-            }, 1600);
-        });
-    }, []);
+    return { post, setPost, relatedPosts, popularPosts, loading, errorMessage };
+}
+
+function useCommentForm(post: PostWithComments | null, setPost: React.Dispatch<React.SetStateAction<PostWithComments | null>>, isAuthenticated: boolean) {
+    const [form, setForm] = useState({ authorName: '', authorEmail: '', content: '' });
+    const [submitting, setSubmitting] = useState(false);
 
     const handleCommentSubmit = async () => {
         if (!post) return;
@@ -508,11 +473,30 @@ export default function BlogDetailClient() {
         }
     };
 
+    return { form, setForm, submitting, handleCommentSubmit };
+}
+
+function usePostActions(postUrl: string, postTitle?: string, postExcerpt?: string) {
+    const handleContentClick = useCallback((event: React.MouseEvent) => {
+        const target = event.target as HTMLElement;
+        const button = target.closest('.copy-code-btn');
+        if (!button) return;
+        const code = button.closest('.macos-mockup')?.querySelector('code');
+        if (!code) return;
+        navigator.clipboard.writeText(code.textContent || '').then(() => {
+            const html = button.innerHTML;
+            button.innerHTML = 'Copied!';
+            setTimeout(() => {
+                button.innerHTML = html;
+            }, 1600);
+        });
+    }, []);
+
     const handleShare = async (mode: 'native' | 'copy') => {
-        if (!post) return;
+        if (!postTitle) return;
         if (mode === 'native' && navigator.share) {
             try {
-                await navigator.share({ title: post.title, text: post.excerpt || post.title, url: postUrl });
+                await navigator.share({ title: postTitle, text: postExcerpt || postTitle, url: postUrl });
                 return;
             } catch {}
         }
@@ -523,6 +507,44 @@ export default function BlogDetailClient() {
             toast.error('Khong the copy link bai viet');
         }
     };
+
+    return { handleContentClick, handleShare };
+}
+
+export default function BlogDetailClient() {
+    const { slug } = useParams<{ slug: string }>();
+    const { user, isAuthenticated, initializeAuth } = useAuthStore();
+    const { post, setPost, relatedPosts, popularPosts, loading, errorMessage } = useFetchPostData(slug);
+    const progress = useReadingProgress();
+    const [activeTocId, setActiveTocId] = useState('');
+
+    const contentRef = useRef<HTMLDivElement>(null);
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dailydevops.blog';
+    const postUrl = `${siteUrl}/${slug}`;
+
+    const { form, setForm, submitting, handleCommentSubmit } = useCommentForm(post, setPost, isAuthenticated);
+    const { handleContentClick, handleShare } = usePostActions(postUrl, post?.title, post?.excerpt);
+
+    const scrollToHeading = useCallback((headingId: string, options?: { updateHash?: boolean }) => {
+        const heading = document.getElementById(headingId);
+        if (!heading) return;
+
+        if (options?.updateHash !== false) {
+            const targetUrl = `${window.location.pathname}#${headingId}`;
+            window.history.replaceState(window.history.state ?? {}, '', targetUrl);
+        }
+
+        heading.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
+
+        setActiveTocId(headingId);
+    }, []);
+
+    useEffect(() => {
+        void initializeAuth();
+    }, [initializeAuth]);
 
     const primaryContent = post?.contentHtml || post?.content || '';
 
