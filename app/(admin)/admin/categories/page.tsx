@@ -204,12 +204,21 @@ export default function CategoriesAdminPage() {
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label className="theme-muted mb-1.5 block text-xs font-medium">Color</label>
-                                <input
-                                    value={formState.color}
-                                    onChange={(event) => setFormState((prev) => ({ ...prev, color: event.target.value }))}
-                                    className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
-                                    placeholder="#0ea5e9"
-                                />
+                                <div className="flex gap-2">
+                                    <input
+                                        type="color"
+                                        value={formState.color || '#000000'}
+                                        onChange={(event) => setFormState((prev) => ({ ...prev, color: event.target.value }))}
+                                        className="h-10 w-12 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
+                                        title="Chon mau tu day mau"
+                                    />
+                                    <input
+                                        value={formState.color}
+                                        onChange={(event) => setFormState((prev) => ({ ...prev, color: event.target.value }))}
+                                        className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                        placeholder="#0ea5e9"
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="theme-muted mb-1.5 block text-xs font-medium">Icon</label>

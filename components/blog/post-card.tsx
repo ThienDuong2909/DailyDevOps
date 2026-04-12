@@ -42,6 +42,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
             .trim() || 'DevOps Daily';
     const authorAvatar = post.author?.avatar;
     const initials = `${post.author?.firstName?.[0] || 'D'}${post.author?.lastName?.[0] || 'D'}`.toUpperCase();
+    const categoryColor = post.category?.color || '#f59e0b';
 
     return (
         <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--surface-elevated)] shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
@@ -58,7 +59,8 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
 
                 <Link
                     href={post.category?.slug ? `/category/${post.category.slug}` : '/blog'}
-                    className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-lg backdrop-blur-sm transition-transform hover:scale-105"
+                    className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-lg backdrop-blur-sm transition-transform hover:scale-105"
+                    style={{ backgroundColor: `${categoryColor}E6` }}
                 >
                     <svg className="size-3" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M8 1.5l1.85 4.15L14.5 6.5l-3.35 2.95.9 4.55L8 11.65 3.95 14l.9-4.55L1.5 6.5l4.65-.85L8 1.5z" />

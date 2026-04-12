@@ -1363,18 +1363,37 @@ export default function ArticleEditPage() {
                                     </button>
                                 ) : null}
                             </div>
-                            <select
-                                value={formState.categoryId}
-                                onChange={(event) => handleFieldChange('categoryId', event.target.value)}
-                                className="theme-input w-full cursor-pointer rounded-2xl px-3 py-2 text-sm"
-                            >
-                                <option value="">Khong chon category</option>
+                            <div className="theme-panel-muted theme-border custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl border p-3">
+                                <label className="flex cursor-pointer items-center gap-2">
+                                    <input
+                                        type="radio"
+                                        name="categoryId"
+                                        value=""
+                                        checked={formState.categoryId === ""}
+                                        onChange={() => handleFieldChange('categoryId', "")}
+                                        className="rounded-full border-border-dark bg-[#283039] text-primary focus:ring-0 focus:ring-offset-0"
+                                    />
+                                    <span className="text-sm text-[color:var(--text-main-theme)]">Khong chon category</span>
+                                </label>
                                 {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                        {category.name}
-                                    </option>
+                                    <label key={category.id} className="flex cursor-pointer items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            name="categoryId"
+                                            value={category.id}
+                                            checked={formState.categoryId === category.id}
+                                            onChange={() => handleFieldChange('categoryId', category.id)}
+                                            className="rounded-full border-border-dark bg-[#283039] text-primary focus:ring-0 focus:ring-offset-0"
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            {category.color && (
+                                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }}></span>
+                                            )}
+                                            <span className="text-sm text-[color:var(--text-main-theme)]">{category.name}</span>
+                                        </div>
+                                    </label>
                                 ))}
-                            </select>
+                            </div>
                             {showCategoryCreator ? (
                                 <div className="theme-panel-muted theme-border mt-3 space-y-3 rounded-2xl border p-3">
                                     <input
@@ -1397,12 +1416,21 @@ export default function ArticleEditPage() {
                                         placeholder="Mo ta ngan"
                                     />
                                     <div className="grid gap-3 sm:grid-cols-2">
-                                        <input
-                                            value={categoryDraft.color}
-                                            onChange={(event) => setCategoryDraft((previous) => ({ ...previous, color: event.target.value }))}
-                                            className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
-                                            placeholder="#0ea5e9"
-                                        />
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="color"
+                                                value={categoryDraft.color || '#000000'}
+                                                onChange={(event) => setCategoryDraft((previous) => ({ ...previous, color: event.target.value }))}
+                                                className="h-10 w-10 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
+                                                title="Chon mau"
+                                            />
+                                            <input
+                                                value={categoryDraft.color}
+                                                onChange={(event) => setCategoryDraft((previous) => ({ ...previous, color: event.target.value }))}
+                                                className="theme-input w-full rounded-2xl px-3 py-2 text-sm"
+                                                placeholder="#0ea5e9"
+                                            />
+                                        </div>
                                         <input
                                             value={categoryDraft.icon}
                                             onChange={(event) => setCategoryDraft((previous) => ({ ...previous, icon: event.target.value }))}

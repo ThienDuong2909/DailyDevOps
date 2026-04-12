@@ -606,8 +606,11 @@ export default function BlogDetailClient() {
                             {post.category ? (
                                 <Link
                                     href={`/category/${post.category.slug}`}
-                                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary transition-colors hover:opacity-80"
-                                    style={{ background: 'color-mix(in srgb, var(--primary-theme) 12%, var(--surface-muted))' }}
+                                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-colors hover:opacity-80"
+                                    style={{ 
+                                        backgroundColor: post.category.color ? `${post.category.color}1a` : 'color-mix(in srgb, var(--primary-theme) 12%, var(--surface-muted))',
+                                        color: post.category.color || 'var(--primary-theme)'
+                                    }}
                                 >
                                     <span className="material-symbols-outlined !text-[14px]">folder</span>
                                     {post.category.name}
