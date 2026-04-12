@@ -570,11 +570,11 @@ export default function BlogDetailClient() {
             </div>
 
             <section className="mx-auto max-w-[1280px] overflow-x-clip px-4 pt-6 sm:pt-8 lg:px-8 lg:pt-10">
-                <nav className="theme-muted mb-6 flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 text-sm scrollbar-hide">
+                <nav className="theme-muted mb-6 flex flex-wrap items-center gap-2 pb-1 text-sm">
                     <Link href="/" className="shrink-0 hover:text-primary">Blog</Link>
                     <span className="material-symbols-outlined shrink-0 text-sm">chevron_right</span>
-                    {post.category ? <><span className="shrink-0 truncate">{post.category.name}</span><span className="material-symbols-outlined shrink-0 text-sm">chevron_right</span></> : null}
-                    <span className="min-w-0 truncate text-[color:var(--text-main-theme)]">{post.title}</span>
+                    {post.category ? <><span className="shrink-0">{post.category.name}</span><span className="material-symbols-outlined shrink-0 text-sm">chevron_right</span></> : null}
+                    <span className="text-[color:var(--text-main-theme)] break-words">{post.title}</span>
                 </nav>
 
                 <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
