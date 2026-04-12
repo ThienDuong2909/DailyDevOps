@@ -19,6 +19,7 @@ type MediaItem = {
     url: string;
     size: number;
     lastModified?: string | null;
+    folder?: 'post-media' | 'featured-images' | 'avatars' | 'seo' | 'newsletter' | 'all';
 };
 type MediaPayload = { data?: MediaItem[] } | MediaItem[];
 type ThumbnailJob = {
@@ -209,6 +210,7 @@ export default function ArticleEditPage() {
     const [thumbnailJob, setThumbnailJob] = useState<ThumbnailJob | null>(null);
     const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
     const [isLoadingMediaLibrary, setIsLoadingMediaLibrary] = useState(false);
+    const [activeMediaFolder, setActiveMediaFolder] = useState<'featured-images' | 'post-media' | 'avatars'>('featured-images');
     const [errorMessage, setErrorMessage] = useState('');
     const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [showCategoryCreator, setShowCategoryCreator] = useState(false);
@@ -264,7 +266,9 @@ export default function ArticleEditPage() {
     const fetchMediaLibrary = useCallback(async () => {
         try {
             setIsLoadingMediaLibrary(true);
-            const payload = await apiClient.get<MediaPayload>('/api/v1/media');
+            const payload = await apiClient.get<MediaPayload>('/api/v1/media', {
+                params: { folder: 'all' },
+            });
             setMediaLibrary(resolveData<MediaItem[]>(payload, []));
         } finally {
             setIsLoadingMediaLibrary(false);
@@ -379,6 +383,17 @@ export default function ArticleEditPage() {
     const selectedTagNames = tags
         .filter((tag) => formState.tagIds.includes(tag.id))
         .map((tag) => tag.name);
+    const visibleThumbnailMediaItems = mediaLibrary.filter((item) => {
+        if (activeMediaFolder === 'featured-images') {
+            return item.folder === 'featured-images';
+        }
+
+        if (activeMediaFolder === 'post-media') {
+            return item.folder === 'post-media';
+        }
+
+        return item.folder === 'avatars';
+    });
     const isThumbnailJobRunning =
         thumbnailJob?.status === 'PENDING' || thumbnailJob?.status === 'PROCESSING';
 
@@ -588,9 +603,14 @@ export default function ArticleEditPage() {
 
         try {
             setIsUploadingImage(true);
-            const uploadedUrl = await uploadMediaFile(file);
+            const uploadedItem = await uploadMediaFile(file, 'featured-image');
 
-            handleFieldChange('featuredImage', uploadedUrl);
+            handleFieldChange('featuredImage', uploadedItem.url);
+            setMediaLibrary((previous) => [
+                uploadedItem,
+                ...previous.filter((item) => item.key !== uploadedItem.key),
+            ]);
+            setActiveMediaFolder('featured-images');
             await fetchMediaLibrary();
             toast.success('Da upload anh dai dien');
         } catch (error) {
@@ -665,10 +685,10 @@ export default function ArticleEditPage() {
         }
     };
 
-    const uploadMediaFile = useCallback(async (file: File) => {
+    const uploadMediaFile = useCallback(async (file: File, purpose = 'post-media') => {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('purpose', 'post-media');
+        formData.append('purpose', purpose);
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
         const response = await fetch(`${apiBase}/api/v1/media/upload`, {
@@ -686,13 +706,21 @@ export default function ArticleEditPage() {
             throw new Error(payload?.message || 'Image upload failed');
         }
 
-        const uploadedUrl = payload?.data?.url || '';
-        if (!uploadedUrl) {
+        const uploadedItem = payload?.data as MediaItem | undefined;
+        if (!uploadedItem?.url) {
             throw new Error('Image upload failed');
         }
 
-        return uploadedUrl;
+        return uploadedItem;
     }, []);
+
+    const uploadEditorMediaFile = useCallback(
+        async (file: File) => {
+            const uploadedItem = await uploadMediaFile(file, 'post-media');
+            return uploadedItem.url;
+        },
+        [uploadMediaFile]
+    );
 
     const handleSave = async () => {
         if (!formState.title.trim() || !formState.content.trim()) {
@@ -1080,7 +1108,7 @@ export default function ArticleEditPage() {
                         <RichTextEditor
                             value={formState.content}
                             jsonValue={formState.contentJson}
-                            onImageUpload={uploadMediaFile}
+                            onImageUpload={uploadEditorMediaFile}
                             mediaItems={mediaLibrary}
                             onRefreshMediaLibrary={fetchMediaLibrary}
                             onChange={({ html, json }) =>
@@ -1514,13 +1542,37 @@ export default function ArticleEditPage() {
                                     </button>
                                 </div>
                             </div>
+                            <div className="mb-3 flex flex-wrap gap-2">
+                                {[
+                                    { value: 'featured-images', label: 'Featured' },
+                                    { value: 'post-media', label: 'Post Media' },
+                                    { value: 'avatars', label: 'Avatar' },
+                                ].map((option) => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() =>
+                                            setActiveMediaFolder(
+                                                option.value as 'featured-images' | 'post-media' | 'avatars'
+                                            )
+                                        }
+                                        className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+                                            activeMediaFolder === option.value
+                                                ? 'bg-primary text-white'
+                                                : 'theme-panel border theme-border text-[color:var(--text-muted-theme)] hover:border-primary hover:text-primary'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
                             {isLoadingMediaLibrary ? (
                                 <p className="theme-muted text-sm">Dang tai media library...</p>
-                            ) : mediaLibrary.length === 0 ? (
+                            ) : visibleThumbnailMediaItems.length === 0 ? (
                                 <p className="theme-muted text-sm">Chua co anh nao trong storage.</p>
                             ) : (
                                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                    {mediaLibrary.slice(0, 12).map((item) => (
+                                    {visibleThumbnailMediaItems.slice(0, 12).map((item) => (
                                         <button
                                             key={item.key}
                                             type="button"

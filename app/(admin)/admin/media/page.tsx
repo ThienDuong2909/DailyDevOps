@@ -11,17 +11,19 @@ type MediaItem = {
     url: string;
     size: number;
     lastModified?: string | null;
+    folder?: 'post-media' | 'featured-images' | 'avatars' | 'seo' | 'newsletter' | 'all';
 };
 
 type MediaPayload = { data?: MediaItem[] } | MediaItem[];
-type MediaFilter = 'all' | 'png' | 'jpg' | 'webp' | 'gif';
+type MediaFilter = 'all' | 'featured-images' | 'post-media' | 'avatars' | 'seo' | 'newsletter';
 
 const filterOptions: Array<{ value: MediaFilter; label: string }> = [
     { value: 'all', label: 'All Assets' },
-    { value: 'png', label: 'PNG' },
-    { value: 'jpg', label: 'JPG/JPEG' },
-    { value: 'webp', label: 'WEBP' },
-    { value: 'gif', label: 'GIF' },
+    { value: 'featured-images', label: 'Featured' },
+    { value: 'post-media', label: 'Post Media' },
+    { value: 'avatars', label: 'Avatars' },
+    { value: 'seo', label: 'SEO' },
+    { value: 'newsletter', label: 'Newsletter' },
 ];
 
 const MIN_GRID_COLUMNS = 5;
@@ -55,25 +57,21 @@ function formatBytes(size: number) {
 
 function getExtension(item: MediaItem) {
     const fileName = item.key.split('/').pop() || '';
-    const extension = fileName.split('.').pop()?.toLowerCase() || '';
-
-    if (extension === 'jpeg') {
-        return 'jpg';
-    }
-
-    return extension;
+    return fileName.split('.').pop()?.toLowerCase() || '';
 }
 
-function getTypeLabel(extension: string) {
-    switch (extension) {
-        case 'png':
-            return 'PNG Image';
-        case 'jpg':
-            return 'JPEG Image';
-        case 'webp':
-            return 'WEBP Image';
-        case 'gif':
-            return 'GIF Image';
+function getTypeLabel(folder: string | undefined) {
+    switch (folder) {
+        case 'featured-images':
+            return 'Featured Image';
+        case 'post-media':
+            return 'Post Media';
+        case 'avatars':
+            return 'Avatar';
+        case 'seo':
+            return 'SEO Asset';
+        case 'newsletter':
+            return 'Newsletter Asset';
         default:
             return 'Image Asset';
     }
@@ -93,7 +91,11 @@ export default function AdminMediaPage() {
     const fetchMediaLibrary = useCallback(async () => {
         try {
             setLoading(true);
-            const payload = await apiClient.get<MediaPayload>('/api/v1/media');
+            const payload = await apiClient.get<MediaPayload>('/api/v1/media', {
+                params: {
+                    folder: activeFilter,
+                },
+            });
             const resolved = resolveData<MediaItem[]>(payload, []);
             setItems(resolved);
             setSelectedKey((previous) => {
@@ -108,7 +110,7 @@ export default function AdminMediaPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [activeFilter]);
 
     useEffect(() => {
         void fetchMediaLibrary();
@@ -117,16 +119,8 @@ export default function AdminMediaPage() {
     const filteredItems = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
 
-        return items.filter((item) => {
-            const extension = getExtension(item);
-            const matchesFilter =
-                activeFilter === 'all' ||
-                (activeFilter === 'jpg' ? extension === 'jpg' : extension === activeFilter);
-            const matchesQuery = !normalizedQuery || item.key.toLowerCase().includes(normalizedQuery);
-
-            return matchesFilter && matchesQuery;
-        });
-    }, [activeFilter, items, query]);
+        return items.filter((item) => !normalizedQuery || item.key.toLowerCase().includes(normalizedQuery));
+    }, [items, query]);
 
     const selectedItem = useMemo(() => {
         if (!filteredItems.length) {
@@ -149,6 +143,14 @@ export default function AdminMediaPage() {
     const uploadMediaFile = useCallback(async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append(
+            'purpose',
+            activeFilter === 'all'
+                ? 'media'
+                : activeFilter === 'featured-images'
+                    ? 'featured-image'
+                    : activeFilter
+        );
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
         const response = await fetch(`${apiBase}/api/v1/media/upload`, {
@@ -167,7 +169,7 @@ export default function AdminMediaPage() {
         }
 
         return payload?.data as MediaItem | undefined;
-    }, []);
+    }, [activeFilter]);
 
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -444,7 +446,7 @@ export default function AdminMediaPage() {
                                     <div>
                                         <p className="theme-soft text-[10px] font-bold uppercase tracking-[0.24em]">Type</p>
                                         <p className="mt-2 text-sm text-[color:var(--text-main-theme)]">
-                                            {getTypeLabel(getExtension(selectedItem))}
+                                            {getTypeLabel(selectedItem.folder)}
                                         </p>
                                     </div>
                                     <div>
