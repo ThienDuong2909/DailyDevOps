@@ -137,17 +137,16 @@ export function BlogHeader() {
     };
 
     return (
-        <header className="sticky top-0 z-50 bg-surface-light dark:bg-surface-dark border-b border-gray-200 dark:border-gray-800 shadow-sm">
-            <div className="layout-container flex justify-center w-full">
-                <div className="flex max-w-[1280px] w-full items-center justify-between px-4 py-3 md:px-10">
-                    <div className="flex items-center gap-8">
-                        <Link href="/" className="flex items-center gap-3 text-text-main dark:text-white group hover:opacity-90 transition-opacity">
+        <header className="sticky top-0 z-50 overflow-x-clip border-b border-gray-200 bg-surface-light shadow-sm dark:border-gray-800 dark:bg-surface-dark">
+            <div className="mx-auto flex w-full max-w-[1280px] min-w-0 items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-10">
+                    <div className="flex min-w-0 items-center gap-3 md:gap-8">
+                        <Link href="/" className="group flex min-w-0 items-center gap-3 text-text-main transition-opacity hover:opacity-90 dark:text-white">
                             <img 
                                 src="/icon.png" 
                                 alt="Daily DevOps Logo" 
-                                className="w-12 h-12 md:w-12 md:h-12 object-contain drop-shadow-sm" 
+                                className="h-10 w-10 shrink-0 object-contain drop-shadow-sm md:h-12 md:w-12" 
                             />
-                            <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
+                            <h2 className="truncate text-lg font-extrabold tracking-tight sm:text-xl md:text-2xl">
                                 <span className="text-slate-800 dark:text-slate-100 transition-colors">Daily</span>{" "}
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-cyan-400 dark:to-blue-500">
                                     DevOps
@@ -168,7 +167,7 @@ export function BlogHeader() {
                         </nav>
                     </div>
 
-                    <div className="flex flex-1 justify-end gap-4 items-center">
+                    <div className="flex min-w-0 shrink-0 items-center justify-end gap-2 sm:gap-3 md:gap-4">
                         <form
                             ref={containerRef}
                             onSubmit={handleSearchSubmit}
@@ -277,7 +276,7 @@ export function BlogHeader() {
                         <button
                             type="button"
                             onClick={() => setMobileMenuOpen((value) => !value)}
-                            className="inline-flex size-10 items-center justify-center rounded-lg border border-gray-200 text-text-main transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:text-white md:hidden"
+                            className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-text-main transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:text-white md:hidden"
                             aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
                         >
                             {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -285,7 +284,6 @@ export function BlogHeader() {
                         <ThemeToggle />
                         <HeaderAuthButton />
                     </div>
-                </div>
             </div>
             {mobileMenuOpen ? (
                 <div className="border-t border-gray-200 bg-surface-light px-4 py-4 shadow-sm dark:border-gray-800 dark:bg-surface-dark md:hidden">

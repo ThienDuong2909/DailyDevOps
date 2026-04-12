@@ -43,12 +43,14 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
   font-family: var(--font-inter), 'Inter', sans-serif;
   background: var(--page-bg-accent), var(--page-bg);
   color: var(--text-main-theme);
+  overflow-x: clip;
 }
 
 h1, h2, h3, h4, h5, h6 {

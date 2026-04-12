@@ -569,30 +569,30 @@ export default function BlogDetailClient() {
                 <div className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-150 ease-out" style={{ width: `${progress}%` }} />
             </div>
 
-            <section className="mx-auto max-w-[1280px] px-4 pt-10 lg:px-8">
-                <nav className="theme-muted mb-6 flex items-center gap-2 text-sm">
-                    <Link href="/" className="hover:text-primary">Blog</Link>
-                    <span className="material-symbols-outlined text-sm">chevron_right</span>
-                    {post.category ? <><span>{post.category.name}</span><span className="material-symbols-outlined text-sm">chevron_right</span></> : null}
-                    <span className="truncate text-[color:var(--text-main-theme)]">{post.title}</span>
+            <section className="mx-auto max-w-[1280px] overflow-x-clip px-4 pt-6 sm:pt-8 lg:px-8 lg:pt-10">
+                <nav className="theme-muted mb-6 flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 text-sm scrollbar-hide">
+                    <Link href="/" className="shrink-0 hover:text-primary">Blog</Link>
+                    <span className="material-symbols-outlined shrink-0 text-sm">chevron_right</span>
+                    {post.category ? <><span className="shrink-0 truncate">{post.category.name}</span><span className="material-symbols-outlined shrink-0 text-sm">chevron_right</span></> : null}
+                    <span className="min-w-0 truncate text-[color:var(--text-main-theme)]">{post.title}</span>
                 </nav>
 
                 <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
                     <div className="min-w-0">
-                        <h1 className="mb-5 text-[28px] font-bold leading-[1.35] tracking-[-0.01em] text-[color:var(--text-main-theme)] sm:text-[30px]">{post.title}</h1>
-                        <div className="mb-8 flex items-center gap-4 border-b pb-6" style={{ borderColor: 'var(--border-soft-theme)' }}>
+                        <h1 className="mb-5 break-words text-[2rem] font-bold leading-[1.2] tracking-[-0.01em] text-[color:var(--text-main-theme)] sm:text-[30px]">{post.title}</h1>
+                        <div className="mb-8 flex flex-wrap items-center gap-4 border-b pb-6" style={{ borderColor: 'var(--border-soft-theme)' }}>
                             <div
                                 className="size-12 shrink-0 rounded-full bg-cover bg-center ring-2 ring-[color:var(--border-soft-theme)]"
                                 style={{ backgroundImage: `url("${getImageUrl(post.author.avatar) || '/avatar-placeholder.jpg'}")` }}
                             />
-                            <div>
+                            <div className="min-w-0">
                                 <Link
                                     href={`/author/${buildAuthorUsername(post.author.firstName, post.author.lastName)}`}
-                                    className="font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
+                                    className="block truncate font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
                                 >
                                     {authorName}
                                 </Link>
-                                <p className="theme-muted mt-0.5 text-sm">
+                                <p className="theme-muted mt-0.5 flex flex-wrap items-center gap-y-1 text-sm">
                                     {formatDate(post.publishedAt || post.createdAt)}
                                     <span className="mx-1.5 inline-block size-1 rounded-full align-middle" style={{ background: 'var(--text-soft-theme)' }} />
                                     {post.readingTime || 5} min read
@@ -635,7 +635,7 @@ export default function BlogDetailClient() {
                             </div>
                         ) : null}
 
-                        <div ref={contentRef} className="article-copy max-w-none" onClick={handleContentClick} dangerouslySetInnerHTML={{ __html: formattedContent }} />
+                        <div ref={contentRef} className="article-copy min-w-0 max-w-none overflow-x-hidden" onClick={handleContentClick} dangerouslySetInnerHTML={{ __html: formattedContent }} />
 
                         <section
                             className="relative mt-12 overflow-hidden rounded-[28px] px-6 py-8 sm:px-8"
@@ -932,11 +932,12 @@ export default function BlogDetailClient() {
             </section>
 
             <style jsx global>{`
-                .article-copy { color: var(--text-muted-theme); font-size: 16px; line-height: 1.95; }
-                .article-copy h2, .article-copy h3 { position: relative; margin-top: 2rem; margin-bottom: 1rem; font-size: 22px; font-weight: 700; line-height: 1.5; color: var(--text-main-theme); scroll-margin-top: 8rem; }
+                .article-copy { color: var(--text-muted-theme); font-size: 16px; line-height: 1.95; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+                .article-copy > * { max-width: 100%; }
+                .article-copy h2, .article-copy h3 { position: relative; margin-top: 2rem; margin-bottom: 1rem; font-size: 22px; font-weight: 700; line-height: 1.5; color: var(--text-main-theme); scroll-margin-top: 8rem; overflow-wrap: anywhere; }
                 .article-copy .heading-anchor-link { margin-left: 0.5rem; color: #137fec; opacity: 0; text-decoration: none; transition: opacity 0.18s ease; font-weight: 700; }
                 .article-copy h2:hover .heading-anchor-link, .article-copy h3:hover .heading-anchor-link, .article-copy .heading-anchor-link:focus { opacity: 1; }
-                .article-copy p, .article-copy li { margin-bottom: 1rem; font-size: 16px; line-height: 1.95; }
+                .article-copy p, .article-copy li { margin-bottom: 1rem; font-size: 16px; line-height: 1.95; overflow-wrap: anywhere; word-break: break-word; }
                 .article-copy ul, .article-copy ol { margin: 1rem 0 1.5rem; padding-left: 1.5rem; }
                 .article-copy strong { font-weight: 700; color: var(--text-main-theme); }
                 .article-copy em { font-style: italic; }
@@ -944,17 +945,27 @@ export default function BlogDetailClient() {
                 .article-copy a { color: #137fec; font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; }
                 .article-copy blockquote { margin: 1.5rem 0; border-left: 3px solid #137fec; padding-left: 1rem; color: var(--text-muted-theme); font-style: italic; }
                 .article-copy code { background: color-mix(in srgb, var(--primary-theme) 10%, var(--surface-muted)); color: var(--text-main-theme); border-radius: 0.375rem; padding: 0.15rem 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.92em; }
-                .article-copy pre { margin: 1.75rem 0; overflow-x: auto; border-radius: 1rem; background: color-mix(in srgb, var(--surface-strong) 88%, black 12%); border: 1px solid var(--border-soft-theme); color: #e6eef8; }
+                .article-copy pre { margin: 1.75rem 0; max-width: 100%; overflow-x: auto; border-radius: 1rem; background: color-mix(in srgb, var(--surface-strong) 88%, black 12%); border: 1px solid var(--border-soft-theme); color: #e6eef8; }
                 .article-copy pre code { display: block; background: transparent; color: inherit; border-radius: 0; padding: 1.1rem 1.25rem; white-space: pre; }
-                .article-copy img { display: block; max-width: 100%; height: auto; border-radius: 1rem; border: 1px solid var(--border-soft-theme); margin: 1.5rem auto; }
+                .article-copy img, .article-copy video, .article-copy canvas, .article-copy svg, .article-copy iframe { display: block; max-width: 100%; height: auto; }
+                .article-copy img { border-radius: 1rem; border: 1px solid var(--border-soft-theme); margin: 1.5rem auto; }
                 .article-copy img[data-align="left"] { margin-left: 0; margin-right: auto; }
                 .article-copy img[data-align="right"] { margin-left: auto; margin-right: 0; }
                 .article-copy img[data-align="center"] { margin-left: auto; margin-right: auto; }
-                .article-copy table { width: 100%; margin: 1.75rem 0; border-collapse: collapse; overflow: hidden; border: 1px solid var(--border-soft-theme); border-radius: 1rem; table-layout: fixed; }
+                .article-copy .macos-mockup, .article-copy .code-wrapper-scroll, .article-copy table, .article-copy figure, .article-copy .resizable-image-node { max-width: 100%; }
+                .article-copy table { display: block; width: 100%; margin: 1.75rem 0; border-collapse: collapse; overflow-x: auto; overflow-y: hidden; border: 1px solid var(--border-soft-theme); border-radius: 1rem; table-layout: fixed; -webkit-overflow-scrolling: touch; }
                 .article-copy th, .article-copy td { border-bottom: 1px solid var(--border-ghost-theme); padding: 0.9rem 1rem; vertical-align: top; }
                 .article-copy th { background: var(--surface-muted); color: var(--text-muted-theme); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; }
                 .article-copy td { color: var(--text-main-theme); }
                 .article-copy td p:last-child, .article-copy th p:last-child { margin-bottom: 0; }
+                @media (max-width: 640px) {
+                    .article-copy { font-size: 15px; line-height: 1.85; }
+                    .article-copy h2, .article-copy h3 { font-size: 1.75rem; line-height: 1.3; }
+                    .article-copy pre code { padding: 0.95rem 1rem; font-size: 12px; }
+                    .article-copy table { font-size: 14px; }
+                    .article-copy th, .article-copy td { padding: 0.75rem; }
+                    .article-copy .heading-anchor-link { display: none; }
+                }
             `}</style>
         </div>
     );
