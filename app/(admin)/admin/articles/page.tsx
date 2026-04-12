@@ -11,40 +11,24 @@ import toast from 'react-hot-toast';
 
 type PostsPayload = PaginatedResponse<Post> | { data?: PaginatedResponse<Post> | Post[] } | Post[];
 
-function resolvePostsPayload(payload: PostsPayload) {
-    if (Array.isArray(payload)) {
-        return {
-            data: payload,
-            meta: {
-                total: payload.length,
-                page: 1,
-                limit: payload.length || 10,
-                totalPages: 1,
-            },
-        };
+function resolvePostsPayload(payload: any): PaginatedResponse<Post> {
+    if (payload && payload.meta && Array.isArray(payload.data)) {
+        return payload;
+    }
+    if (payload?.data?.meta && Array.isArray(payload?.data?.data)) {
+        return payload.data;
     }
 
-    if (payload && typeof payload === 'object' && 'data' in payload) {
-        const nestedData = payload.data;
-
-        if (Array.isArray(nestedData)) {
-            return {
-                data: nestedData,
-                meta: {
-                    total: nestedData.length,
-                    page: 1,
-                    limit: nestedData.length || 10,
-                    totalPages: 1,
-                },
-            };
-        }
-
-        if (nestedData && typeof nestedData === 'object' && 'meta' in nestedData) {
-            return nestedData as PaginatedResponse<Post>;
-        }
-    }
-
-    return payload as PaginatedResponse<Post>;
+    const data = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+    return {
+        data,
+        meta: {
+            total: data.length,
+            page: 1,
+            limit: Math.max(data.length, 10),
+            totalPages: 1,
+        },
+    };
 }
 
 function getStatusBadge(status: string) {
@@ -519,19 +503,27 @@ export default function ArticlesPage() {
                             >
                                 Previous
                             </button>
-                            {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-                                const page = index + 1;
-
-                                return (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${currentPage === page ? 'border-primary bg-primary text-white' : 'theme-panel-muted theme-border theme-muted hover:text-[color:var(--text-main-theme)]'}`}
-                                    >
-                                        {page}
-                                    </button>
-                                );
-                            })}
+                            {(() => {
+                                let startPage = Math.max(1, currentPage - 2);
+                                let endPage = Math.min(totalPages, startPage + 4);
+                                if (endPage - startPage < 4) {
+                                    startPage = Math.max(1, endPage - 4);
+                                }
+                                
+                                const pages = [];
+                                for (let page = startPage; page <= endPage; page++) {
+                                    pages.push(
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${currentPage === page ? 'border-primary bg-primary text-white' : 'theme-panel-muted theme-border theme-muted hover:text-[color:var(--text-main-theme)]'}`}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                }
+                                return pages;
+                            })()}
                             <button
                                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
