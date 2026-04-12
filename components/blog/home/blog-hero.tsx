@@ -34,7 +34,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
                             <Skeleton className="h-12 w-44 rounded-xl" />
                         </div>
                     </div>
-                    <Skeleton className="aspect-video w-full rounded-2xl" />
+                    <Skeleton className="aspect-video w-full md:aspect-auto md:h-full rounded-2xl" />
                 </div>
             </section>
         );
@@ -91,9 +91,9 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
                         </Link>
                     </div>
                 </div>
-                <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-lg dark:border-gray-800">
+                <div className="h-full overflow-hidden rounded-2xl border border-gray-100 shadow-lg dark:border-gray-800">
                     <div
-                        className="aspect-video bg-cover bg-center transition-transform duration-700 hover:scale-105"
+                        className="aspect-video w-full md:aspect-auto md:h-full bg-cover bg-center transition-transform duration-700 hover:scale-105"
                         style={{
                             backgroundImage: `url("${getImageUrl(post.featuredImage)}")`,
                         }}
