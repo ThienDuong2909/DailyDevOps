@@ -12,14 +12,20 @@ import toast from 'react-hot-toast';
 type PostsPayload = PaginatedResponse<Post> | { data?: PaginatedResponse<Post> | Post[] } | Post[];
 
 function resolvePostsPayload(payload: any): PaginatedResponse<Post> {
-    if (payload && payload.meta && Array.isArray(payload.data)) {
+    if (payload?.meta && Array.isArray(payload?.data)) {
         return payload;
     }
     if (payload?.data?.meta && Array.isArray(payload?.data?.data)) {
         return payload.data;
     }
 
-    const data = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+    let data: Post[] = [];
+    if (Array.isArray(payload?.data)) {
+        data = payload.data;
+    } else if (Array.isArray(payload)) {
+        data = payload;
+    }
+
     return {
         data,
         meta: {
