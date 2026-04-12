@@ -418,6 +418,45 @@ export default function ArticleEditPage() {
         thumbnailJobMessage = 'Job cu da bi huy vi co yeu cau moi hon.';
     }
 
+    let featuredMediaLibraryContent = (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {visibleThumbnailMediaItems.slice(0, 12).map((item) => (
+                <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => handleFieldChange('featuredImage', item.url)}
+                    className="group overflow-hidden rounded-lg border border-border-dark bg-[#1e293b] text-left transition-colors hover:border-primary"
+                >
+                    <div className="aspect-video overflow-hidden bg-[#0b1220]">
+                        <img
+                            src={getImageUrl(item.url)}
+                            alt={item.key}
+                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                    </div>
+                    <div className="p-2">
+                        <p className="truncate text-[11px] font-semibold text-white">
+                            {item.key.split('/').pop()}
+                        </p>
+                        <p className="mt-1 text-[10px] text-[#9dabb9]">
+                            {Math.max(1, Math.round(item.size / 1024))} KB
+                        </p>
+                    </div>
+                </button>
+            ))}
+        </div>
+    );
+
+    if (isLoadingMediaLibrary) {
+        featuredMediaLibraryContent = (
+            <p className="theme-muted text-sm">Dang tai media library...</p>
+        );
+    } else if (visibleThumbnailMediaItems.length === 0) {
+        featuredMediaLibraryContent = (
+            <p className="theme-muted text-sm">Chua co anh nao trong storage.</p>
+        );
+    }
+
     const buildPayload = useCallback(() => ({
         title: formState.title.trim(),
         slug: formState.slug.trim() || createSlug(formState.title),
@@ -1566,38 +1605,7 @@ export default function ArticleEditPage() {
                                     </button>
                                 ))}
                             </div>
-                            {isLoadingMediaLibrary ? (
-                                <p className="theme-muted text-sm">Dang tai media library...</p>
-                            ) : visibleThumbnailMediaItems.length === 0 ? (
-                                <p className="theme-muted text-sm">Chua co anh nao trong storage.</p>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                    {visibleThumbnailMediaItems.slice(0, 12).map((item) => (
-                                        <button
-                                            key={item.key}
-                                            type="button"
-                                            onClick={() => handleFieldChange('featuredImage', item.url)}
-                                            className="group overflow-hidden rounded-lg border border-border-dark bg-[#1e293b] text-left transition-colors hover:border-primary"
-                                        >
-                                            <div className="aspect-video overflow-hidden bg-[#0b1220]">
-                                                <img
-                                                    src={getImageUrl(item.url)}
-                                                    alt={item.key}
-                                                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                                                />
-                                            </div>
-                                            <div className="p-2">
-                                                <p className="truncate text-[11px] font-semibold text-white">
-                                                    {item.key.split('/').pop()}
-                                                </p>
-                                                <p className="mt-1 text-[10px] text-[#9dabb9]">
-                                                    {Math.max(1, Math.round(item.size / 1024))} KB
-                                                </p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                            {featuredMediaLibraryContent}
                         </div>
                     </div>
                 </div>

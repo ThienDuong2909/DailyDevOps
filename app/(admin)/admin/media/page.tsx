@@ -143,13 +143,17 @@ export default function AdminMediaPage() {
     const uploadMediaFile = useCallback(async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
+        let uploadPurpose: string;
+        if (activeFilter === 'all') {
+            uploadPurpose = 'media';
+        } else if (activeFilter === 'featured-images') {
+            uploadPurpose = 'featured-image';
+        } else {
+            uploadPurpose = activeFilter;
+        }
         formData.append(
             'purpose',
-            activeFilter === 'all'
-                ? 'media'
-                : activeFilter === 'featured-images'
-                    ? 'featured-image'
-                    : activeFilter
+            uploadPurpose
         );
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
