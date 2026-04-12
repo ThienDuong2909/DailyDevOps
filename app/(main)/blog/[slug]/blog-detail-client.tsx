@@ -437,7 +437,7 @@ function useFetchPostData(slug: string) {
                 setLoading(false);
             }
         };
-        if (slug) void fetchData();
+        if (slug) fetchData();
     }, [slug]);
 
     return { post, setPost, relatedPosts, popularPosts, loading, errorMessage };
@@ -570,13 +570,13 @@ function PostComments({ post, isAuthenticated, user, form, setForm, submitting, 
                 </div>
                 <button
                     type="button"
-                    onClick={() =>
-                        void handleShare(
+                    onClick={() => {
+                        handleShare(
                             typeof navigator.share === 'function'
                                 ? 'native'
                                 : 'copy'
-                        )
-                    }
+                        );
+                    }}
                     className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
                     style={{ border: '1px solid var(--border-soft-theme)' }}
                 >
@@ -600,7 +600,7 @@ function PostComments({ post, isAuthenticated, user, form, setForm, submitting, 
                 <textarea className="theme-input w-full rounded-2xl p-4 text-sm leading-relaxed" placeholder="Leave a comment..." rows={4} value={form.content} onChange={(e) => setForm((p: any) => ({ ...p, content: e.target.value }))} />
                 <div className="mt-4 flex items-center justify-between">
                     <button
-                        onClick={() => void handleCommentSubmit()}
+                        onClick={() => { handleCommentSubmit(); }}
                         disabled={submitting}
                         className="theme-glow-button inline-flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
@@ -711,7 +711,7 @@ function PostSidebar({ derivedTocItems, tocNavRef, scrollToHeading, effectiveAct
                         <div className="grid gap-2">
                             <button
                                 type="button"
-                                onClick={() => void handleShare('copy')}
+                                onClick={() => { handleShare('copy'); }}
                                 className="theme-glow-button inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-opacity hover:opacity-90"
                             >
                                 <span className="material-symbols-outlined !text-[18px]">link</span>
@@ -845,7 +845,7 @@ export default function BlogDetailClient() {
     }, []);
 
     useEffect(() => {
-        void initializeAuth();
+        initializeAuth();
     }, [initializeAuth]);
 
     const primaryContent = post?.contentHtml || post?.content || '';
