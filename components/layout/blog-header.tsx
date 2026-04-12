@@ -142,7 +142,7 @@ export function BlogHeader() {
                     <div className="flex min-w-0 items-center gap-3 md:gap-8">
                         <Link href="/" className="group flex min-w-0 items-center gap-3 text-text-main transition-opacity hover:opacity-90 dark:text-white">
                             <img 
-                                src="/icon.png" 
+                                src="/logo.png" 
                                 alt="Daily DevOps Logo" 
                                 className="h-10 w-10 shrink-0 object-contain drop-shadow-sm md:h-12 md:w-12" 
                             />
