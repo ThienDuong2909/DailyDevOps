@@ -342,6 +342,59 @@ function useScrollSpy({
     }, [scrollToHeading]);
 }
 
+function transformPostContent(primaryContent: string): string {
+    if (!primaryContent) return '';
+    return primaryContent
+        .replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, '')
+        .replace(/<pre([^>]*)>\s*<code([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_m, preAttrs, codeAttrs, content) => {
+            const extractAttributeValue = (source: string, attributeName: string) => {
+                const normalizedSource = String(source || '');
+                const marker = `${attributeName}=`;
+                const attributeIndex = normalizedSource.toLowerCase().indexOf(marker);
+
+                if (attributeIndex === -1) {
+                    return '';
+                }
+
+                const valueStart = attributeIndex + marker.length;
+                const quote = normalizedSource[valueStart];
+                if (quote !== '"' && quote !== "'") {
+                    return '';
+                }
+
+                const valueEnd = normalizedSource.indexOf(quote, valueStart + 1);
+                if (valueEnd === -1) {
+                    return '';
+                }
+
+                return normalizedSource.slice(valueStart + 1, valueEnd);
+            };
+            const matchRegex = (value: string, regex: RegExp) => regex.exec(value);
+
+            const preLanguageMatch =
+                matchRegex(String(preAttrs), /data-language=["']([^"']+)["']/i) ||
+                matchRegex(String(preAttrs), /data-lang=["']([^"']+)["']/i);
+            const codeClassValue = extractAttributeValue(String(codeAttrs), 'class');
+            const codeLanguageFromClass = codeClassValue
+                .split(/\s+/)
+                .find((className) => className.startsWith('language-'))
+                ?.slice('language-'.length);
+            const codeLanguageMatch =
+                matchRegex(String(codeAttrs), /data-language=["']([^"']+)["']/i) ||
+                matchRegex(String(codeAttrs), /data-lang=["']([^"']+)["']/i);
+            const language = (
+                preLanguageMatch?.[1] ||
+                codeLanguageMatch?.[1] ||
+                codeLanguageFromClass ||
+                'plaintext'
+            ).toLowerCase();
+            const withClass = codeAttrs.includes('class=')
+                ? codeAttrs.replace(/class=["'](.*?)["']/, 'class="$1 !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"')
+                : `${codeAttrs} class="!bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"`;
+            return `<div class="macos-mockup relative rounded-xl overflow-hidden bg-[#1e293b] my-8 shadow-xl border border-[#283039] font-mono group"><div class="flex items-center justify-between pl-4 pr-3 py-2 bg-[#0f172a] border-b border-[#283039]"><div class="flex gap-2"><div class="size-3 rounded-full bg-[#ff5f56]"></div><div class="size-3 rounded-full bg-[#ffbd2e]"></div><div class="size-3 rounded-full bg-[#27c93f]"></div></div><div class="flex items-center gap-3"><span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f84a1]">${language}</span><button class="copy-code-btn flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[#9dabb9] hover:text-white transition-colors text-[13px] font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100">Copy</button></div></div><div class="code-wrapper-scroll overflow-x-auto text-[13px] sm:text-sm leading-relaxed whitespace-pre font-mono text-[#e2e8f0]"><pre class="!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none"><code${withClass}>${content}</code></pre></div></div>`;
+        });
+}
+
 export default function BlogDetailClient() {
     const { slug } = useParams<{ slug: string }>();
     const { user, isAuthenticated, initializeAuth } = useAuthStore();
@@ -473,57 +526,7 @@ export default function BlogDetailClient() {
 
     const primaryContent = post?.contentHtml || post?.content || '';
 
-    const transformedContent = primaryContent
-        ? primaryContent
-            .replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, '')
-            .replace(/<pre([^>]*)>\s*<code([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_m, preAttrs, codeAttrs, content) => {
-              const extractAttributeValue = (source: string, attributeName: string) => {
-                  const normalizedSource = String(source || '');
-                  const marker = `${attributeName}=`;
-                  const attributeIndex = normalizedSource.toLowerCase().indexOf(marker);
-
-                  if (attributeIndex === -1) {
-                      return '';
-                  }
-
-                  const valueStart = attributeIndex + marker.length;
-                  const quote = normalizedSource[valueStart];
-                  if (quote !== '"' && quote !== "'") {
-                      return '';
-                  }
-
-                  const valueEnd = normalizedSource.indexOf(quote, valueStart + 1);
-                  if (valueEnd === -1) {
-                      return '';
-                  }
-
-                  return normalizedSource.slice(valueStart + 1, valueEnd);
-              };
-              const matchRegex = (value: string, regex: RegExp) => regex.exec(value);
-
-              const preLanguageMatch =
-                  matchRegex(String(preAttrs), /data-language=["']([^"']+)["']/i) ||
-                  matchRegex(String(preAttrs), /data-lang=["']([^"']+)["']/i);
-              const codeClassValue = extractAttributeValue(String(codeAttrs), 'class');
-              const codeLanguageFromClass = codeClassValue
-                  .split(/\s+/)
-                  .find((className) => className.startsWith('language-'))
-                  ?.slice('language-'.length);
-              const codeLanguageMatch =
-                  matchRegex(String(codeAttrs), /data-language=["']([^"']+)["']/i) ||
-                  matchRegex(String(codeAttrs), /data-lang=["']([^"']+)["']/i);
-              const language = (
-                  preLanguageMatch?.[1] ||
-                  codeLanguageMatch?.[1] ||
-                  codeLanguageFromClass ||
-                  'plaintext'
-              ).toLowerCase();
-              const withClass = codeAttrs.includes('class=')
-                  ? codeAttrs.replace(/class=["'](.*?)["']/, 'class="$1 !bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"')
-                  : `${codeAttrs} class="!bg-transparent !p-0 !text-[#e2e8f0] !border-none !shadow-none"`;
-              return `<div class="macos-mockup relative rounded-xl overflow-hidden bg-[#1e293b] my-8 shadow-xl border border-[#283039] font-mono group"><div class="flex items-center justify-between pl-4 pr-3 py-2 bg-[#0f172a] border-b border-[#283039]"><div class="flex gap-2"><div class="size-3 rounded-full bg-[#ff5f56]"></div><div class="size-3 rounded-full bg-[#ffbd2e]"></div><div class="size-3 rounded-full bg-[#27c93f]"></div></div><div class="flex items-center gap-3"><span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f84a1]">${language}</span><button class="copy-code-btn flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[#9dabb9] hover:text-white transition-colors text-[13px] font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100">Copy</button></div></div><div class="code-wrapper-scroll overflow-x-auto text-[13px] sm:text-sm leading-relaxed whitespace-pre font-mono text-[#e2e8f0]"><pre class="!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none"><code${withClass}>${content}</code></pre></div></div>`;
-            })
-        : '';
+    const transformedContent = useMemo(() => transformPostContent(primaryContent), [primaryContent]);
 
     const normalizedContent = useMemo(() => normalizeContentHeadings(transformedContent), [transformedContent]);
     const formattedContent = normalizedContent.html;
