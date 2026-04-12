@@ -20,7 +20,7 @@ export function BlogTopics({
     onSelect,
 }: BlogTopicsProps) {
     return (
-        <section className="flex flex-wrap items-center gap-3 py-2">
+        <section className="flex items-center gap-3 py-2 overflow-x-auto whitespace-nowrap scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible">
             <span className="text-sm font-semibold text-text-sub dark:text-gray-400">
                 Topics:
             </span>

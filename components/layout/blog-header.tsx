@@ -286,7 +286,7 @@ export function BlogHeader() {
                     </div>
             </div>
             {mobileMenuOpen ? (
-                <div className="border-t border-gray-200 bg-surface-light px-4 py-4 shadow-sm dark:border-gray-800 dark:bg-surface-dark md:hidden">
+                <div className="absolute left-0 right-0 top-full border-b border-gray-200 bg-surface-light/95 backdrop-blur-md px-4 py-4 shadow-lg dark:border-gray-800 dark:bg-surface-dark/95 md:hidden animate-in slide-in-from-top-2">
                     <form onSubmit={handleSearchSubmit} className="mb-4 flex items-center gap-2">
                         <input
                             className="theme-input h-11 flex-1 rounded-xl px-4 text-sm"

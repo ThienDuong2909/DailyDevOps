@@ -34,11 +34,11 @@ export function BlogFooter() {
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-12 md:gap-20">
+                        <div className="grid grid-cols-2 gap-8 md:flex md:gap-20">
                             <div className="flex flex-col gap-3">
                                 <h4 className="text-sm font-bold text-[color:var(--text-main-theme)]">Content</h4>
                                 {settings.content.footerContentLinks.map((item) => (
-                                    <Link key={`${item.href}-${item.label}`} href={item.href} className="theme-muted text-sm hover:text-primary">
+                                    <Link key={`${item.href}-${item.label}`} href={item.href} className="theme-muted text-sm hover:text-primary transition-colors">
                                         {item.label}
                                     </Link>
                                 ))}
@@ -46,7 +46,7 @@ export function BlogFooter() {
                             <div className="flex flex-col gap-3">
                                 <h4 className="text-sm font-bold text-[color:var(--text-main-theme)]">Company</h4>
                                 {settings.content.footerCompanyLinks.map((item) => (
-                                    <Link key={`${item.href}-${item.label}`} href={item.href} className="theme-muted text-sm hover:text-primary">
+                                    <Link key={`${item.href}-${item.label}`} href={item.href} className="theme-muted text-sm hover:text-primary transition-colors">
                                         {item.label}
                                     </Link>
                                 ))}

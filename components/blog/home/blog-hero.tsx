@@ -15,7 +15,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
     if (isLoading) {
         return (
             <section className="@container w-full">
-                <div className="grid gap-6 rounded-3xl border border-cyan-500/10 bg-surface-light p-6 shadow-sm dark:border-cyan-400/10 dark:bg-surface-dark md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
+                <div className="flex flex-col-reverse gap-6 rounded-3xl border border-cyan-500/10 bg-surface-light p-6 shadow-sm dark:border-cyan-400/10 dark:bg-surface-dark md:grid md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
                     <div className="flex flex-col justify-center gap-5">
                         <Skeleton className="h-7 w-40 rounded-full" />
                         <div className="space-y-3">
@@ -46,7 +46,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
 
     return (
         <section className="@container w-full">
-            <div className="grid gap-6 rounded-3xl border border-cyan-500/10 bg-surface-light p-6 shadow-sm dark:border-cyan-400/10 dark:bg-surface-dark md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
+            <div className="flex flex-col-reverse gap-6 rounded-3xl border border-cyan-500/10 bg-surface-light p-6 shadow-sm dark:border-cyan-400/10 dark:bg-surface-dark md:grid md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
                 <div className="flex flex-col justify-center gap-5">
                     <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-500">
                         <Sparkles className="size-4" />
