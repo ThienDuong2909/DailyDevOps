@@ -207,6 +207,7 @@ export default function ArticleEditPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+    const [isFormattingContent, setIsFormattingContent] = useState(false);
     const [thumbnailJob, setThumbnailJob] = useState<ThumbnailJob | null>(null);
     const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
     const [isLoadingMediaLibrary, setIsLoadingMediaLibrary] = useState(false);
@@ -761,6 +762,37 @@ export default function ArticleEditPage() {
         [uploadMediaFile]
     );
 
+    const handleFormatContentByGemini = async () => {
+        if (!formState.content.trim()) {
+            toast.error('Cần có nội dung bài viết để định dạng');
+            return;
+        }
+
+        try {
+            setIsFormattingContent(true);
+            const response = await apiClient.post<any>('/api/v1/posts/format-content', {
+                content: formState.content,
+            });
+            const formattedContent = resolveData(response, { content: '' }).content;
+
+            if (formattedContent) {
+                setFormState(prev => ({
+                    ...prev,
+                    content: formattedContent,
+                    contentJson: null,
+                }));
+                toast.success('Đã định dạng bài viết bằng AI');
+            } else {
+                toast.error('Không nhận được nội dung từ AI');
+            }
+        } catch (error) {
+            toast.error('Lỗi khi định dạng bài viết');
+            console.error('Format error:', error);
+        } finally {
+            setIsFormattingContent(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!formState.title.trim() || !formState.content.trim()) {
             toast.error('Title va content la bat buoc');
@@ -1139,9 +1171,20 @@ export default function ArticleEditPage() {
                                     Soan thao truc quan nhu Word: heading, dam, nghieng, can le, mau sac, quote, list, code block va link.
                                 </p>
                             </div>
-                            <span className="theme-border theme-muted rounded-full border px-2.5 py-1 font-mono text-[11px]">
-                                WYSIWYG
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => void handleFormatContentByGemini()}
+                                    disabled={isFormattingContent}
+                                    className="theme-panel-muted theme-border inline-flex items-center gap-1 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold text-primary transition-colors hover:border-primary/50 disabled:opacity-50"
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">auto_fix_high</span>
+                                    {isFormattingContent ? 'Dang format...' : 'AI Format'}
+                                </button>
+                                <span className="theme-border theme-muted rounded-full border px-2.5 py-1 font-mono text-[11px]">
+                                    WYSIWYG
+                                </span>
+                            </div>
                         </div>
 
                         <RichTextEditor
