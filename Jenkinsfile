@@ -33,7 +33,7 @@ pipeline {
         NPM_CACHE_DIR = "${WORKSPACE}/.npm-cache"
         
         // Define Docker BuildKit explicitly to resolve legacy builder "unknown parent image ID" bugs
-        DOCKER_BUILDKIT = '1'
+        DOCKER_BUILDKIT = '0'
 
         // Per-workspace Docker config — tránh race condition khi 2 pipeline chạy song song
         // trên cùng 1 agent (mỗi pipeline có ~/.docker riêng, không ghi đè nhau)
@@ -214,7 +214,7 @@ EOF
             steps {
                 script {
                     echo "Building Docker image: ${IMAGE_TAG}:${BUILD_NUMBER}..."
-                    sh "docker build --pull -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
+                    sh "docker build --no-cache --pull -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
                     sh "docker tag ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest"
                 }
             }
