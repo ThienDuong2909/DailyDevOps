@@ -91,6 +91,8 @@ const shouldSkipAuthRefresh = (url?: string) => {
         '/api/v1/auth/resend-verification',
         '/api/v1/auth/forgot-password',
         '/api/v1/auth/reset-password',
+        '/api/v1/auth/refresh',
+        '/api/v1/auth/logout',
     ].some((path) => url.includes(path));
 };
 
@@ -160,7 +162,7 @@ api.interceptors.response.use(
                 setAccessToken(null);
 
                 if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
+                    window.dispatchEvent(new CustomEvent('auth-expired'));
                 }
 
                 return Promise.reject(refreshError);

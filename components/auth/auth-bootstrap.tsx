@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/use-auth';
 
 export function AuthBootstrap() {
@@ -8,6 +9,20 @@ export function AuthBootstrap() {
 
     useEffect(() => {
         void initializeAuth();
+
+        const handleAuthExpired = () => {
+            useAuthStore.setState({
+                user: null,
+                isAuthenticated: false,
+                isInitialized: true,
+                error: null,
+            });
+            localStorage.removeItem('accessToken');
+            toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        };
+
+        window.addEventListener('auth-expired', handleAuthExpired as EventListener);
+        return () => window.removeEventListener('auth-expired', handleAuthExpired as EventListener);
     }, [initializeAuth]);
 
     return null;
