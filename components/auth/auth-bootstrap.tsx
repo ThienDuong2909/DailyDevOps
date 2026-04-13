@@ -21,8 +21,8 @@ export function AuthBootstrap() {
             toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         };
 
-        window.addEventListener('auth-expired', handleAuthExpired as EventListener);
-        return () => window.removeEventListener('auth-expired', handleAuthExpired as EventListener);
+        globalThis.addEventListener('auth-expired', handleAuthExpired as EventListener);
+        return () => globalThis.removeEventListener('auth-expired', handleAuthExpired as EventListener);
     }, [initializeAuth]);
 
     return null;

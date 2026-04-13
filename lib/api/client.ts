@@ -161,8 +161,8 @@ api.interceptors.response.use(
                 processQueue(refreshError as Error, null);
                 setAccessToken(null);
 
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('auth-expired'));
+                if (typeof globalThis !== 'undefined') {
+                    globalThis.dispatchEvent(new CustomEvent('auth-expired'));
                 }
 
                 return Promise.reject(refreshError);
