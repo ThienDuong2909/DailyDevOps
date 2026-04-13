@@ -31,6 +31,9 @@ pipeline {
 
         // npm cache directory - persists across builds for faster installs
         NPM_CACHE_DIR = "${WORKSPACE}/.npm-cache"
+        
+        // Define Docker BuildKit explicitly to resolve legacy builder "unknown parent image ID" bugs
+        DOCKER_BUILDKIT = '1'
 
         // Per-workspace Docker config — tránh race condition khi 2 pipeline chạy song song
         // trên cùng 1 agent (mỗi pipeline có ~/.docker riêng, không ghi đè nhau)
