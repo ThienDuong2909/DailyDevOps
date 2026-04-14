@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } fro
 
 const resolveApiBaseUrl = () => {
     if (typeof window !== 'undefined') {
-        return '';
+        return process.env.NEXT_PUBLIC_API_URL || '';
     }
 
     return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
