@@ -10,7 +10,7 @@ const resolveApiBaseUrl = () => {
 
 const api = axios.create({
     baseURL: resolveApiBaseUrl(),
-    timeout: 10000,
+    timeout: 3600000, // Increased to 60s to accommodate slow AI formatting requests
     headers: {
         'Content-Type': 'application/json',
     },
@@ -100,8 +100,8 @@ const shouldAttemptTokenRefresh = (error: AxiosError) => {
     const message =
         typeof error.response?.data === 'object' && error.response?.data
             ? ((error.response.data as { error?: string; message?: string }).error ||
-                  (error.response.data as { error?: string; message?: string }).message ||
-                  '')
+                (error.response.data as { error?: string; message?: string }).message ||
+                '')
             : '';
 
     return [
