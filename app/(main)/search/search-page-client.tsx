@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { trackSearch } from '@/lib/analytics';
 import { PostCard } from '@/components/blog/post-card';
+import { useDictionary, useLocale } from '@/components/i18n/locale-provider';
+import { withLocale } from '@/lib/i18n/config';
 import type { Category, PaginatedResponse, Post } from '@/types';
 
 const SEARCH_POSTS_PER_PAGE = 20;
@@ -53,6 +55,8 @@ function resolvePostsPayload(payload: SearchPayload) {
 function SearchPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const locale = useLocale();
+    const dictionary = useDictionary();
     const query = searchParams.get('q')?.trim() || '';
     const page = Number(searchParams.get('page') || '1');
 
@@ -64,6 +68,46 @@ function SearchPageContent() {
     const [totalPages, setTotalPages] = useState(1);
     const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
     const fallbackTopics = ['Kubernetes', 'CI/CD', 'Prometheus', 'Terraform', 'Monitoring'];
+    const copy =
+        locale === 'en'
+            ? {
+                  loadingError: 'Unable to load search results right now.',
+                  intro: 'Search by technology, workflow, or incident theme to jump into the right articles faster.',
+                  loading: (term: string) => `Searching for "${term}"...`,
+                  results: (total: number, term: string) => `Found ${total} result${total === 1 ? '' : 's'} for "${term}"`,
+                  label: 'Search',
+                  title: 'Search the DevOps Daily library',
+                  placeholder: 'Kubernetes, CI/CD, monitoring...',
+                  tipsTitle: 'Search Tips',
+                  startTitle: 'Start with a proven topic',
+                  startBody: 'Use one of these entry points to quickly find articles that match your current task.',
+                  emptyTitle: 'No matching articles yet',
+                  emptyBody: 'Try a shorter query, switch to a related keyword, or jump into one of the suggested topics below.',
+                  tips: [
+                      'Search by a specific technology like `Terraform`, `Kubernetes`, or `Prometheus`.',
+                      'Try workflow keywords like `CI/CD`, `incident`, `release`, or `monitoring`.',
+                      'If results are too broad, shorten the query to the 1-2 most important terms.',
+                  ],
+              }
+            : {
+                  loadingError: 'Không thể tải kết quả tìm kiếm lúc này.',
+                  intro: 'Tìm theo công nghệ, workflow hoặc chủ đề sự cố để đến đúng bài viết nhanh hơn.',
+                  loading: (term: string) => `Đang tìm "${term}"...`,
+                  results: (total: number, term: string) => `Tìm thấy ${total} kết quả cho "${term}"`,
+                  label: dictionary.common.search,
+                  title: 'Tìm trong thư viện Daily DevOps',
+                  placeholder: 'Kubernetes, CI/CD, monitoring...',
+                  tipsTitle: 'Mẹo tìm kiếm',
+                  startTitle: 'Bắt đầu với một chủ đề phổ biến',
+                  startBody: 'Dùng một trong các gợi ý dưới đây để tìm nhanh các bài viết phù hợp với nhu cầu hiện tại.',
+                  emptyTitle: 'Chưa có bài viết phù hợp',
+                  emptyBody: 'Hãy thử từ khóa ngắn hơn, đổi sang một chủ đề gần nghĩa, hoặc bắt đầu bằng các gợi ý bên dưới.',
+                  tips: [
+                      'Tìm theo công nghệ cụ thể như `Terraform`, `Kubernetes` hoặc `Prometheus`.',
+                      'Thử các từ khóa theo workflow như `CI/CD`, `incident`, `release` hoặc `monitoring`.',
+                      'Nếu kết quả quá rộng, hãy rút gọn truy vấn còn 1-2 từ khóa quan trọng nhất.',
+                  ],
+              };
 
     useEffect(() => {
         setSearchInput(query);
@@ -119,7 +163,7 @@ function SearchPageContent() {
                 setErrorMessage('');
 
                 const response = await apiClient.get<SearchPayload>(
-                    `/api/v1/posts/search?search=${encodeURIComponent(query)}&page=${page}&limit=${SEARCH_POSTS_PER_PAGE}&sortBy=publishedAt&sortOrder=desc`
+                    `/api/v1/posts/search?search=${encodeURIComponent(query)}&page=${page}&limit=${SEARCH_POSTS_PER_PAGE}&sortBy=publishedAt&sortOrder=desc&locale=${locale}`
                 );
 
                 if (!isMounted) {
@@ -138,7 +182,7 @@ function SearchPageContent() {
                 setPosts([]);
                 setTotalResults(0);
                 setTotalPages(1);
-                setErrorMessage('Khong the tai ket qua tim kiem luc nay.');
+                setErrorMessage(copy.loadingError);
             } finally {
                 if (isMounted) {
                     setLoading(false);
@@ -151,7 +195,7 @@ function SearchPageContent() {
         return () => {
             isMounted = false;
         };
-    }, [page, query]);
+    }, [copy.loadingError, locale, page, query]);
 
     useEffect(() => {
         if (!query || loading || errorMessage) {
@@ -163,19 +207,19 @@ function SearchPageContent() {
 
     const summaryText = useMemo(() => {
         if (!query) {
-            return 'Search by technology, workflow, or incident theme to jump into the right articles faster.';
+            return copy.intro;
         }
 
         if (loading) {
-            return `Searching for "${query}"...`;
+            return copy.loading(query);
         }
 
         if (errorMessage) {
             return errorMessage;
         }
 
-        return `Found ${totalResults} result${totalResults === 1 ? '' : 's'} for "${query}"`;
-    }, [errorMessage, loading, query, totalResults]);
+        return copy.results(totalResults, query);
+    }, [copy, errorMessage, loading, query, totalResults]);
     const pageNumbers = useMemo(
         () =>
             Array.from({ length: totalPages }, (_, index) => index + 1).filter(
@@ -190,11 +234,11 @@ function SearchPageContent() {
         const trimmed = searchInput.trim();
 
         if (!trimmed) {
-            router.push('/search');
+            router.push(withLocale('/search', locale));
             return;
         }
 
-        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+        router.push(`${withLocale('/search', locale)}?q=${encodeURIComponent(trimmed)}`);
     };
 
     const handlePageChange = (nextPage: number) => {
@@ -202,12 +246,12 @@ function SearchPageContent() {
             return;
         }
 
-        router.push(`/search?q=${encodeURIComponent(query)}&page=${nextPage}`);
+        router.push(`${withLocale('/search', locale)}?q=${encodeURIComponent(query)}&page=${nextPage}`);
     };
 
     const handleSuggestedTopic = (topic: string) => {
         setSearchInput(topic);
-        router.push(`/search?q=${encodeURIComponent(topic)}`);
+        router.push(`${withLocale('/search', locale)}?q=${encodeURIComponent(topic)}`);
     };
 
     return (
@@ -216,10 +260,10 @@ function SearchPageContent() {
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                            Search
+                            {copy.label}
                         </p>
                         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--text-main-theme)]">
-                            Search the DevOps Daily library
+                            {copy.title}
                         </h1>
                         <p className="theme-muted mt-2 text-sm">
                             {summaryText}
@@ -230,14 +274,14 @@ function SearchPageContent() {
                         <input
                             value={searchInput}
                             onChange={(event) => setSearchInput(event.target.value)}
-                            placeholder="Kubernetes, CI/CD, monitoring..."
+                            placeholder={copy.placeholder}
                             className="theme-input h-12 flex-1 rounded-xl px-4 text-sm outline-none"
                         />
                         <button
                             type="submit"
                             className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-blue-600"
                         >
-                            Search
+                            {copy.label}
                         </button>
                     </form>
                 </div>
@@ -247,10 +291,10 @@ function SearchPageContent() {
                 <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                     <section className="theme-surface rounded-2xl border border-dashed px-6 py-12">
                         <h2 className="text-xl font-bold text-[color:var(--text-main-theme)]">
-                            Start with a proven topic
+                            {copy.startTitle}
                         </h2>
                         <p className="theme-muted mt-2 text-sm">
-                            Use one of these entry points to quickly find articles that match your current task.
+                            {copy.startBody}
                         </p>
                         <div className="mt-5 flex flex-wrap gap-3">
                             {(suggestedTopics.length ? suggestedTopics : fallbackTopics).map((topic) => (
@@ -268,12 +312,12 @@ function SearchPageContent() {
 
                     <section className="theme-surface rounded-2xl p-6">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                            Search Tips
+                            {copy.tipsTitle}
                         </p>
                         <ul className="theme-muted mt-4 space-y-3 text-sm leading-7">
-                            <li>Search by a specific technology like `Terraform`, `Kubernetes`, or `Prometheus`.</li>
-                            <li>Try workflow keywords like `CI/CD`, `incident`, `release`, or `monitoring`.</li>
-                            <li>If results are too broad, shorten the query to the 1-2 most important terms.</li>
+                            {copy.tips.map((tip) => (
+                                <li key={tip}>{tip}</li>
+                            ))}
                         </ul>
                     </section>
                 </div>
@@ -289,10 +333,10 @@ function SearchPageContent() {
             ) : posts.length === 0 ? (
                 <div className="theme-surface rounded-2xl border border-dashed px-6 py-12 text-center">
                     <h2 className="text-lg font-semibold text-[color:var(--text-main-theme)]">
-                        No matching articles yet
+                        {copy.emptyTitle}
                     </h2>
                     <p className="theme-muted mt-2 text-sm">
-                        Try a shorter query, switch to a related keyword, or jump into one of the suggested topics below.
+                        {copy.emptyBody}
                     </p>
                     <div className="mt-5 flex flex-wrap justify-center gap-3">
                         {(suggestedTopics.length ? suggestedTopics : fallbackTopics).slice(0, 5).map((topic) => (

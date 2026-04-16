@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { DEFAULT_LOCALE } from '@/lib/i18n/config';
+import { resolveSearchRedirect } from './search-redirect';
 
 export const metadata: Metadata = {
     title: 'Search Articles',
@@ -15,20 +16,5 @@ export default async function SearchPage({
 }: {
     searchParams?: Promise<{ q?: string; page?: string }>;
 }) {
-    const resolvedParams = await searchParams;
-    const query = resolvedParams?.q?.trim();
-    const page = resolvedParams?.page?.trim();
-
-    if (!query) {
-        redirect('/blog');
-    }
-
-    const destination = new URLSearchParams();
-    destination.set('q', query);
-
-    if (page && page !== '1') {
-        destination.set('page', page);
-    }
-
-    redirect(`/blog?${destination.toString()}`);
+    await resolveSearchRedirect(searchParams, DEFAULT_LOCALE);
 }

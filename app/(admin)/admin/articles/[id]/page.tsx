@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
-import type { Category, Post, PostStatus, PostVersion, Tag } from '@/types';
+import type { Category, Post, PostStatus, PostTranslation, PostVersion, Tag } from '@/types';
 import { formatDate, formatRelativeTime, getImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/use-auth';
@@ -67,6 +67,8 @@ interface ArticleFormState {
     tagIds: string[];
     scheduledAt: string;
 }
+
+type EditorLocale = 'vi' | 'en';
 
 interface CategoryDraftState {
     name: string;
@@ -180,6 +182,33 @@ function buildFormState(post?: Post): ArticleFormState {
     };
 }
 
+function buildTranslationFormState(post: Post, translation?: PostTranslation | null): ArticleFormState {
+    if (!translation) {
+        return {
+            ...buildFormState(post),
+            title: '',
+            subtitle: '',
+            slug: '',
+            content: '',
+            contentJson: null,
+            status: 'DRAFT',
+        };
+    }
+
+    return {
+        title: translation.title || '',
+        subtitle: translation.subtitle || translation.excerpt || '',
+        slug: translation.slug || '',
+        content: translation.contentHtml || translation.content || '',
+        contentJson: (translation.contentJson as Record<string, unknown> | null) || null,
+        featuredImage: normalizeFeaturedImageValue(translation.featuredImage || post.featuredImage),
+        status: translation.status || 'DRAFT',
+        categoryId: post.category?.id || '',
+        tagIds: post.tags?.map((tag) => tag.id) || [],
+        scheduledAt: translation.scheduledAt ? translation.scheduledAt.slice(0, 16) : '',
+    };
+}
+
 function countWords(content: string) {
     const plainText = content.replace(/<[^>]+>/g, ' ').trim();
 
@@ -196,8 +225,10 @@ export default function ArticleEditPage() {
     const articleId = params.id as string;
     const isNewArticle = articleId === 'new';
     const currentUser = useAuthStore((state) => state.user);
+    const [selectedLocale, setSelectedLocale] = useState<EditorLocale>('vi');
 
     const [article, setArticle] = useState<Post | null>(null);
+    const [activeTranslation, setActiveTranslation] = useState<PostTranslation | null>(null);
     const [formState, setFormState] = useState<ArticleFormState>(initialFormState);
     const [categories, setCategories] = useState<Category[]>([]);
     const [tags, setTags] = useState<Tag[]>([]);
@@ -208,6 +239,7 @@ export default function ArticleEditPage() {
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [isFormattingContent, setIsFormattingContent] = useState(false);
+    const [isTranslating, setIsTranslating] = useState(false);
     const [thumbnailJob, setThumbnailJob] = useState<ThumbnailJob | null>(null);
     const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
     const [isLoadingMediaLibrary, setIsLoadingMediaLibrary] = useState(false);
@@ -240,6 +272,7 @@ export default function ArticleEditPage() {
     const fetchArticle = useCallback(async () => {
         if (isNewArticle) {
             setArticle(null);
+            setActiveTranslation(null);
             setFormState(initialFormState);
             setVersions([]);
             shouldAutoGenerateSlugRef.current = true;
@@ -250,9 +283,34 @@ export default function ArticleEditPage() {
         const resolved = resolveData<Post | null>(payload, null);
 
         setArticle(resolved);
-        setFormState(buildFormState(resolved || undefined));
-        shouldAutoGenerateSlugRef.current = !(resolved?.slug || '').trim();
-    }, [articleId, isNewArticle]);
+        if (!resolved) {
+            setActiveTranslation(null);
+            setFormState(initialFormState);
+            shouldAutoGenerateSlugRef.current = true;
+            return;
+        }
+
+        if (selectedLocale === 'vi') {
+            setActiveTranslation(null);
+            setFormState(buildFormState(resolved));
+            shouldAutoGenerateSlugRef.current = !(resolved.slug || '').trim();
+            return;
+        }
+
+        try {
+            const translationPayload = await apiClient.get<{ data?: PostTranslation | null } | PostTranslation | null>(
+                `/api/v1/posts/${articleId}/translations/${selectedLocale}`
+            );
+            const resolvedTranslation = resolveData<PostTranslation | null>(translationPayload, null);
+            setActiveTranslation(resolvedTranslation);
+            setFormState(buildTranslationFormState(resolved, resolvedTranslation));
+            shouldAutoGenerateSlugRef.current = !((resolvedTranslation?.slug || '').trim());
+        } catch {
+            setActiveTranslation(null);
+            setFormState(buildTranslationFormState(resolved, null));
+            shouldAutoGenerateSlugRef.current = true;
+        }
+    }, [articleId, isNewArticle, selectedLocale]);
 
     const fetchVersions = useCallback(async () => {
         if (isNewArticle) {
@@ -475,9 +533,26 @@ export default function ArticleEditPage() {
                 : null,
     }), [formState]);
 
+    const buildTranslationPayload = useCallback(() => ({
+        locale: selectedLocale,
+        title: formState.title.trim(),
+        slug: formState.slug.trim() || createSlug(formState.title),
+        excerpt: formState.subtitle.trim() || null,
+        content: formState.content,
+        contentHtml: formState.content,
+        contentJson: formState.contentJson,
+        featuredImage: normalizeFeaturedImageValue(formState.featuredImage) || null,
+        status: formState.status,
+        scheduledAt:
+            formState.status === 'SCHEDULED' && formState.scheduledAt
+                ? new Date(formState.scheduledAt).toISOString()
+                : null,
+    }), [formState, selectedLocale]);
+
     const buildAutosaveSnapshot = useCallback(
         () =>
             JSON.stringify({
+                locale: selectedLocale,
                 title: formState.title.trim(),
                 slug: formState.slug.trim(),
                 subtitle: formState.subtitle.trim(),
@@ -489,7 +564,7 @@ export default function ArticleEditPage() {
                 tagIds: formState.tagIds,
                 scheduledAt: formState.scheduledAt,
             }),
-        [formState]
+        [formState, selectedLocale]
     );
 
     useEffect(() => {
@@ -793,6 +868,50 @@ export default function ArticleEditPage() {
         }
     };
 
+    const handleAutoTranslate = async () => {
+        if (isNewArticle) {
+            toast.error('Hay tao bai viet goc tieng Viet truoc khi dich');
+            return;
+        }
+
+        if (!article?.id) {
+            toast.error('Khong tim thay bai viet goc de dich');
+            return;
+        }
+
+        const confirmed = window.confirm(
+            activeTranslation
+                ? 'Ban dich tieng Anh da ton tai. Dich lai se ghi de noi dung hien tai. Ban co chac khong?'
+                : 'He thong se su dung AI de dich bai viet sang tieng Anh. Qua trinh nay co the mat vai phut. Tiep tuc?'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setIsTranslating(true);
+            const response = await apiClient.post<{ data?: PostTranslation } | PostTranslation>(
+                `/api/v1/posts/${article.id}/auto-translate`
+            );
+            const translation = resolveData<PostTranslation | null>(response, null);
+
+            if (translation) {
+                setSelectedLocale('en');
+                setActiveTranslation(translation);
+                setFormState(buildTranslationFormState(article, translation));
+                shouldAutoGenerateSlugRef.current = false;
+                toast.success('Da dich bai viet sang tieng Anh thanh cong!');
+            } else {
+                toast.error('Khong nhan duoc ban dich tu AI');
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Loi khi dich bai viet';
+            toast.error(message);
+            console.error('Translation error:', error);
+        } finally {
+            setIsTranslating(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!formState.title.trim() || !formState.content.trim()) {
             toast.error('Title va content la bat buoc');
@@ -800,9 +919,15 @@ export default function ArticleEditPage() {
         }
 
         setIsSaving(true);
-        const payload = buildPayload();
+        const isDefaultEditorLocale = selectedLocale === 'vi';
+        const payload = isDefaultEditorLocale ? buildPayload() : buildTranslationPayload();
 
         try {
+            if (!isDefaultEditorLocale && isNewArticle) {
+                toast.error('Hay tao bai viet goc tieng Viet truoc khi them ban dich');
+                return;
+            }
+
             if (isNewArticle) {
                 const response = await apiClient.post<PostPayload>('/api/v1/posts', payload);
                 const createdPost = resolveData<Post | null>(response, null);
@@ -815,6 +940,23 @@ export default function ArticleEditPage() {
                     router.replace(`/admin/articles/${createdPost.id}`);
                 }
 
+                return;
+            }
+
+            if (!isDefaultEditorLocale) {
+                const response = await apiClient.post<{ data?: PostTranslation } | PostTranslation>(
+                    `/api/v1/posts/${articleId}/translations`,
+                    payload
+                );
+                const updatedTranslation = resolveData<PostTranslation | null>(response, null);
+                setActiveTranslation(updatedTranslation);
+                if (article) {
+                    setFormState(buildTranslationFormState(article, updatedTranslation));
+                }
+                lastSavedSnapshotRef.current = buildAutosaveSnapshot();
+                setAutosaveState('saved');
+                toast.success('Da luu ban dich bai viet');
+                await fetchArticle();
                 return;
             }
 
@@ -874,9 +1016,13 @@ export default function ArticleEditPage() {
         setAutosaveState('saving');
 
         try {
-            const payload = buildPayload();
+            const isDefaultEditorLocale = selectedLocale === 'vi';
+            const payload = isDefaultEditorLocale ? buildPayload() : buildTranslationPayload();
 
             if (isNewArticle) {
+                if (!isDefaultEditorLocale) {
+                    return;
+                }
                 const response = await apiClient.post<PostPayload>('/api/v1/posts', payload);
                 const createdPost = resolveData<Post | null>(response, null);
 
@@ -889,17 +1035,31 @@ export default function ArticleEditPage() {
                 return;
             }
 
-            const response = await apiClient.put<PostPayload>(`/api/v1/posts/${articleId}`, {
-                ...payload,
-                createVersion: false,
-            });
-            const updatedPost = resolveData<Post | null>(response, null);
+            if (!isDefaultEditorLocale) {
+                const response = await apiClient.post<{ data?: PostTranslation } | PostTranslation>(
+                    `/api/v1/posts/${articleId}/translations`,
+                    payload
+                );
+                const updatedTranslation = resolveData<PostTranslation | null>(response, null);
 
-            if (updatedPost) {
-                setArticle(updatedPost);
-                lastSavedSnapshotRef.current = snapshot;
-                setAutosaveState('saved');
-                await fetchVersions();
+                if (updatedTranslation) {
+                    setActiveTranslation(updatedTranslation);
+                    lastSavedSnapshotRef.current = snapshot;
+                    setAutosaveState('saved');
+                }
+            } else {
+                const response = await apiClient.put<PostPayload>(`/api/v1/posts/${articleId}`, {
+                    ...payload,
+                    createVersion: false,
+                });
+                const updatedPost = resolveData<Post | null>(response, null);
+
+                if (updatedPost) {
+                    setArticle(updatedPost);
+                    lastSavedSnapshotRef.current = snapshot;
+                    setAutosaveState('saved');
+                    await fetchVersions();
+                }
             }
         } catch {
             setAutosaveState('error');
@@ -915,8 +1075,10 @@ export default function ArticleEditPage() {
         isDeleting,
         isNewArticle,
         isSaving,
+        buildTranslationPayload,
         fetchVersions,
         router,
+        selectedLocale,
     ]);
 
     useEffect(() => {
@@ -1099,9 +1261,20 @@ export default function ArticleEditPage() {
                             </button>
                         </>
                     ) : null}
+                    <div className="flex items-center gap-2">
+                        <span className="theme-muted text-xs font-semibold uppercase tracking-wide">Locale</span>
+                        <select
+                            value={selectedLocale}
+                            onChange={(event) => setSelectedLocale(event.target.value as EditorLocale)}
+                            className="theme-input h-9 rounded-lg px-3 text-sm"
+                        >
+                            <option value="vi">VI</option>
+                            <option value="en" disabled={isNewArticle}>EN</option>
+                        </select>
+                    </div>
                     {!isNewArticle && formState.slug ? (
                         <Link
-                            href={`/${formState.slug}`}
+                            href={selectedLocale === 'vi' ? `/${formState.slug}` : `/${selectedLocale}/${formState.slug}`}
                             target="_blank"
                             className="hidden h-9 items-center gap-2 rounded-lg border border-border-dark bg-[#283039] px-4 text-sm font-bold text-[#9dabb9] transition-colors hover:bg-[#3b4754] hover:text-white sm:inline-flex"
                         >
@@ -1125,6 +1298,40 @@ export default function ArticleEditPage() {
             <div className="grid max-w-[1600px] grid-cols-1 gap-8 lg:grid-cols-12">
                 <div className="flex flex-col gap-6 lg:col-span-8">
                     <div className="flex flex-col gap-3">
+                        {selectedLocale === 'en' ? (
+                            <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted flex items-center justify-between gap-3">
+                                <span>
+                                    {activeTranslation
+                                        ? 'Ban dang chinh sua ban dich tieng Anh cua bai viet nay.'
+                                        : 'Chua co ban dich tieng Anh. Ban co the tao moi va luu ngay tai day.'}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => void handleAutoTranslate()}
+                                    disabled={isTranslating || isNewArticle}
+                                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                                >
+                                    <span className={`material-symbols-outlined text-[14px] ${isTranslating ? 'animate-spin' : ''}`}>
+                                        {isTranslating ? 'sync' : 'translate'}
+                                    </span>
+                                    {isTranslating ? 'Dang dich...' : (activeTranslation ? 'Dich lai bang AI' : 'Dich sang EN bang AI')}
+                                </button>
+                            </div>
+                        ) : !isNewArticle ? (
+                            <div className="flex">
+                                <button
+                                    type="button"
+                                    onClick={() => void handleAutoTranslate()}
+                                    disabled={isTranslating}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs font-bold text-emerald-400 transition-colors hover:bg-emerald-900/60 disabled:opacity-50"
+                                >
+                                    <span className={`material-symbols-outlined text-[14px] ${isTranslating ? 'animate-spin' : ''}`}>
+                                        {isTranslating ? 'sync' : 'translate'}
+                                    </span>
+                                    {isTranslating ? 'Dang dich sang EN...' : 'Auto-translate sang EN'}
+                                </button>
+                            </div>
+                        ) : null}
                         <input
                             type="text"
                             value={formState.title}
@@ -1133,7 +1340,9 @@ export default function ArticleEditPage() {
                             className="w-full border-0 border-b theme-border bg-transparent px-0 py-2 text-3xl font-bold text-[color:var(--text-main-theme)] placeholder-[color:var(--text-soft-theme)] transition-colors focus:border-primary focus:ring-0"
                         />
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="select-none theme-muted">https://dailydevops.blog/</span>
+                            <span className="select-none theme-muted">
+                                {selectedLocale === 'vi' ? 'https://dailydevops.blog/' : `https://dailydevops.blog/${selectedLocale}/`}
+                            </span>
                             <div className="group relative flex-1">
                                 <input
                                     type="text"

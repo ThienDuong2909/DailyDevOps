@@ -3,8 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import type { AxiosError } from 'axios';
 import toast from 'react-hot-toast';
+import { useDictionary, useLocale } from '@/components/i18n/locale-provider';
+import { useLocaleRoute } from '@/components/i18n/locale-route-provider';
 import { apiClient } from '@/lib/api';
+import type { SiteLocale } from '@/lib/i18n/config';
+import { normalizeLocale, withLocale } from '@/lib/i18n/config';
 import { trackCommentSubmit } from '@/lib/analytics';
 import { PostDetailSkeleton } from '@/components/blog/detail/post-detail-skeleton';
 import { useAuthStore } from '@/hooks/use-auth';
@@ -176,25 +181,28 @@ function BlogPostJsonLd({ post, postUrl }: { post: PostWithComments; postUrl: st
 function BreadcrumbJsonLd({
     post,
     siteUrl,
+    locale,
 }: {
     post: PostWithComments;
     siteUrl: string;
+    locale: 'vi' | 'en';
 }) {
+    const prefixed = (path: string) => `${siteUrl}${withLocale(path, locale)}`;
     const items = [
-        { name: 'Home', url: siteUrl },
-        { name: 'Blog', url: `${siteUrl}/blog` },
+        { name: 'Home', url: prefixed('/') },
+        { name: 'Blog', url: prefixed('/blog') },
     ];
 
     if (post.category) {
         items.push({
             name: post.category.name,
-            url: `${siteUrl}/category/${post.category.slug}`,
+            url: prefixed(`/category/${post.category.slug}`),
         });
     }
 
     items.push({
         name: post.title,
-        url: `${siteUrl}/${post.slug}`,
+        url: prefixed(`/${post.slug}`),
     });
 
     const jsonLd = {
@@ -414,33 +422,51 @@ function useFetchPostData(slug: string) {
     const [popularPosts, setPopularPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
+    const [translationNotice, setTranslationNotice] = useState<{
+        locale: SiteLocale;
+        sourceLocale: SiteLocale;
+        sourceSlug: string;
+    } | null>(null);
+    const locale = useLocale();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
                 setErrorMessage('');
-                const postRes = await apiClient.get(`/api/v1/posts/slug/${slug}`);
+                setTranslationNotice(null);
+                const postRes = await apiClient.get(`/api/v1/posts/slug/${slug}?locale=${locale}`);
                 const postData = unwrap<PostWithComments | null>(postRes, null);
                 if (!postData) throw new Error('missing post');
                 setPost(postData);
                 const [relatedRes, popularRes] = await Promise.all([
-                    apiClient.get(`/api/v1/posts/${postData.id}/related?limit=3`),
-                    apiClient.get('/api/v1/posts/published?limit=5&sortBy=viewCount&sortOrder=desc'),
+                    apiClient.get(`/api/v1/posts/${postData.id}/related?limit=3&locale=${locale}`),
+                    apiClient.get(`/api/v1/posts/published?limit=5&sortBy=viewCount&sortOrder=desc&locale=${locale}`),
                 ]);
                 setRelatedPosts(sortPostsNewestFirst(unwrap<Post[]>(relatedRes, [])));
                 setPopularPosts(unwrap<Post[]>(popularRes, []).filter((item) => item.slug !== postData.slug).slice(0, 4));
-            } catch {
-                setErrorMessage('Khong the tai bai viet nay luc nay.');
+            } catch (error) {
+                const apiError = error as AxiosError<{ details?: { code?: string; locale?: string; sourceLocale?: string; sourceSlug?: string } }>;
+                const details = apiError.response?.data?.details;
+                if (details?.code === 'TRANSLATION_NOT_FOUND' && details.sourceSlug) {
+                    setTranslationNotice({
+                        locale: normalizeLocale(details.locale || locale),
+                        sourceLocale: normalizeLocale(details.sourceLocale || 'vi'),
+                        sourceSlug: details.sourceSlug,
+                    });
+                    setErrorMessage('');
+                } else {
+                    setErrorMessage('Khong the tai bai viet nay luc nay.');
+                }
                 setPost(null);
             } finally {
                 setLoading(false);
             }
         };
         if (slug) fetchData();
-    }, [slug]);
+    }, [locale, slug]);
 
-    return { post, setPost, relatedPosts, popularPosts, loading, errorMessage };
+    return { post, setPost, relatedPosts, popularPosts, loading, errorMessage, translationNotice };
 }
 
 function useCommentForm(post: PostWithComments | null, setPost: React.Dispatch<React.SetStateAction<PostWithComments | null>>, isAuthenticated: boolean) {
@@ -512,6 +538,8 @@ function usePostActions(postUrl: string, postTitle?: string, postExcerpt?: strin
 }
 
 function NewsletterSection() {
+    const locale = useLocale();
+
     return (
         <section
             className="relative mt-12 overflow-hidden rounded-[28px] px-6 py-8 sm:px-8"
@@ -538,13 +566,13 @@ function NewsletterSection() {
             </p>
             <div className="relative mt-5 flex flex-wrap gap-3">
                 <Link
-                    href="/newsletter"
+                    href={withLocale('/newsletter', locale)}
                     className="theme-glow-button inline-flex h-11 items-center rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
                 >
                     Join the newsletter
                 </Link>
                 <Link
-                    href="/blog"
+                    href={withLocale('/blog', locale)}
                     className="inline-flex h-11 items-center rounded-xl px-5 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
                     style={{ border: '1px solid var(--border-soft-theme)' }}
                 >
@@ -646,6 +674,8 @@ function PostComments({ post, isAuthenticated, user, form, setForm, submitting, 
 }
 
 function PostSidebar({ derivedTocItems, tocNavRef, scrollToHeading, effectiveActiveTocId, post, handleShare, relatedPosts, popularPosts }: any) {
+    const locale = useLocale();
+
     return (
         <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
             <div className="space-y-5">
@@ -700,7 +730,7 @@ function PostSidebar({ derivedTocItems, tocNavRef, scrollToHeading, effectiveAct
                             {post.tags?.map((tag: any) => (
                                 <Link
                                     key={`sidebar-${tag.id}`}
-                                    href={`/tag/${tag.slug}`}
+                                    href={withLocale(`/tag/${tag.slug}`, locale)}
                                     className="rounded-full px-3 py-1.5 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
                                     style={{ border: '1px solid var(--border-soft-theme)' }}
                                 >
@@ -719,7 +749,7 @@ function PostSidebar({ derivedTocItems, tocNavRef, scrollToHeading, effectiveAct
                             </button>
                             {post.category ? (
                                 <Link
-                                    href={`/category/${post.category.slug}`}
+                                    href={withLocale(`/category/${post.category.slug}`, locale)}
                                     className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
                                     style={{ border: '1px solid var(--border-soft-theme)' }}
                                 >
@@ -737,7 +767,7 @@ function PostSidebar({ derivedTocItems, tocNavRef, scrollToHeading, effectiveAct
                             {relatedPosts.map((item: any) => (
                                 <Link
                                     key={item.id}
-                                    href={`/${item.slug}`}
+                                    href={withLocale(`/${item.slug}`, locale)}
                                     className="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:text-primary"
                                     style={{ '--hover-bg': 'color-mix(in srgb, var(--primary-theme) 6%, transparent)' } as React.CSSProperties}
                                     onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--primary-theme) 6%, transparent)')}
@@ -782,7 +812,7 @@ function PostSidebar({ derivedTocItems, tocNavRef, scrollToHeading, effectiveAct
                             {popularPosts.map((item: any, index: number) => (
                                 <Link
                                     key={`popular-${item.id}`}
-                                    href={`/${item.slug}`}
+                                    href={withLocale(`/${item.slug}`, locale)}
                                     className="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:text-primary"
                                     onMouseEnter={(e) => (e.currentTarget.style.background = 'color-mix(in srgb, var(--primary-theme) 6%, transparent)')}
                                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -813,16 +843,20 @@ function PostSidebar({ derivedTocItems, tocNavRef, scrollToHeading, effectiveAct
     );
 }
 
-export default function BlogDetailClient() {
-    const { slug } = useParams<{ slug: string }>();
+export default function BlogDetailClient({ slugOverride }: { slugOverride?: string } = {}) {
+    const params = useParams<{ slug?: string; segments?: string[] }>();
+    const slug = slugOverride || params?.slug || (Array.isArray(params?.segments) ? params.segments[params.segments.length - 1] : '');
+    const locale = useLocale();
+    const dictionary = useDictionary();
+    const { setAlternatePaths, clearAlternatePaths } = useLocaleRoute();
     const { user, isAuthenticated, initializeAuth } = useAuthStore();
-    const { post, setPost, relatedPosts, popularPosts, loading, errorMessage } = useFetchPostData(slug);
+    const { post, setPost, relatedPosts, popularPosts, loading, errorMessage, translationNotice } = useFetchPostData(slug);
     const progress = useReadingProgress();
     const [activeTocId, setActiveTocId] = useState('');
 
     const contentRef = useRef<HTMLDivElement>(null);
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://dailydevops.blog';
-    const postUrl = `${siteUrl}/${slug}`;
+    const postUrl = `${siteUrl}${withLocale(`/${slug}`, locale)}`;
 
     const { form, setForm, submitting, handleCommentSubmit } = useCommentForm(post, setPost, isAuthenticated);
     const { handleContentClick, handleShare } = usePostActions(postUrl, post?.title, post?.excerpt);
@@ -863,6 +897,37 @@ export default function BlogDetailClient() {
         }
     }, [activeTocId, derivedTocItems]);
 
+    useEffect(() => {
+        if (post?.localeAlternates) {
+            const alternates = Object.entries(post.localeAlternates).reduce<Partial<Record<SiteLocale, string>>>(
+                (acc, [alternateLocale, alternateSlug]) => {
+                    const normalizedAlternateLocale = normalizeLocale(alternateLocale);
+
+                    if (alternateSlug) {
+                        acc[normalizedAlternateLocale] = withLocale(`/${alternateSlug}`, normalizedAlternateLocale);
+                    }
+
+                    return acc;
+                },
+                {}
+            );
+
+            setAlternatePaths(alternates);
+            return () => clearAlternatePaths();
+        }
+
+        if (translationNotice?.sourceSlug) {
+            setAlternatePaths({
+                [locale]: withLocale(`/${slug}`, locale),
+                [translationNotice.sourceLocale]: withLocale(`/${translationNotice.sourceSlug}`, translationNotice.sourceLocale),
+            });
+            return () => clearAlternatePaths();
+        }
+
+        clearAlternatePaths();
+        return () => clearAlternatePaths();
+    }, [clearAlternatePaths, locale, post?.localeAlternates, setAlternatePaths, slug, translationNotice]);
+
     const tocNavRef = useRef<HTMLUListElement>(null);
 
     // Auto-scroll active TOC item into view within the sidebar
@@ -884,14 +949,26 @@ export default function BlogDetailClient() {
                 <div className="text-center">
                     <span className="material-symbols-outlined mb-4 !text-[56px] theme-soft">search_off</span>
                     <h1 className="mb-3 text-3xl font-bold text-[color:var(--text-main-theme)]">
-                        {errorMessage || 'Post Not Found'}
+                        {translationNotice ? dictionary.common.translationMissing : (errorMessage || dictionary.common.articleNotFound)}
                     </h1>
-                    <p className="theme-muted mb-6 text-sm">The article you are looking for may have been removed or is temporarily unavailable.</p>
+                    <p className="theme-muted mb-6 text-sm">
+                        {translationNotice
+                            ? dictionary.blog.missingPostBody
+                            : dictionary.blog.missingPostBody}
+                    </p>
+                    {translationNotice ? (
+                        <Link
+                            href={withLocale(`/${translationNotice.sourceSlug}`, translationNotice.sourceLocale)}
+                            className="mr-3 inline-flex h-11 items-center rounded-xl border border-[var(--border-soft-theme)] px-6 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
+                        >
+                            {dictionary.common.switchToVietnamese}
+                        </Link>
+                    ) : null}
                     <Link
-                        href="/blog"
+                        href={withLocale('/blog', locale)}
                         className="inline-flex h-11 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
                     >
-                        Browse all articles
+                        {dictionary.common.browseArticles}
                     </Link>
                 </div>
             </div>
@@ -904,7 +981,7 @@ export default function BlogDetailClient() {
         <div className="min-h-screen" style={{ background: 'var(--surface-muted)', color: 'var(--text-main-theme)' }}>
             {/* JSON-LD Structured Data */}
             <BlogPostJsonLd post={post} postUrl={postUrl} />
-            <BreadcrumbJsonLd post={post} siteUrl={siteUrl} />
+            <BreadcrumbJsonLd post={post} siteUrl={siteUrl} locale={locale} />
 
             <div className="fixed left-0 right-0 top-0 z-50 h-1 bg-transparent">
                 <div className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-150 ease-out" style={{ width: `${progress}%` }} />
@@ -912,7 +989,7 @@ export default function BlogDetailClient() {
 
             <section className="mx-auto max-w-[1280px] overflow-x-clip px-4 pt-6 sm:pt-8 lg:px-8 lg:pt-10">
                 <nav className="theme-muted mb-6 flex flex-wrap items-center gap-2 pb-1 text-sm">
-                    <Link href="/" className="shrink-0 hover:text-primary">Blog</Link>
+                    <Link href={withLocale('/', locale)} className="shrink-0 hover:text-primary">{dictionary.common.blog}</Link>
                     <span className="material-symbols-outlined shrink-0 text-sm">chevron_right</span>
                     {post.category ? <><span className="shrink-0">{post.category.name}</span><span className="material-symbols-outlined shrink-0 text-sm">chevron_right</span></> : null}
                     <span className="text-[color:var(--text-main-theme)] break-words">{post.title}</span>
@@ -928,7 +1005,7 @@ export default function BlogDetailClient() {
                             />
                             <div className="min-w-0">
                                 <Link
-                                    href={`/author/${buildAuthorUsername(post.author.firstName, post.author.lastName)}`}
+                                    href={withLocale(`/author/${buildAuthorUsername(post.author.firstName, post.author.lastName)}`, locale)}
                                     className="block truncate font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
                                 >
                                     {authorName}
@@ -946,7 +1023,7 @@ export default function BlogDetailClient() {
                         <div className="mb-8 flex flex-wrap items-center gap-2.5">
                             {post.category ? (
                                 <Link
-                                    href={`/category/${post.category.slug}`}
+                                    href={withLocale(`/category/${post.category.slug}`, locale)}
                                     className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-colors hover:opacity-80"
                                     style={{ 
                                         backgroundColor: post.category.color ? `${post.category.color}1a` : 'color-mix(in srgb, var(--primary-theme) 12%, var(--surface-muted))',
@@ -960,7 +1037,7 @@ export default function BlogDetailClient() {
                             {post.tags?.map((tag) => (
                                 <Link
                                     key={tag.id}
-                                    href={`/tag/${tag.slug}`}
+                                    href={withLocale(`/tag/${tag.slug}`, locale)}
                                     className="inline-flex rounded-full px-4 py-2 text-xs font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
                                     style={{ border: '1px solid var(--border-soft-theme)' }}
                                 >

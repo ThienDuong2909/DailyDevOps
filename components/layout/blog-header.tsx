@@ -6,8 +6,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
 import { HeaderAuthButton } from '@/components/auth/header-auth-button';
+import { useDictionary, useLocale } from '@/components/i18n/locale-provider';
+import { useLocaleRoute } from '@/components/i18n/locale-route-provider';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { apiClient } from '@/lib/api';
+import type { SiteLocale } from '@/lib/i18n/config';
+import { LOCALE_COOKIE_NAME, withLocale } from '@/lib/i18n/config';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { getImageUrl } from '@/lib/utils';
 
@@ -27,6 +31,9 @@ type SearchSuggestion = {
 export function BlogHeader() {
     const router = useRouter();
     const pathname = usePathname();
+    const locale = useLocale();
+    const { alternatePaths } = useLocaleRoute();
+    const dictionary = useDictionary();
     const { settings } = useSiteSettings();
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -39,7 +46,9 @@ export function BlogHeader() {
     const handleSearchSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault();
         const trimmed = searchQuery.trim();
-        const destination = trimmed ? `/blog?q=${encodeURIComponent(trimmed)}` : '/blog';
+        const destination = trimmed
+            ? `${withLocale('/blog', locale)}?q=${encodeURIComponent(trimmed)}`
+            : withLocale('/blog', locale);
         setShowSuggestions(false);
         router.push(destination);
     };
@@ -58,7 +67,7 @@ export function BlogHeader() {
             try {
                 setIsLoadingSuggestions(true);
                 const response = await apiClient.get<{ data?: SearchSuggestion[] }>(
-                    `/api/v1/posts/autocomplete?q=${encodeURIComponent(trimmed)}&limit=5`
+                    `/api/v1/posts/autocomplete?q=${encodeURIComponent(trimmed)}&limit=5&locale=${locale}`
                 );
 
                 if (!isMounted) {
@@ -81,7 +90,7 @@ export function BlogHeader() {
             isMounted = false;
             clearTimeout(timer);
         };
-    }, [searchQuery]);
+    }, [locale, searchQuery]);
 
     useEffect(() => {
         const handleOutsideClick = (event: MouseEvent) => {
@@ -99,16 +108,22 @@ export function BlogHeader() {
         setShowSuggestions(false);
     }, [pathname]);
 
+    const switchLocale = (nextLocale: SiteLocale) => {
+        document.cookie = `${LOCALE_COOKIE_NAME}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+        const nextPath = alternatePaths[nextLocale] || (pathname ? withLocale(pathname, nextLocale) : withLocale('/', nextLocale));
+        router.push(nextPath);
+    };
+
     const handleSuggestionSelect = (slug: string) => {
         setShowSuggestions(false);
-        router.push(`/${slug}`);
+        router.push(withLocale(`/${slug}`, locale));
     };
 
     return (
         <header className="sticky top-0 z-50 overflow-x-clip border-b border-gray-200 bg-surface-light shadow-sm dark:border-gray-800 dark:bg-surface-dark">
             <div className="mx-auto flex w-full max-w-[1280px] min-w-0 items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-10">
                     <div className="flex min-w-0 items-center gap-3 md:gap-8">
-                        <Link href="/" className="group flex min-w-0 items-center gap-3 text-text-main transition-opacity hover:opacity-90 dark:text-white">
+                        <Link href={withLocale('/', locale)} className="group flex min-w-0 items-center gap-3 text-text-main transition-opacity hover:opacity-90 dark:text-white">
                             <img 
                                 src="/logo.png" 
                                 alt="Daily DevOps Logo" 
@@ -126,7 +141,7 @@ export function BlogHeader() {
                             {settings.content.headerNavigation.map((item) => (
                                 <Link
                                     key={`${item.href}-${item.label}`}
-                                    href={item.href}
+                                    href={withLocale(item.href, locale)}
                                     className="text-sm font-medium hover:text-primary transition-colors dark:text-gray-300"
                                 >
                                     {item.label}
@@ -147,14 +162,14 @@ export function BlogHeader() {
                                 <button
                                     type="submit"
                                     className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
-                                    aria-label="Search articles"
+                                    aria-label={dictionary.header.searchAria}
                                 >
                                     <span className="material-symbols-outlined !text-[20px]">search</span>
                                 </button>
                                 <input
                                     ref={desktopSearchInputRef}
                                     className="h-full min-w-0 border-none bg-transparent text-sm font-normal text-text-main placeholder:text-text-sub transition-[max-width,opacity,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-0 dark:text-white max-w-52 flex-1 pl-1 pr-3 opacity-100"
-                                    placeholder="Search articles, tools, and topics..."
+                                    placeholder={dictionary.blog.searchPlaceholder}
                                     value={searchQuery}
                                     onChange={(event) => setSearchQuery(event.target.value)}
                                     onFocus={() => setShowSuggestions(true)}
@@ -163,13 +178,13 @@ export function BlogHeader() {
                             {showSuggestions && searchQuery.trim() ? (
                                 <div className="theme-panel theme-border absolute top-12 z-50 w-full overflow-hidden rounded-2xl border shadow-2xl">
                                     {isLoadingSuggestions ? (
-                                        <div className="px-4 py-3 text-sm theme-muted">Dang tim goi y...</div>
+                                        <div className="px-4 py-3 text-sm theme-muted">{dictionary.blog.suggestionsLoading}</div>
                                     ) : suggestions.length === 0 ? (
                                         <button
                                             type="submit"
                                             className="block w-full px-4 py-3 text-left text-sm theme-muted transition-colors hover:bg-primary/5 hover:text-primary"
                                         >
-                                            Search the full library for &quot;{searchQuery.trim()}&quot;
+                                            {dictionary.blog.searchLibraryFor} &quot;{searchQuery.trim()}&quot;
                                         </button>
                                     ) : (
                                         <>
@@ -212,7 +227,7 @@ export function BlogHeader() {
                                                 type="submit"
                                                 className="theme-border block w-full border-t px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/5"
                                             >
-                                                View all search results
+                                                {dictionary.blog.viewAllResults}
                                             </button>
                                         </>
                                     )}
@@ -223,10 +238,26 @@ export function BlogHeader() {
                             type="button"
                             onClick={() => setMobileMenuOpen((value) => !value)}
                             className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-text-main transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:text-white md:hidden"
-                            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                            aria-label={mobileMenuOpen ? dictionary.header.closeMenu : dictionary.header.openMenu}
                         >
                             {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
                         </button>
+                        <div className="hidden items-center gap-1 rounded-lg border border-gray-200 px-1 py-1 dark:border-gray-700 sm:flex">
+                            <button
+                                type="button"
+                                onClick={() => switchLocale('vi')}
+                                className={`rounded-md px-2 py-1 text-xs font-semibold ${locale === 'vi' ? 'bg-primary text-white' : 'text-text-sub'}`}
+                            >
+                                {dictionary.header.languageVi}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => switchLocale('en')}
+                                className={`rounded-md px-2 py-1 text-xs font-semibold ${locale === 'en' ? 'bg-primary text-white' : 'text-text-sub'}`}
+                            >
+                                {dictionary.header.languageEn}
+                            </button>
+                        </div>
                         <ThemeToggle />
                         <HeaderAuthButton />
                     </div>
@@ -236,7 +267,7 @@ export function BlogHeader() {
                     <form onSubmit={handleSearchSubmit} className="mb-4 flex items-center gap-2">
                         <input
                             className="theme-input h-11 flex-1 rounded-xl px-4 text-sm"
-                            placeholder="Search articles, tools, and topics..."
+                            placeholder={dictionary.blog.searchPlaceholder}
                             value={searchQuery}
                             onChange={(event) => setSearchQuery(event.target.value)}
                         />
@@ -244,25 +275,41 @@ export function BlogHeader() {
                             type="submit"
                             className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white"
                         >
-                            Search
+                            {dictionary.common.search}
                         </button>
                     </form>
 
                     <nav className="flex flex-col gap-2">
+                        <div className="mb-2 flex items-center gap-2 rounded-xl border border-gray-200 p-1 dark:border-gray-700">
+                            <button
+                                type="button"
+                                onClick={() => switchLocale('vi')}
+                                className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === 'vi' ? 'bg-primary text-white' : 'text-text-sub'}`}
+                            >
+                                {dictionary.header.languageVi}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => switchLocale('en')}
+                                className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === 'en' ? 'bg-primary text-white' : 'text-text-sub'}`}
+                            >
+                                {dictionary.header.languageEn}
+                            </button>
+                        </div>
                         {settings.content.headerNavigation.map((item) => (
                             <Link
                                 key={`mobile-${item.href}-${item.label}`}
-                                href={item.href}
+                                href={withLocale(item.href, locale)}
                                 className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
                             >
                                 {item.label}
                             </Link>
                         ))}
                         <Link
-                            href="/blog"
+                            href={withLocale('/blog', locale)}
                             className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
                         >
-                            All Articles
+                            {dictionary.common.allArticles}
                         </Link>
                     </nav>
                 </div>

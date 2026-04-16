@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { useLocale } from '@/components/i18n/locale-provider';
+import { withLocale } from '@/lib/i18n/config';
 import type { Post } from '@/types';
 import { getImageUrl } from '@/lib/utils';
 
@@ -29,6 +31,7 @@ function formatPublishedLabel(post: Post) {
 }
 
 export function PostCard({ post, imageClassName }: PostCardProps) {
+    const locale = useLocale();
     const categoryName = post.category?.name || 'General';
     const publishedLabel = formatPublishedLabel(post);
     const imageUrl =
@@ -47,7 +50,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
     return (
         <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--surface-elevated)] shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
             <div className={`relative aspect-[16/9] w-full overflow-hidden ${imageClassName || ''}`}>
-                <Link href={`/${post.slug}`} className="block h-full w-full">
+                <Link href={withLocale(`/${post.slug}`, locale)} className="block h-full w-full">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={imageUrl}
@@ -58,7 +61,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
                 </Link>
 
                 <Link
-                    href={post.category?.slug ? `/category/${post.category.slug}` : '/blog'}
+                    href={post.category?.slug ? withLocale(`/category/${post.category.slug}`, locale) : withLocale('/blog', locale)}
                     className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-lg backdrop-blur-sm transition-transform hover:scale-105"
                     style={{ backgroundColor: `${categoryColor}E6` }}
                 >
@@ -70,7 +73,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
             </div>
 
             <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
-                <Link href={`/${post.slug}`} className="block">
+                <Link href={withLocale(`/${post.slug}`, locale)} className="block">
                     <h3 className="line-clamp-2 text-[1.05rem] font-extrabold leading-snug tracking-tight text-[var(--text-main-theme)] transition-colors group-hover:text-primary">
                         {post.title}
                     </h3>

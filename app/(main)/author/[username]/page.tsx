@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PostCard } from '@/components/blog/post-card';
+import { normalizeLocale } from '@/lib/i18n/config';
 import { getImageUrl } from '@/lib/utils';
 import type { Post } from '@/types';
 
@@ -52,14 +53,15 @@ function sortPostsNewestFirst(posts: Post[]) {
 export async function generateMetadata({
     params,
 }: {
-    params: Promise<{ username: string }>;
+    params: Promise<{ username: string; locale?: string }>;
 }): Promise<Metadata> {
-    const { username } = await params;
+    const { username, locale = 'vi' } = await params;
+    const resolvedLocale = normalizeLocale(locale);
     const author = await fetchAuthor(username);
 
     if (!author) {
         return {
-            title: 'Author Not Found',
+            title: resolvedLocale === 'en' ? 'Author Not Found' : 'Không tìm thấy tác giả',
             robots: {
                 index: false,
                 follow: false,
@@ -70,12 +72,14 @@ export async function generateMetadata({
     const authorName = `${author.firstName} ${author.lastName}`;
 
     return {
-        title: `${authorName} Author Profile`,
+        title: resolvedLocale === 'en' ? `${authorName} Author Profile` : `Trang tác giả ${authorName}`,
         description:
             author.bio ||
-            `Read published DevOps Daily articles written by ${authorName}.`,
+            (resolvedLocale === 'en'
+                ? `Read published DevOps Daily articles written by ${authorName}.`
+                : `Khám phá các bài viết Daily DevOps được viết bởi ${authorName}.`),
         alternates: {
-            canonical: `/author/${username}`,
+            canonical: resolvedLocale === 'vi' ? `/author/${username}` : `/${resolvedLocale}/author/${username}`,
         },
     };
 }
@@ -83,9 +87,10 @@ export async function generateMetadata({
 export default async function AuthorPage({
     params,
 }: {
-    params: Promise<{ username: string }>;
+    params: Promise<{ username: string; locale?: string }>;
 }) {
-    const { username } = await params;
+    const { username, locale = 'vi' } = await params;
+    const resolvedLocale = normalizeLocale(locale);
     const author = await fetchAuthor(username);
 
     if (!author) {
@@ -95,6 +100,22 @@ export default async function AuthorPage({
     const authorName = `${author.firstName} ${author.lastName}`;
 
     const posts = sortPostsNewestFirst(author.posts);
+    const copy =
+        resolvedLocale === 'en'
+            ? {
+                  label: 'Author',
+                  description: author.bio || `${authorName} contributes published articles to DevOps Daily.`,
+                  count: `${posts.length} published articles`,
+                  emptyTitle: 'This author has no public articles yet',
+                  emptyBody: 'When new posts are published, they will appear here.',
+              }
+            : {
+                  label: 'Tác giả',
+                  description: author.bio || `${authorName} đang đóng góp các bài viết cho DevOps Daily.`,
+                  count: `${posts.length} bài viết đã xuất bản`,
+                  emptyTitle: 'Tác giả này chưa có bài viết công khai',
+                  emptyBody: 'Khi bài viết mới được publish, chúng sẽ hiển thị tại đây.',
+              };
 
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
@@ -114,17 +135,17 @@ export default async function AuthorPage({
                     </div>
                     <div className="flex-1">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                            Author
+                            {copy.label}
                         </p>
                         <h1 className="mt-2 text-3xl font-bold tracking-tight text-text-main dark:text-white">
                             {authorName}
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm text-text-sub dark:text-gray-400">
-                            {author.bio || `${authorName} dang dong gop cac bai viet cho DevOps Daily.`}
+                            {copy.description}
                         </p>
                     </div>
                     <div className="inline-flex items-center rounded-full border border-gray-200 bg-background-light px-4 py-2 text-sm font-medium text-text-sub dark:border-gray-700 dark:bg-background-dark dark:text-gray-300">
-                        {posts.length} bai viet published
+                        {copy.count}
                     </div>
                 </div>
             </section>
@@ -132,10 +153,10 @@ export default async function AuthorPage({
             {posts.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 px-6 py-12 text-center dark:border-gray-700 dark:bg-surface-dark/60">
                     <h2 className="text-lg font-semibold text-text-main dark:text-white">
-                        Tac gia nay chua co bai viet cong khai
+                        {copy.emptyTitle}
                     </h2>
                     <p className="mt-2 text-sm text-text-sub dark:text-gray-400">
-                        Khi bai viet moi duoc publish, chung se hien thi tai day.
+                        {copy.emptyBody}
                     </p>
                 </div>
             ) : (

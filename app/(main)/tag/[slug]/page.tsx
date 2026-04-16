@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PostCard } from '@/components/blog/post-card';
+import { normalizeLocale } from '@/lib/i18n/config';
 import type { PaginatedResponse, Post, Tag } from '@/types';
 
 const apiBaseUrl =
@@ -60,10 +61,10 @@ async function fetchTags(): Promise<Tag[]> {
     }
 }
 
-async function fetchPostsByTag(tagSlug: string): Promise<Post[]> {
+async function fetchPostsByTag(tagSlug: string, locale = 'vi'): Promise<Post[]> {
     try {
         const response = await fetch(
-            `${apiBaseUrl}/api/v1/posts/published?tagSlug=${encodeURIComponent(tagSlug)}&limit=20&sortBy=publishedAt&sortOrder=desc`,
+            `${apiBaseUrl}/api/v1/posts/published?tagSlug=${encodeURIComponent(tagSlug)}&limit=20&sortBy=publishedAt&sortOrder=desc&locale=${locale}`,
             {
                 next: { revalidate: 300 },
             }
@@ -83,15 +84,16 @@ async function fetchPostsByTag(tagSlug: string): Promise<Post[]> {
 export async function generateMetadata({
     params,
 }: {
-    params: Promise<{ slug: string }>;
+    params: Promise<{ slug: string; locale?: string }>;
 }): Promise<Metadata> {
-    const { slug } = await params;
+    const { slug, locale = 'vi' } = await params;
+    const resolvedLocale = normalizeLocale(locale);
     const tags = await fetchTags();
     const tag = tags.find((item) => item.slug === slug);
 
     if (!tag) {
         return {
-            title: 'Tag Not Found',
+            title: resolvedLocale === 'en' ? 'Tag Not Found' : 'Không tìm thấy thẻ',
             robots: {
                 index: false,
                 follow: false,
@@ -100,10 +102,13 @@ export async function generateMetadata({
     }
 
     return {
-        title: `#${tag.name} Articles`,
-        description: `Browse DevOps Daily articles tagged with ${tag.name}.`,
+        title: resolvedLocale === 'en' ? `#${tag.name} Articles` : `Bài viết gắn thẻ #${tag.name}`,
+        description:
+            resolvedLocale === 'en'
+                ? `Browse DevOps Daily articles tagged with ${tag.name}.`
+                : `Khám phá các bài viết Daily DevOps được gắn thẻ ${tag.name}.`,
         alternates: {
-            canonical: `/tag/${tag.slug}`,
+            canonical: resolvedLocale === 'vi' ? `/tag/${tag.slug}` : `/${resolvedLocale}/tag/${tag.slug}`,
         },
     };
 }
@@ -111,9 +116,10 @@ export async function generateMetadata({
 export default async function TagPage({
     params,
 }: {
-    params: Promise<{ slug: string }>;
+    params: Promise<{ slug: string; locale?: string }>;
 }) {
-    const { slug } = await params;
+    const { slug, locale = 'vi' } = await params;
+    const resolvedLocale = normalizeLocale(locale);
     const tags = await fetchTags();
     const tag = tags.find((item) => item.slug === slug);
 
@@ -121,7 +127,23 @@ export default async function TagPage({
         notFound();
     }
 
-    const posts = await fetchPostsByTag(tag.slug);
+    const posts = await fetchPostsByTag(tag.slug, resolvedLocale);
+    const copy =
+        resolvedLocale === 'en'
+            ? {
+                  label: 'Tag',
+                  description: `Articles related to #${tag.slug}.`,
+                  count: `${posts.length} articles`,
+                  emptyTitle: 'No articles for this tag yet',
+                  emptyBody: 'When new posts are tagged with this topic, they will show up here.',
+              }
+            : {
+                  label: 'Thẻ',
+                  description: `Các bài viết liên quan tới chủ đề #${tag.slug}.`,
+                  count: `${posts.length} bài viết`,
+                  emptyTitle: 'Chưa có bài viết cho thẻ này',
+                  emptyBody: 'Khi có bài viết mới gắn thẻ này, chúng sẽ hiển thị tại đây.',
+              };
 
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
@@ -129,17 +151,17 @@ export default async function TagPage({
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                            Tag
+                            {copy.label}
                         </p>
                         <h1 className="mt-2 text-3xl font-bold tracking-tight text-text-main dark:text-white">
                             #{tag.name}
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm text-text-sub dark:text-gray-400">
-                            Cac bai viet lien quan toi chu de #{tag.slug}.
+                            {copy.description}
                         </p>
                     </div>
                     <div className="inline-flex items-center rounded-full border border-gray-200 bg-background-light px-4 py-2 text-sm font-medium text-text-sub dark:border-gray-700 dark:bg-background-dark dark:text-gray-300">
-                        {posts.length} bai viet
+                        {copy.count}
                     </div>
                 </div>
             </section>
@@ -147,10 +169,10 @@ export default async function TagPage({
             {posts.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 px-6 py-12 text-center dark:border-gray-700 dark:bg-surface-dark/60">
                     <h2 className="text-lg font-semibold text-text-main dark:text-white">
-                        Chua co bai viet cho tag nay
+                        {copy.emptyTitle}
                     </h2>
                     <p className="mt-2 text-sm text-text-sub dark:text-gray-400">
-                        Khi co bai viet moi gan tag nay, chung se hien thi tai day.
+                        {copy.emptyBody}
                     </p>
                 </div>
             ) : (

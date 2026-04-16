@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PostCard } from '@/components/blog/post-card';
+import { normalizeLocale } from '@/lib/i18n/config';
 import type { Category, PaginatedResponse, Post } from '@/types';
 
 const apiBaseUrl =
@@ -60,10 +61,10 @@ async function fetchCategories(): Promise<Category[]> {
     }
 }
 
-async function fetchPostsByCategory(categoryId: string): Promise<Post[]> {
+async function fetchPostsByCategory(categoryId: string, locale = 'vi'): Promise<Post[]> {
     try {
         const response = await fetch(
-            `${apiBaseUrl}/api/v1/posts/published?categoryId=${encodeURIComponent(categoryId)}&limit=20&sortBy=publishedAt&sortOrder=desc`,
+            `${apiBaseUrl}/api/v1/posts/published?categoryId=${encodeURIComponent(categoryId)}&limit=20&sortBy=publishedAt&sortOrder=desc&locale=${locale}`,
             {
                 next: { revalidate: 300 },
             }
@@ -83,15 +84,16 @@ async function fetchPostsByCategory(categoryId: string): Promise<Post[]> {
 export async function generateMetadata({
     params,
 }: {
-    params: Promise<{ slug: string }>;
+    params: Promise<{ slug: string; locale?: string }>;
 }): Promise<Metadata> {
-    const { slug } = await params;
+    const { slug, locale = 'vi' } = await params;
+    const resolvedLocale = normalizeLocale(locale);
     const categories = await fetchCategories();
     const category = categories.find((item) => item.slug === slug);
 
     if (!category) {
         return {
-            title: 'Category Not Found',
+            title: resolvedLocale === 'en' ? 'Category Not Found' : 'Không tìm thấy chuyên mục',
             robots: {
                 index: false,
                 follow: false,
@@ -100,12 +102,14 @@ export async function generateMetadata({
     }
 
     return {
-        title: `${category.name} Articles`,
+        title: resolvedLocale === 'en' ? `${category.name} Articles` : `Bài viết về ${category.name}`,
         description:
             category.description ||
-            `Browse published DevOps Daily articles in the ${category.name} category.`,
+            (resolvedLocale === 'en'
+                ? `Browse published DevOps Daily articles in the ${category.name} category.`
+                : `Khám phá các bài viết Daily DevOps thuộc chuyên mục ${category.name}.`),
         alternates: {
-            canonical: `/category/${category.slug}`,
+            canonical: resolvedLocale === 'vi' ? `/category/${category.slug}` : `/${resolvedLocale}/category/${category.slug}`,
         },
     };
 }
@@ -113,9 +117,10 @@ export async function generateMetadata({
 export default async function CategoryPage({
     params,
 }: {
-    params: Promise<{ slug: string }>;
+    params: Promise<{ slug: string; locale?: string }>;
 }) {
-    const { slug } = await params;
+    const { slug, locale = 'vi' } = await params;
+    const resolvedLocale = normalizeLocale(locale);
     const categories = await fetchCategories();
     const category = categories.find((item) => item.slug === slug);
 
@@ -123,7 +128,23 @@ export default async function CategoryPage({
         notFound();
     }
 
-    const posts = await fetchPostsByCategory(category.id);
+    const posts = await fetchPostsByCategory(category.id, resolvedLocale);
+    const copy =
+        resolvedLocale === 'en'
+            ? {
+                  label: 'Category',
+                  description: category.description || `A curated list of articles in the ${category.name} category.`,
+                  count: `${posts.length} articles`,
+                  emptyTitle: 'No articles in this category yet',
+                  emptyBody: 'When new posts are published in this category, they will appear here.',
+              }
+            : {
+                  label: 'Chuyên mục',
+                  description: category.description || `Tổng hợp các bài viết thuộc chủ đề ${category.name}.`,
+                  count: `${posts.length} bài viết`,
+                  emptyTitle: 'Chưa có bài viết trong chuyên mục này',
+                  emptyBody: 'Khi có bài viết mới được publish trong chuyên mục này, chúng sẽ hiển thị tại đây.',
+              };
 
     return (
         <div className="flex w-full max-w-[1280px] flex-col gap-8">
@@ -131,18 +152,17 @@ export default async function CategoryPage({
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                            Category
+                            {copy.label}
                         </p>
                         <h1 className="mt-2 text-3xl font-bold tracking-tight text-text-main dark:text-white">
                             {category.name}
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm text-text-sub dark:text-gray-400">
-                            {category.description ||
-                                `Tong hop cac bai viet thuoc chu de ${category.name}.`}
+                            {copy.description}
                         </p>
                     </div>
                     <div className="inline-flex items-center rounded-full border border-gray-200 bg-background-light px-4 py-2 text-sm font-medium text-text-sub dark:border-gray-700 dark:bg-background-dark dark:text-gray-300">
-                        {posts.length} bai viet
+                        {copy.count}
                     </div>
                 </div>
             </section>
@@ -150,10 +170,10 @@ export default async function CategoryPage({
             {posts.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 px-6 py-12 text-center dark:border-gray-700 dark:bg-surface-dark/60">
                     <h2 className="text-lg font-semibold text-text-main dark:text-white">
-                        Chua co bai viet trong category nay
+                        {copy.emptyTitle}
                     </h2>
                     <p className="mt-2 text-sm text-text-sub dark:text-gray-400">
-                        Khi co bai viet moi duoc publish trong category nay, chung se hien thi tai day.
+                        {copy.emptyBody}
                     </p>
                 </div>
             ) : (

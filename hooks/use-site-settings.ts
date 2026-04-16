@@ -55,7 +55,7 @@ export const defaultSiteSettings: SiteSettingsPayload = {
         siteUrl: 'https://dailydevops.blog',
         siteDescription:
             'Expert articles on Kubernetes, CI/CD, Cloud Architecture, and DevOps best practices.',
-        language: 'en',
+        language: 'vi',
         timezone: 'Asia/Ho_Chi_Minh',
         postsPerPage: 10,
         allowComments: true,

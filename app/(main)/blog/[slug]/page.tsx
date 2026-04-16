@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { DEFAULT_LOCALE } from '@/lib/i18n/config';
 
 export default async function LegacyBlogDetailPage({
     params,
@@ -6,5 +7,5 @@ export default async function LegacyBlogDetailPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    redirect(`/${slug}`);
+    redirect(`/${DEFAULT_LOCALE}/${slug}`);
 }

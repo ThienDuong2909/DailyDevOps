@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useLocale } from '@/components/i18n/locale-provider';
 import { apiClient } from '@/lib/api';
 import type { Post } from '@/types';
 
@@ -41,6 +42,7 @@ function extractPosts(payload: unknown): Post[] {
 }
 
 export function useBlogPosts(): UseBlogPostsResult {
+    const locale = useLocale();
     const [posts, setPosts] = useState<Post[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFallback, setIsFallback] = useState(false);
@@ -51,7 +53,7 @@ export function useBlogPosts(): UseBlogPostsResult {
         const fetchPosts = async () => {
             try {
                 const response = await apiClient.get<unknown>(
-                    '/api/v1/posts/published?limit=12&sortBy=publishedAt&sortOrder=desc'
+                    `/api/v1/posts/published?limit=12&sortBy=publishedAt&sortOrder=desc&locale=${locale}`
                 );
                 const resolvedPosts = sortPostsNewestFirst(extractPosts(response));
 
@@ -86,7 +88,7 @@ export function useBlogPosts(): UseBlogPostsResult {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [locale]);
 
     const featuredPost = useMemo(() => posts[0] ?? null, [posts]);
 

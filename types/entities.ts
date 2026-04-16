@@ -50,6 +50,10 @@ export interface Post {
     id: string;
     title: string;
     slug: string;
+    locale?: 'vi' | 'en';
+    sourcePostId?: string;
+    availableLocales?: string[];
+    localeAlternates?: Record<string, string>;
     subtitle?: string;
     excerpt?: string;
     content: string;
@@ -74,9 +78,28 @@ export interface Post {
     };
     category?: Category;
     tags: Tag[];
+    translations?: PostTranslation[];
     _count?: {
         comments: number;
     };
+}
+
+export interface PostTranslation {
+    id: string;
+    locale: 'vi' | 'en';
+    title: string;
+    slug: string;
+    subtitle?: string;
+    excerpt?: string;
+    content: string;
+    contentHtml?: string;
+    contentJson?: unknown;
+    featuredImage?: string;
+    status: PostStatus;
+    publishedAt?: string;
+    scheduledAt?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface PostVersion {

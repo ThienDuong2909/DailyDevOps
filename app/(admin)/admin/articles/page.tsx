@@ -73,6 +73,8 @@ export default function ArticlesPage() {
     const [isImporting, setIsImporting] = useState(false);
     const [importProgress, setImportProgress] = useState(0);
     const [importStage, setImportStage] = useState('');
+    const [isBatchTranslating, setIsBatchTranslating] = useState(false);
+    const [batchResult, setBatchResult] = useState<{ total: number; results: { id: string; slug: string; status: string; error?: string }[] } | null>(null);
 
     const fetchPosts = useCallback(async (showRefreshing = false) => {
         try {
@@ -233,6 +235,31 @@ export default function ArticlesPage() {
         }
     };
 
+    const handleBatchTranslate = async () => {
+        const limitInput = window.prompt(
+            'So luong bai viet muon dich (1-20). He thong se tu dong dich cac bai PUBLISHED chua co ban tieng Anh:',
+            '5'
+        );
+
+        if (!limitInput) return;
+        const limit = Math.min(20, Math.max(1, parseInt(limitInput, 10) || 5));
+
+        try {
+            setIsBatchTranslating(true);
+            setBatchResult(null);
+            const response = await apiClient.post<any>('/api/v1/posts/batch-translate', { limit });
+            const result = response?.data || response;
+            setBatchResult(result);
+
+            const successCount = result?.results?.filter((r: any) => r.status === 'success').length || 0;
+            toast.success(`Da dich ${successCount}/${result?.total || 0} bai viet`);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Loi khi dich hang loat');
+        } finally {
+            setIsBatchTranslating(false);
+        }
+    };
+
     return (
         <div className="mx-auto flex max-w-[1400px] flex-col gap-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -243,6 +270,17 @@ export default function ArticlesPage() {
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => void handleBatchTranslate()}
+                        disabled={isBatchTranslating}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-emerald-700 bg-emerald-900/30 px-4 text-sm font-bold text-emerald-400 transition-colors hover:bg-emerald-900/60 disabled:opacity-50"
+                    >
+                        <span className={`material-symbols-outlined text-[18px] ${isBatchTranslating ? 'animate-spin' : ''}`}>
+                            {isBatchTranslating ? 'sync' : 'translate'}
+                        </span>
+                        {isBatchTranslating ? 'Dang dich...' : 'Batch Translate EN'}
+                    </button>
                     <label className="theme-panel-muted theme-border inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold text-[color:var(--text-main-theme)] transition hover:border-primary hover:text-primary">
                         <span className="material-symbols-outlined text-[18px]">upload_file</span>
                         Import tu Notion
@@ -278,6 +316,36 @@ export default function ArticlesPage() {
                             className="h-full rounded-full bg-[image:var(--primary-glow-theme)] transition-all duration-300"
                             style={{ width: `${importProgress}%` }}
                         />
+                    </div>
+                </div>
+            ) : null}
+
+            {batchResult ? (
+                <div className="theme-panel rounded-2xl p-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-sm font-bold text-[color:var(--text-main-theme)]">
+                                Ket qua dich hang loat: {batchResult.results.filter((r) => r.status === 'success').length}/{batchResult.total} thanh cong
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setBatchResult(null)}
+                            className="theme-muted rounded-lg p-1 transition-colors hover:text-[color:var(--text-main-theme)]"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                    </div>
+                    <div className="mt-3 space-y-1">
+                        {batchResult.results.map((r) => (
+                            <div key={r.id} className="flex items-center gap-2 text-xs">
+                                <span className={`size-2 rounded-full ${r.status === 'success' ? 'bg-green-400' : r.status === 'skipped' ? 'bg-yellow-400' : 'bg-red-400'}`} />
+                                <span className="font-mono theme-muted">/{r.slug}</span>
+                                <span className={r.status === 'success' ? 'text-green-400' : r.status === 'skipped' ? 'text-yellow-400' : 'text-red-400'}>
+                                    {r.status}{r.error ? `: ${r.error}` : ''}
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             ) : null}

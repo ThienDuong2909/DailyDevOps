@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useDictionary, useLocale } from '@/components/i18n/locale-provider';
 import { BlogHero } from '@/components/blog/home/blog-hero';
 import { BlogPostFeed } from '@/components/blog/home/blog-post-feed';
 import { BlogTopics } from '@/components/blog/home/blog-topics';
@@ -11,9 +12,11 @@ import { apiClient } from '@/lib/api';
 import type { Category } from '@/types';
 
 export function BlogHomeContent() {
+    const locale = useLocale();
+    const dictionary = useDictionary();
     const [selectedTopic, setSelectedTopic] = useState('all');
     const [topics, setTopics] = useState<Array<{ label: string; value: string }>>([
-        { label: 'All', value: 'all' },
+        { label: dictionary.common.allArticles, value: 'all' },
     ]);
     const [isLoadingTopics, setIsLoadingTopics] = useState(true);
     const { featuredPost, isFallback, isLoading, posts } = useBlogPosts();
@@ -35,7 +38,7 @@ export function BlogHomeContent() {
                 }
 
                 setTopics([
-                    { label: 'All', value: 'all' },
+                    { label: dictionary.common.allArticles, value: 'all' },
                     ...categories.map((category) => ({
                         label: category.name,
                         value: category.slug,
@@ -46,7 +49,7 @@ export function BlogHomeContent() {
                     return;
                 }
 
-                setTopics([{ label: 'All', value: 'all' }]);
+                setTopics([{ label: dictionary.common.allArticles, value: 'all' }]);
             } finally {
                 if (isMounted) {
                     setIsLoadingTopics(false);
@@ -59,7 +62,7 @@ export function BlogHomeContent() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [dictionary.common.allArticles, locale]);
 
     const feedPosts = useMemo(() => {
         const remainingPosts = featuredPost

@@ -6,9 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, Search, SlidersHorizontal, X } from 'lucide-react';
 import { PostCard } from '@/components/blog/post-card';
 import { NewsletterSignupForm } from '@/components/blog/newsletter-signup-form';
+import { useLocale } from '@/components/i18n/locale-provider';
 import { Skeleton } from '@/components/shared/skeleton';
 import { authStore } from '@/stores/auth-store';
 import { apiClient } from '@/lib/api';
+import { withLocale } from '@/lib/i18n/config';
 import { cn } from '@/lib/utils';
 import type { Category, Post, Tag } from '@/types';
 
@@ -79,6 +81,7 @@ export function BlogListingContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const isAuthenticated = authStore((s) => s.isAuthenticated);
+    const locale = useLocale();
 
     /* ── state ── */
     const [posts, setPosts] = useState<Post[]>([]);
@@ -112,9 +115,10 @@ export function BlogListingContent() {
                 }
             });
             const qs = url.toString();
-            router.push(qs ? `/blog?${qs}` : '/blog', { scroll: false });
+            const blogPath = withLocale('/blog', locale);
+            router.push(qs ? `${blogPath}?${qs}` : blogPath, { scroll: false });
         },
-        [router, searchParams],
+        [locale, router, searchParams],
     );
 
     useEffect(() => {
@@ -130,7 +134,7 @@ export function BlogListingContent() {
 
             try {
                 const sortConfig = SORT_OPTIONS[currentSort] || SORT_OPTIONS.latest;
-                let url = `/api/v1/posts/published?limit=${POSTS_PER_PAGE}&page=${currentPage}&sortBy=${sortConfig.sortBy}&sortOrder=${sortConfig.sortOrder}`;
+                let url = `/api/v1/posts/published?limit=${POSTS_PER_PAGE}&page=${currentPage}&sortBy=${sortConfig.sortBy}&sortOrder=${sortConfig.sortOrder}&locale=${locale}`;
 
                 if (currentCategory && currentCategory !== 'all') {
                     url += `&categorySlug=${encodeURIComponent(currentCategory)}`;
@@ -161,7 +165,7 @@ export function BlogListingContent() {
 
         fetchPosts();
         return () => { alive = false; };
-    }, [currentPage, currentCategory, currentSort, currentSearch]);
+    }, [currentPage, currentCategory, currentSort, currentSearch, locale]);
 
     /* ── fetch categories ── */
     useEffect(() => {
@@ -189,7 +193,7 @@ export function BlogListingContent() {
         (async () => {
             try {
                 const res = await apiClient.get<{ data?: Post[] } | Post[]>(
-                    `/api/v1/posts/published?limit=${POPULAR_LIMIT}&sortBy=viewCount&sortOrder=desc`,
+                    `/api/v1/posts/published?limit=${POPULAR_LIMIT}&sortBy=viewCount&sortOrder=desc&locale=${locale}`,
                 );
                 const result = Array.isArray(res)
                     ? res
@@ -205,7 +209,7 @@ export function BlogListingContent() {
         })();
 
         return () => { alive = false; };
-    }, []);
+    }, [locale]);
 
     /* ── fetch tags ── */
     useEffect(() => {
@@ -419,7 +423,7 @@ export function BlogListingContent() {
                                 <button
                                     onClick={() => {
                                         setSearchInput('');
-                                        router.push('/blog');
+                                        router.push(withLocale('/blog', locale));
                                     }}
                                     className="mt-4 inline-flex h-10 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
                                     type="button"
@@ -447,7 +451,7 @@ export function BlogListingContent() {
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 <Link
-                                    href={currentPage > 1 ? `/blog?page=${currentPage - 1}` : '/blog'}
+                                    href={currentPage > 1 ? withLocale(`/blog?page=${currentPage - 1}`, locale) : withLocale('/blog', locale)}
                                     aria-disabled={currentPage === 1}
                                     className={cn(
                                         'inline-flex min-w-10 items-center justify-center rounded-lg border border-[var(--border-soft-theme)] bg-[var(--surface-muted)] px-3 py-2 text-sm transition-colors',
@@ -470,7 +474,7 @@ export function BlogListingContent() {
                                                 </span>
                                             )}
                                             <Link
-                                                href={pn === 1 ? '/blog' : `/blog?page=${pn}`}
+                                                href={pn === 1 ? withLocale('/blog', locale) : withLocale(`/blog?page=${pn}`, locale)}
                                                 className={cn(
                                                     'inline-flex min-w-10 items-center justify-center rounded-lg border px-3 py-2 text-sm transition-colors',
                                                     pn === currentPage
@@ -484,7 +488,7 @@ export function BlogListingContent() {
                                     );
                                 })}
                                 <Link
-                                    href={`/blog?page=${Math.min(totalPages, currentPage + 1)}`}
+                                    href={withLocale(`/blog?page=${Math.min(totalPages, currentPage + 1)}`, locale)}
                                     aria-disabled={currentPage === totalPages}
                                     className={cn(
                                         'inline-flex min-w-10 items-center justify-center rounded-lg border border-[var(--border-soft-theme)] bg-[var(--surface-muted)] px-3 py-2 text-sm transition-colors',
@@ -533,7 +537,7 @@ export function BlogListingContent() {
                                     {popularPosts.map((post, idx) => (
                                         <li key={post.id}>
                                             <Link
-                                                href={`/blog/${post.slug}`}
+                                                href={withLocale(`/${post.slug}`, locale)}
                                                 className="group flex items-start gap-3 py-3 transition-colors"
                                             >
                                                 <span
@@ -605,7 +609,7 @@ export function BlogListingContent() {
                                     {tagCloud.map((tag) => (
                                         <Link
                                             key={tag.id}
-                                            href={`/tag/${tag.slug}`}
+                                            href={withLocale(`/tag/${tag.slug}`, locale)}
                                             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-soft-theme)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-main-theme)] transition-all hover:border-primary/40 hover:text-primary"
                                         >
                                             <span className="text-[var(--text-soft-theme)]">#</span>
