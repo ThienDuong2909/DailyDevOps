@@ -23,8 +23,15 @@ export function stripLocaleFromPath(pathname: string): string {
     }
 
     if (isSupportedLocale(segments[0])) {
-        const next = `/${segments.slice(1).join('/')}`;
-        return next === '/' ? '/' : next.replace(/\/+$/, '') || '/';
+        const remaining = segments.slice(1);
+        if (remaining.length === 0) {
+            return '/';
+        }
+        const joined = `/${remaining.join('/')}`;
+        // Strip trailing slash without regex
+        return joined.length > 1 && joined.endsWith('/')
+            ? joined.slice(0, -1)
+            : joined;
     }
 
     return pathname;

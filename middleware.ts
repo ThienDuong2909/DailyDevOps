@@ -2,7 +2,15 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { DEFAULT_LOCALE, isSupportedLocale, LOCALE_COOKIE_NAME } from '@/lib/i18n/config';
 
-const PUBLIC_FILE = /\.[^/]+$/;
+/**
+ * Check if a pathname looks like a static file (has an extension after last slash).
+ * Uses string operations instead of regex to avoid ReDoS concerns.
+ */
+function isPublicFile(pathname: string): boolean {
+    const lastSlash = pathname.lastIndexOf('/');
+    const afterSlash = lastSlash >= 0 ? pathname.slice(lastSlash + 1) : pathname;
+    return afterSlash.includes('.');
+}
 const PASSTHROUGH_PREFIXES = [
     '/api',
     '/admin',
@@ -33,7 +41,7 @@ export function middleware(request: NextRequest) {
     const preferredLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
 
     if (
-        PUBLIC_FILE.test(pathname) ||
+        isPublicFile(pathname) ||
         PASSTHROUGH_EXACT.includes(pathname) ||
         PASSTHROUGH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
     ) {
