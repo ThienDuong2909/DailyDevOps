@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { siteUrl, fetchSitemapData, buildSitemapXml } from '@/lib/sitemap';
 
-export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 export async function GET() {
@@ -19,6 +18,9 @@ export async function GET() {
     const xml = buildSitemapXml(items);
 
     return new NextResponse(xml, {
-        headers: { 'Content-Type': 'application/xml' },
+        headers: {
+            'Content-Type': 'application/xml',
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
     });
 }
