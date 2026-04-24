@@ -4,14 +4,8 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api";
 import { trackCommentSubmit } from "@/lib/analytics";
+import { unwrap } from "@/lib/utils";
 import type { PostWithComments } from "@/types";
-
-function unwrap<T>(payload: unknown, fallback: T): T {
-  if (payload && typeof payload === "object" && "data" in payload) {
-    return ((payload as { data?: T }).data ?? fallback) as T;
-  }
-  return (payload as T) ?? fallback;
-}
 
 /**
  * Manages the comment submission form state and API call.

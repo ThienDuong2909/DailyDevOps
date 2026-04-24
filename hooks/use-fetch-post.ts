@@ -6,14 +6,8 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { apiClient } from "@/lib/api";
 import type { SiteLocale } from "@/lib/i18n/config";
 import { normalizeLocale } from "@/lib/i18n/config";
+import { unwrap } from "@/lib/utils";
 import type { Post, PostWithComments } from "@/types";
-
-function unwrap<T>(payload: unknown, fallback: T): T {
-  if (payload && typeof payload === "object" && "data" in payload) {
-    return ((payload as { data?: T }).data ?? fallback) as T;
-  }
-  return (payload as T) ?? fallback;
-}
 
 export function sortPostsNewestFirst(posts: Post[]) {
   return [...posts].sort(

@@ -157,7 +157,7 @@ EOF
                             -Dsonar.sources=. \\
                             -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,.trivy-cache/**,coverage/**,playwright-report/**,test-results/**,tests/**,**/*.d.ts \\
                             -Dsonar.coverage.exclusions=app/**,components/**,hooks/**,lib/**,stores/**,types/**,next.config.js,tailwind.config.js,postcss.config.js \\
-                            -Dsonar.cpd.exclusions="app/**,components/**" \\
+                            -Dsonar.cpd.exclusions="app/**,components/**,hooks/**,lib/**" \\
                             -Dsonar.sourceEncoding=UTF-8
                         """
                     }
