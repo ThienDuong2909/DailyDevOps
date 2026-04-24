@@ -363,13 +363,13 @@ export default function AccountPage() {
   };
 
   const handleCopyProfileLink = async () => {
-    if (!publicProfilePath || typeof window === "undefined") {
+    if (!publicProfilePath || globalThis.window === undefined) {
       return;
     }
 
     try {
       await navigator.clipboard.writeText(
-        `${window.location.origin}${publicProfilePath}`,
+        `${globalThis.window.location.origin}${publicProfilePath}`,
       );
       toast.success("Da copy link public profile");
     } catch {
@@ -945,7 +945,9 @@ export default function AccountPage() {
                         value={mfaEnableCode}
                         onChange={(event) =>
                           setMfaEnableCode(
-                            event.target.value.replace(/\D/g, "").slice(0, 6),
+                            event.target.value
+                              .replaceAll(/\D/g, "")
+                              .slice(0, 6),
                           )
                         }
                         inputMode="numeric"
@@ -995,7 +997,7 @@ export default function AccountPage() {
                   value={mfaDisableCode}
                   onChange={(event) =>
                     setMfaDisableCode(
-                      event.target.value.replace(/\D/g, "").slice(0, 6),
+                      event.target.value.replaceAll(/\D/g, "").slice(0, 6),
                     )
                   }
                   inputMode="numeric"

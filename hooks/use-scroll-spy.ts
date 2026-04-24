@@ -27,6 +27,7 @@ export function useScrollSpy({
     if (!contentRef.current || !derivedTocItems.length) return;
 
     let rafId = 0;
+    let disposeScrollSpy: (() => void) | undefined;
     let setupTimer: ReturnType<typeof setTimeout>;
     let isCleanedUp = false;
 
@@ -41,9 +42,9 @@ export function useScrollSpy({
 
       // Attach anchor click handlers
       headings.forEach((node) => {
-        const anchor = node.querySelector(
+        const anchor = node.querySelector<HTMLAnchorElement>(
           ".heading-anchor-link",
-        ) as HTMLAnchorElement | null;
+        );
         if (anchor) {
           anchor.onclick = (e) => {
             e.preventDefault();
@@ -53,8 +54,8 @@ export function useScrollSpy({
       });
 
       // Restore URL hash position on first load
-      const hash = window.location.hash.replace("#", "");
-      if (hash && headings.find((h) => h.id === hash)) {
+      const hash = globalThis.window.location.hash.replace("#", "");
+      if (hash && headings.some((heading) => heading.id === hash)) {
         scrollToHeading(hash, { updateHash: false });
       } else {
         setActiveTocId(headings[0].id);
@@ -62,41 +63,42 @@ export function useScrollSpy({
 
       const syncActiveHeading = () => {
         const headerHeight =
-          document.querySelector("header")?.getBoundingClientRect().height ??
-          72;
+          globalThis.document.querySelector("header")?.getBoundingClientRect()
+            .height ?? 72;
         const threshold = headerHeight + 20;
 
         let activeId = headings[0].id;
-        for (const h of headings) {
-          if (h.getBoundingClientRect().top <= threshold) {
-            activeId = h.id;
+        for (const heading of headings) {
+          if (heading.getBoundingClientRect().top <= threshold) {
+            activeId = heading.id;
           } else {
             break;
           }
         }
 
         const scrollTop =
-          document.scrollingElement?.scrollTop ??
-          document.documentElement.scrollTop ??
-          document.body.scrollTop ??
-          window.scrollY;
+          globalThis.document.scrollingElement?.scrollTop ??
+          globalThis.document.documentElement.scrollTop ??
+          globalThis.document.body.scrollTop ??
+          globalThis.window.scrollY;
         const scrollHeight =
-          document.scrollingElement?.scrollHeight ??
-          document.documentElement.scrollHeight;
-        const clientHeight = window.innerHeight;
+          globalThis.document.scrollingElement?.scrollHeight ??
+          globalThis.document.documentElement.scrollHeight;
+        const clientHeight = globalThis.window.innerHeight;
+        const lastHeadingId = headings.at(-1)?.id ?? headings[0].id;
 
         if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 4) {
-          activeId = headings[headings.length - 1].id;
+          activeId = lastHeadingId;
         }
 
         setActiveTocId((prev) => (prev === activeId ? prev : activeId));
 
         const nextHash = `#${activeId}`;
-        if (window.location.hash !== nextHash) {
-          window.history.replaceState(
-            window.history.state ?? {},
+        if (globalThis.window.location.hash !== nextHash) {
+          globalThis.window.history.replaceState(
+            globalThis.window.history.state ?? {},
             "",
-            `${window.location.pathname}${nextHash}`,
+            `${globalThis.window.location.pathname}${nextHash}`,
           );
         }
       };
@@ -108,27 +110,31 @@ export function useScrollSpy({
         rafId = requestAnimationFrame(syncActiveHeading);
       };
 
-      window.addEventListener("scroll", onScroll, {
+      globalThis.window.addEventListener("scroll", onScroll, {
         passive: true,
         capture: true,
       });
-      document.addEventListener("scroll", onScroll, {
+      globalThis.document.addEventListener("scroll", onScroll, {
         passive: true,
         capture: true,
       });
-      window.addEventListener("resize", syncActiveHeading, { passive: true });
+      globalThis.window.addEventListener("resize", syncActiveHeading, {
+        passive: true,
+      });
 
       const pollInterval = setInterval(syncActiveHeading, 150);
 
-      const dispose = () => {
+      disposeScrollSpy = () => {
         cancelAnimationFrame(rafId);
         clearInterval(pollInterval);
-        window.removeEventListener("scroll", onScroll, { capture: true });
-        document.removeEventListener("scroll", onScroll, { capture: true });
-        window.removeEventListener("resize", syncActiveHeading);
+        globalThis.window.removeEventListener("scroll", onScroll, {
+          capture: true,
+        });
+        globalThis.document.removeEventListener("scroll", onScroll, {
+          capture: true,
+        });
+        globalThis.window.removeEventListener("resize", syncActiveHeading);
       };
-
-      (setupScrollSpy as unknown as { dispose?: () => void }).dispose = dispose;
     };
 
     setupTimer = setTimeout(() => {
@@ -139,21 +145,20 @@ export function useScrollSpy({
       isCleanedUp = true;
       clearTimeout(setupTimer);
       cancelAnimationFrame(rafRef.current);
-      const dispose = (setupScrollSpy as unknown as { dispose?: () => void })
-        .dispose;
-      dispose?.();
+      disposeScrollSpy?.();
     };
   }, [derivedTocItems, scrollToHeading, contentRef, setActiveTocId]);
 
   useEffect(() => {
     const onHashChange = () => {
-      const currentHash = window.location.hash.replace("#", "");
+      const currentHash = globalThis.window.location.hash.replace("#", "");
       if (currentHash) {
         scrollToHeading(currentHash, { updateHash: false });
       }
     };
 
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
+    globalThis.window.addEventListener("hashchange", onHashChange);
+    return () =>
+      globalThis.window.removeEventListener("hashchange", onHashChange);
   }, [scrollToHeading]);
 }

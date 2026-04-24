@@ -1353,6 +1353,38 @@ export default function ArticleEditPage() {
     );
   }
 
+  const autosaveStatusLabel =
+    autosaveState === "saving"
+      ? "Dang autosave..."
+      : autosaveState === "saved"
+        ? "Autosave da cap nhat draft"
+        : autosaveState === "error"
+          ? "Autosave that bai, hay luu tay"
+          : "Autosave sau 3 giay khi dung go";
+  const previewHref =
+    selectedLocale === "vi"
+      ? `/${formState.slug}`
+      : `/${selectedLocale}/${formState.slug}`;
+  const translationNoticeText = activeTranslation
+    ? "Ban dang chinh sua ban dich tieng Anh cua bai viet nay."
+    : "Chua co ban dich tieng Anh. Ban co the tao moi va luu ngay tai day.";
+  const translationButtonLabel = isTranslating
+    ? "Dang dich..."
+    : activeTranslation
+      ? "Dich lai bang AI"
+      : "Dich sang EN bang AI";
+  const autoTranslateButtonLabel = isTranslating
+    ? "Dang dich sang EN..."
+    : "Auto-translate sang EN";
+  const editorSlugPrefix =
+    selectedLocale === "vi"
+      ? "https://dailydevops.blog/"
+      : `https://dailydevops.blog/${selectedLocale}/`;
+  const subtitleInputId = "article-subtitle";
+  const publishingStatusInputId = "article-status";
+  const scheduledTimeInputId = "article-scheduled-at";
+  const featuredImageInputId = "article-featured-image";
+
   return (
     <div className="flex flex-col gap-6">
       <header className="theme-border -mx-6 -mt-6 mb-2 flex h-16 shrink-0 items-center justify-between border-b px-6 lg:-mx-8 lg:-mt-8 lg:mb-4 lg:px-10">
@@ -1374,15 +1406,7 @@ export default function ArticleEditPage() {
                 {lastSavedLabel}
               </span>
             </p>
-            <p className="theme-muted text-[11px]">
-              {autosaveState === "saving"
-                ? "Dang autosave..."
-                : autosaveState === "saved"
-                  ? "Autosave da cap nhat draft"
-                  : autosaveState === "error"
-                    ? "Autosave that bai, hay luu tay"
-                    : "Autosave sau 3 giay khi dung go"}
-            </p>
+            <p className="theme-muted text-[11px]">{autosaveStatusLabel}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -1442,11 +1466,7 @@ export default function ArticleEditPage() {
           </div>
           {!isNewArticle && formState.slug ? (
             <Link
-              href={
-                selectedLocale === "vi"
-                  ? `/${formState.slug}`
-                  : `/${selectedLocale}/${formState.slug}`
-              }
+              href={previewHref}
               target="_blank"
               className="hidden h-9 items-center gap-2 rounded-lg border border-border-dark bg-[#283039] px-4 text-sm font-bold text-[#9dabb9] transition-colors hover:bg-[#3b4754] hover:text-white sm:inline-flex"
             >
@@ -1474,11 +1494,7 @@ export default function ArticleEditPage() {
           <div className="flex flex-col gap-3">
             {selectedLocale === "en" ? (
               <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted flex items-center justify-between gap-3">
-                <span>
-                  {activeTranslation
-                    ? "Ban dang chinh sua ban dich tieng Anh cua bai viet nay."
-                    : "Chua co ban dich tieng Anh. Ban co the tao moi va luu ngay tai day."}
-                </span>
+                <span>{translationNoticeText}</span>
                 <button
                   type="button"
                   onClick={() => void handleAutoTranslate()}
@@ -1490,11 +1506,7 @@ export default function ArticleEditPage() {
                   >
                     {isTranslating ? "sync" : "translate"}
                   </span>
-                  {isTranslating
-                    ? "Dang dich..."
-                    : activeTranslation
-                      ? "Dich lai bang AI"
-                      : "Dich sang EN bang AI"}
+                  {translationButtonLabel}
                 </button>
               </div>
             ) : !isNewArticle ? (
@@ -1510,9 +1522,7 @@ export default function ArticleEditPage() {
                   >
                     {isTranslating ? "sync" : "translate"}
                   </span>
-                  {isTranslating
-                    ? "Dang dich sang EN..."
-                    : "Auto-translate sang EN"}
+                  {autoTranslateButtonLabel}
                 </button>
               </div>
             ) : null}
@@ -1525,9 +1535,7 @@ export default function ArticleEditPage() {
             />
             <div className="flex items-center gap-2 text-sm">
               <span className="select-none theme-muted">
-                {selectedLocale === "vi"
-                  ? "https://dailydevops.blog/"
-                  : `https://dailydevops.blog/${selectedLocale}/`}
+                {editorSlugPrefix}
               </span>
               <div className="group relative flex-1">
                 <input
@@ -1550,10 +1558,14 @@ export default function ArticleEditPage() {
           </div>
 
           <div className="theme-panel rounded-2xl p-5">
-            <label className="theme-muted mb-2 block text-xs font-medium uppercase">
+            <label
+              htmlFor={subtitleInputId}
+              className="theme-muted mb-2 block text-xs font-medium uppercase"
+            >
               Sub title
             </label>
             <textarea
+              id={subtitleInputId}
               value={formState.subtitle}
               onChange={(event) =>
                 handleFieldChange("subtitle", event.target.value)
@@ -1729,10 +1741,14 @@ export default function ArticleEditPage() {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="theme-muted mb-1.5 block text-xs font-medium">
+                <label
+                  htmlFor={publishingStatusInputId}
+                  className="theme-muted mb-1.5 block text-xs font-medium"
+                >
                   Status
                 </label>
                 <select
+                  id={publishingStatusInputId}
                   value={formState.status}
                   onChange={(event) =>
                     handleFieldChange(
@@ -1752,10 +1768,14 @@ export default function ArticleEditPage() {
 
               {formState.status === "SCHEDULED" ? (
                 <div>
-                  <label className="theme-muted mb-1.5 block text-xs font-medium">
+                  <label
+                    htmlFor={scheduledTimeInputId}
+                    className="theme-muted mb-1.5 block text-xs font-medium"
+                  >
                     Scheduled time
                   </label>
                   <input
+                    id={scheduledTimeInputId}
                     type="datetime-local"
                     value={formState.scheduledAt}
                     onChange={(event) =>
@@ -1843,9 +1863,9 @@ export default function ArticleEditPage() {
             </h3>
             <div className="mb-5">
               <div className="mb-1.5 flex items-center justify-between gap-3">
-                <label className="theme-muted block text-xs font-medium">
+                <span className="theme-muted block text-xs font-medium">
                   Category
-                </label>
+                </span>
                 {canManageTaxonomy ? (
                   <button
                     type="button"
@@ -1859,8 +1879,12 @@ export default function ArticleEditPage() {
                 ) : null}
               </div>
               <div className="theme-panel-muted theme-border custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl border p-3">
-                <label className="flex cursor-pointer items-center gap-2">
+                <label
+                  htmlFor="article-category-none"
+                  className="flex cursor-pointer items-center gap-2"
+                >
                   <input
+                    id="article-category-none"
                     type="radio"
                     name="categoryId"
                     value=""
@@ -1875,9 +1899,11 @@ export default function ArticleEditPage() {
                 {categories.map((category) => (
                   <label
                     key={category.id}
+                    htmlFor={`article-category-${category.id}`}
                     className="flex cursor-pointer items-center gap-2"
                   >
                     <input
+                      id={`article-category-${category.id}`}
                       type="radio"
                       name="categoryId"
                       value={category.id}
@@ -1998,7 +2024,7 @@ export default function ArticleEditPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="theme-muted text-xs font-medium">Tags</label>
+                <span className="theme-muted text-xs font-medium">Tags</span>
                 <div className="flex items-center gap-3">
                   <span className="theme-muted text-[10px] uppercase tracking-wide">
                     {formState.tagIds.length} selected
@@ -2066,9 +2092,11 @@ export default function ArticleEditPage() {
                   tags.map((tag) => (
                     <label
                       key={tag.id}
+                      htmlFor={`article-tag-${tag.id}`}
                       className="flex cursor-pointer items-center gap-2"
                     >
                       <input
+                        id={`article-tag-${tag.id}`}
                         type="checkbox"
                         checked={formState.tagIds.includes(tag.id)}
                         onChange={() => handleTagToggle(tag.id)}
@@ -2125,6 +2153,7 @@ export default function ArticleEditPage() {
               </div>
             ) : null}
             <input
+              id={featuredImageInputId}
               type="url"
               value={formState.featuredImage}
               onChange={(event) =>

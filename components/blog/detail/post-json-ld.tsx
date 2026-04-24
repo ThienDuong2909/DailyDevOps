@@ -10,10 +10,10 @@ import { withLocale } from "@/lib/i18n/config";
 export function BlogPostJsonLd({
   post,
   postUrl,
-}: {
+}: Readonly<{
   post: PostWithComments;
   postUrl: string;
-}) {
+}>) {
   const authorName = `${post.author.firstName} ${post.author.lastName}`;
 
   const jsonLd = {
@@ -82,11 +82,11 @@ export function BreadcrumbJsonLd({
   post,
   siteUrl,
   locale,
-}: {
+}: Readonly<{
   post: PostWithComments;
   siteUrl: string;
   locale: "vi" | "en";
-}) {
+}>) {
   const prefixed = (path: string) => `${siteUrl}${withLocale(path, locale)}`;
   const items = [
     { name: "Home", url: prefixed("/") },

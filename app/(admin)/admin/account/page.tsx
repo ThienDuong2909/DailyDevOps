@@ -397,7 +397,7 @@ export default function AdminAccountPage() {
               upload len storage khi ban bam{" "}
               <span className="font-semibold text-[color:var(--text-main-theme)]">
                 Save Profile
-              </span>
+              </span>{" "}
               .
             </p>
           </div>
@@ -425,11 +425,11 @@ export default function AdminAccountPage() {
             disabled={isSavingProfile}
             className="mt-6 inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
-            {isSavingProfile
-              ? isUploadingAvatar
-                ? "Dang upload avatar va luu..."
-                : "Dang luu..."
-              : "Save Profile"}
+            {isSavingProfile && isUploadingAvatar
+              ? "Dang upload avatar va luu..."
+              : isSavingProfile
+                ? "Dang luu..."
+                : "Save Profile"}
           </button>
         </form>
 

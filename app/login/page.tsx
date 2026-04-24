@@ -39,6 +39,11 @@ export default function LoginPage() {
   const shouldShowResendVerification =
     typeof error === "string" &&
     error.toLowerCase().includes("verify your email");
+  const submitButtonLabel = isLoading
+    ? "Signing in..."
+    : mfaStep
+      ? "Verify Code"
+      : "Sign In";
 
   useEffect(() => {
     void initializeAuth();
@@ -256,13 +261,7 @@ export default function LoginPage() {
                   loading={isLoading}
                   className="h-12 w-full rounded-lg text-base font-bold leading-normal tracking-[0.015em] shadow-md shadow-blue-500/20"
                 >
-                  <span className="truncate">
-                    {isLoading
-                      ? "Signing in..."
-                      : mfaStep
-                        ? "Verify Code"
-                        : "Sign In"}
-                  </span>
+                  <span className="truncate">{submitButtonLabel}</span>
                 </Button>
               </div>
             </form>
@@ -303,7 +302,7 @@ export default function LoginPage() {
             <span className="material-symbols-outlined text-[16px]">
               arrow_back
             </span>
-            Return to Blog
+            <span>Return to Blog</span>
           </Link>
         </div>
       </div>

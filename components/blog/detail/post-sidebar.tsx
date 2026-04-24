@@ -13,11 +13,11 @@ export function SidebarCard({
   title,
   icon,
   children,
-}: {
+}: Readonly<{
   title: string;
   icon?: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <div className="theme-surface rounded-2xl p-5">
       <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-[color:var(--text-main-theme)]">
@@ -160,7 +160,7 @@ export function PostSidebar({
                   <span className="material-symbols-outlined !text-[18px]">
                     category
                   </span>
-                  More in {post.category.name}
+                  <span>More in {post.category.name}</span>
                 </Link>
               ) : null}
             </div>

@@ -65,9 +65,7 @@ export default function BlogDetailClient({
   const slug =
     slugOverride ||
     params?.slug ||
-    (Array.isArray(params?.segments)
-      ? params.segments[params.segments.length - 1]
-      : "");
+    (Array.isArray(params?.segments) ? (params.segments.at(-1) ?? "") : "");
   const locale = useLocale();
   const dictionary = useDictionary();
   const { setAlternatePaths, clearAlternatePaths } = useLocaleRoute();
@@ -90,7 +88,7 @@ export default function BlogDetailClient({
 
   const contentRef = useRef<HTMLDivElement>(null);
   const siteUrl =
-    typeof globalThis.window !== "undefined"
+    globalThis.window !== undefined
       ? globalThis.window.location.origin
       : "https://dailydevops.blog";
   const postUrl = `${siteUrl}${withLocale(`/${slug}`, locale)}`;
@@ -233,9 +231,7 @@ export default function BlogDetailClient({
               : errorMessage || dictionary.common.articleNotFound}
           </h1>
           <p className="theme-muted mb-6 text-sm">
-            {translationNotice
-              ? dictionary.blog.missingPostBody
-              : dictionary.blog.missingPostBody}
+            {dictionary.blog.missingPostBody}
           </p>
           {translationNotice ? (
             <Link

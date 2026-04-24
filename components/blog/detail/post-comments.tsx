@@ -23,7 +23,7 @@ export function PostComments({
             <span className="material-symbols-outlined !text-[22px] text-primary">
               forum
             </span>
-            Discussion
+            <span>Discussion</span>
           </h3>
           <p className="theme-muted mt-1 text-sm">
             {post.comments?.length || 0} approved comment
@@ -41,11 +41,21 @@ export function PostComments({
           style={{ border: "1px solid var(--border-soft-theme)" }}
         >
           <span className="material-symbols-outlined !text-[18px]">share</span>
-          Share
+          <span>Share</span>
         </button>
       </div>
       <div className="theme-surface mb-8 rounded-2xl p-6">
-        {!isAuthenticated ? (
+        {isAuthenticated ? (
+          <div className="mb-4 flex items-center gap-2 text-sm">
+            <span className="material-symbols-outlined !text-[18px] text-primary">
+              account_circle
+            </span>
+            <span className="theme-muted">Commenting as</span>
+            <span className="font-semibold text-[color:var(--text-main-theme)]">
+              {user?.firstName} {user?.lastName}
+            </span>
+          </div>
+        ) : (
           <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <input
               className="theme-input w-full rounded-2xl px-4 py-3 text-sm"
@@ -64,16 +74,6 @@ export function PostComments({
                 setForm((p: any) => ({ ...p, authorEmail: e.target.value }))
               }
             />
-          </div>
-        ) : (
-          <div className="mb-4 flex items-center gap-2 text-sm">
-            <span className="material-symbols-outlined !text-[18px] text-primary">
-              account_circle
-            </span>
-            <span className="theme-muted">Commenting as</span>
-            <span className="font-semibold text-[color:var(--text-main-theme)]">
-              {user?.firstName} {user?.lastName}
-            </span>
           </div>
         )}
         <textarea

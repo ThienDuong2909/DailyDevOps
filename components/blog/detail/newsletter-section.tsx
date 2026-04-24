@@ -27,7 +27,7 @@ export function NewsletterSection() {
         <span className="material-symbols-outlined mr-1.5 !text-[16px] align-middle">
           mail
         </span>
-        Continue learning
+        <span>Continue learning</span>
       </p>
       <h2 className="relative mt-3 text-xl font-bold text-[color:var(--text-main-theme)] sm:text-2xl">
         Get the next production-ready note in your inbox
@@ -41,7 +41,7 @@ export function NewsletterSection() {
           href={withLocale("/newsletter", locale)}
           className="theme-glow-button inline-flex h-11 items-center rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
         >
-          Join the newsletter
+          <span>Join the newsletter</span>
         </Link>
         <Link
           href={withLocale("/blog", locale)}

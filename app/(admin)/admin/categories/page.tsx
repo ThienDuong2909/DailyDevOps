@@ -36,12 +36,23 @@ function resolveCategories(payload: CategoriesPayload): Category[] {
 }
 
 export default function CategoriesAdminPage() {
+  const nameInputId = "category-name";
+  const slugInputId = "category-slug";
+  const descriptionInputId = "category-description";
+  const colorPickerId = "category-color-picker";
+  const colorInputId = "category-color";
+  const iconInputId = "category-icon";
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formState, setFormState] =
     useState<CategoryFormState>(initialFormState);
+  const submitLabel = submitting
+    ? "Dang luu..."
+    : editingId
+      ? "Cap nhat category"
+      : "Tao category";
 
   const fetchCategories = async () => {
     const payload =
@@ -180,10 +191,14 @@ export default function CategoriesAdminPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="theme-muted mb-1.5 block text-xs font-medium">
+              <label
+                htmlFor={nameInputId}
+                className="theme-muted mb-1.5 block text-xs font-medium"
+              >
                 Ten
               </label>
               <input
+                id={nameInputId}
                 value={formState.name}
                 onChange={(event) =>
                   setFormState((prev) => ({
@@ -196,10 +211,14 @@ export default function CategoriesAdminPage() {
               />
             </div>
             <div>
-              <label className="theme-muted mb-1.5 block text-xs font-medium">
+              <label
+                htmlFor={slugInputId}
+                className="theme-muted mb-1.5 block text-xs font-medium"
+              >
                 Slug
               </label>
               <input
+                id={slugInputId}
                 value={formState.slug}
                 onChange={(event) =>
                   setFormState((prev) => ({
@@ -212,10 +231,14 @@ export default function CategoriesAdminPage() {
               />
             </div>
             <div>
-              <label className="theme-muted mb-1.5 block text-xs font-medium">
+              <label
+                htmlFor={descriptionInputId}
+                className="theme-muted mb-1.5 block text-xs font-medium"
+              >
                 Mo ta
               </label>
               <textarea
+                id={descriptionInputId}
                 value={formState.description}
                 onChange={(event) =>
                   setFormState((prev) => ({
@@ -230,11 +253,15 @@ export default function CategoriesAdminPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="theme-muted mb-1.5 block text-xs font-medium">
+                <label
+                  htmlFor={colorInputId}
+                  className="theme-muted mb-1.5 block text-xs font-medium"
+                >
                   Color
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id={colorPickerId}
                     type="color"
                     value={formState.color || "#000000"}
                     onChange={(event) =>
@@ -247,6 +274,7 @@ export default function CategoriesAdminPage() {
                     title="Chon mau tu day mau"
                   />
                   <input
+                    id={colorInputId}
                     value={formState.color}
                     onChange={(event) =>
                       setFormState((prev) => ({
@@ -260,10 +288,14 @@ export default function CategoriesAdminPage() {
                 </div>
               </div>
               <div>
-                <label className="theme-muted mb-1.5 block text-xs font-medium">
+                <label
+                  htmlFor={iconInputId}
+                  className="theme-muted mb-1.5 block text-xs font-medium"
+                >
                   Icon
                 </label>
                 <input
+                  id={iconInputId}
                   value={formState.icon}
                   onChange={(event) =>
                     setFormState((prev) => ({
@@ -281,11 +313,7 @@ export default function CategoriesAdminPage() {
               disabled={submitting}
               className="theme-glow-button inline-flex h-10 items-center rounded-2xl px-4 text-sm font-bold disabled:opacity-50"
             >
-              {submitting
-                ? "Dang luu..."
-                : editingId
-                  ? "Cap nhat category"
-                  : "Tao category"}
+              {submitLabel}
             </button>
           </form>
         </section>

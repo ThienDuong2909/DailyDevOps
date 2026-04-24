@@ -304,7 +304,8 @@ export default function ArticlesPage() {
     );
 
     if (!limitInput) return;
-    const limit = Math.min(20, Math.max(1, parseInt(limitInput, 10) || 5));
+    const parsedLimit = Number.parseInt(limitInput, 10);
+    const limit = Math.min(20, Math.max(1, parsedLimit || 5));
 
     try {
       setIsBatchTranslating(true);
@@ -425,7 +426,13 @@ export default function ArticlesPage() {
             {batchResult.results.map((r) => (
               <div key={r.id} className="flex items-center gap-2 text-xs">
                 <span
-                  className={`size-2 rounded-full ${r.status === "success" ? "bg-green-400" : r.status === "skipped" ? "bg-yellow-400" : "bg-red-400"}`}
+                  className={`size-2 rounded-full ${
+                    r.status === "success"
+                      ? "bg-green-400"
+                      : r.status === "skipped"
+                        ? "bg-yellow-400"
+                        : "bg-red-400"
+                  }`}
                 />
                 <span className="font-mono theme-muted">/{r.slug}</span>
                 <span
@@ -544,6 +551,24 @@ export default function ArticlesPage() {
               ) : (
                 posts.map((post) => {
                   const badge = getStatusBadge(post.status);
+                  const statusActionColorClass =
+                    post.status === "PUBLISHED"
+                      ? "hover:text-yellow-400"
+                      : post.status === "DRAFT"
+                        ? "hover:text-violet-300"
+                        : "hover:text-green-400";
+                  const statusActionTitle =
+                    post.status === "PUBLISHED"
+                      ? "Unpublish"
+                      : post.status === "DRAFT"
+                        ? "Submit for review"
+                        : "Publish";
+                  const statusActionIcon =
+                    post.status === "PUBLISHED"
+                      ? "unpublished"
+                      : post.status === "DRAFT"
+                        ? "rate_review"
+                        : "publish";
 
                   return (
                     <tr
@@ -663,50 +688,38 @@ export default function ArticlesPage() {
                                 </span>
                               </button>
                             </>
-                          ) : post.status === "PUBLISHED" ? (
-                            <button
-                              onClick={() =>
-                                void handleStatusChange(post, "DRAFT")
-                              }
-                              className="theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] hover:text-yellow-400"
-                              title="Unpublish"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">
-                                unpublished
-                              </span>
-                            </button>
-                          ) : post.status === "DRAFT" ? (
-                            <button
-                              onClick={() =>
-                                void apiClient
-                                  .post(
-                                    `/api/v1/posts/${post.id}/submit-review`,
-                                  )
-                                  .then(() => {
-                                    toast.success("Da gui bai viet di review");
-                                    void fetchPosts(true);
-                                  })
-                                  .catch(() => {
-                                    toast.error("Khong the gui review");
-                                  })
-                              }
-                              className="theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] hover:text-violet-300"
-                              title="Submit for review"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">
-                                rate_review
-                              </span>
-                            </button>
                           ) : (
                             <button
-                              onClick={() =>
-                                void handleStatusChange(post, "PUBLISHED")
-                              }
-                              className="theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] hover:text-green-400"
-                              title="Publish"
+                              onClick={() => {
+                                if (post.status === "PUBLISHED") {
+                                  void handleStatusChange(post, "DRAFT");
+                                  return;
+                                }
+
+                                if (post.status === "DRAFT") {
+                                  void apiClient
+                                    .post(
+                                      `/api/v1/posts/${post.id}/submit-review`,
+                                    )
+                                    .then(() => {
+                                      toast.success(
+                                        "Da gui bai viet di review",
+                                      );
+                                      void fetchPosts(true);
+                                    })
+                                    .catch(() => {
+                                      toast.error("Khong the gui review");
+                                    });
+                                  return;
+                                }
+
+                                void handleStatusChange(post, "PUBLISHED");
+                              }}
+                              className={`theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] ${statusActionColorClass}`}
+                              title={statusActionTitle}
                             >
                               <span className="material-symbols-outlined text-[20px]">
-                                publish
+                                {statusActionIcon}
                               </span>
                             </button>
                           )}

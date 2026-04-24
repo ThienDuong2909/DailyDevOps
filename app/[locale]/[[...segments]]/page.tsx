@@ -16,7 +16,7 @@ import { TermsOfServicePageContent } from "@/app/(main)/terms-of-service/terms-o
 import { CookiePolicyPageContent } from "@/app/(main)/cookie-policy/cookie-policy-page-content";
 import { DmcaPolicyPageContent } from "@/app/(main)/dmca-policy/dmca-policy-page-content";
 import { LocaleRouteSync } from "@/components/i18n/locale-route-sync";
-import { DEFAULT_LOCALE, isSupportedLocale } from "@/lib/i18n/config";
+import { isSupportedLocale } from "@/lib/i18n/config";
 import { SITE_URL, API_BASE_URL } from "@/lib/constants/site";
 import {
   fetchPostBySlug,
@@ -106,7 +106,8 @@ function buildLocalizedPath(locale: string, path = "/") {
     return `/${locale}`;
   }
 
-  return `/${locale}${path.startsWith("/") ? path : `/${path}`}`;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `/${locale}${normalizedPath}`;
 }
 
 function buildQueryString(searchParams?: Record<string, string | undefined>) {
@@ -267,14 +268,14 @@ async function buildArticleMetadata(
   const ogImage = toAbsoluteUrl(post.seoSetting?.ogImage || post.featuredImage);
   const canonicalUrl =
     post.seoSetting?.canonicalUrl ||
-    `${siteUrl}${buildLocalizedPath(locale, `/${post.slug}`)}`;
+    `${siteUrl}${buildLocalizedPath(locale, "/" + post.slug)}`;
   const authorName = `${post.author.firstName} ${post.author.lastName}`;
   const languageAlternates = Object.entries(post.localeAlternates || {}).reduce<
     Record<string, string>
   >((acc, [alternateLocale, alternateSlug]) => {
     if (alternateSlug) {
       acc[alternateLocale] =
-        `${siteUrl}${buildLocalizedPath(alternateLocale, `/${alternateSlug}`)}`;
+        `${siteUrl}${buildLocalizedPath(alternateLocale, "/" + alternateSlug)}`;
     }
 
     return acc;
@@ -296,7 +297,7 @@ async function buildArticleMetadata(
       locale: locale === "vi" ? "vi_VN" : "en_US",
       title,
       description,
-      url: `${siteUrl}${buildLocalizedPath(locale, `/${post.slug}`)}`,
+      url: `${siteUrl}${buildLocalizedPath(locale, "/" + post.slug)}`,
       siteName: "DevOps Blog",
       ...(ogImage && {
         images: [
