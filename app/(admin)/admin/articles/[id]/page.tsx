@@ -232,7 +232,17 @@ function buildTranslationFormState(
 }
 
 function countWords(content: string) {
-  const plainText = content.replace(/<[^>]+>/g, " ").trim();
+  if (!content.trim()) {
+    return 0;
+  }
+
+  const parserHost = document.createElement("div");
+  parserHost.innerHTML = content;
+  const plainText = (
+    parserHost.textContent ||
+    parserHost.innerText ||
+    ""
+  ).trim();
 
   if (!plainText) {
     return 0;
