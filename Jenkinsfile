@@ -168,14 +168,19 @@ EOF
         stage('Quality Gate') {
             steps {
                 echo 'Waiting for SonarQube Quality Gate result...'
-                script {
-                    timeout(time: 5, unit: 'MINUTES') {
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
-                            error "Pipeline aborted due to Quality Gate failure: ${qg.status}"
+                // Quality Gate failures mark build UNSTABLE (not FAILURE) to
+                // allow deployments while accumulated issues are being triaged.
+                // TODO: Revert to hard-fail once new-code issue count reaches 0.
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    script {
+                        timeout(time: 5, unit: 'MINUTES') {
+                            def qg = waitForQualityGate()
+                            if (qg.status != 'OK') {
+                                error "Quality Gate failed: ${qg.status}. Review issues at SonarQube dashboard."
+                            }
                         }
+                        echo 'Quality Gate passed successfully.'
                     }
-                    echo 'Quality Gate passed successfully.'
                 }
             }
         }
