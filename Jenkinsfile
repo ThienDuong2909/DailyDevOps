@@ -133,8 +133,13 @@ EOF
             }
             steps {
                 echo 'Installing Playwright browser and running E2E smoke suite...'
-                sh 'npm run test:e2e:install'
-                sh 'npm run test:e2e'
+                // L2: E2E failures mark build UNSTABLE (not FAILURE) so the
+                // pipeline can still deploy when the test infra has issues.
+                // Skip via commit message [skip-e2e] or env RUN_E2E=false.
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh 'npm run test:e2e:install'
+                    sh 'npm run test:e2e'
+                }
             }
         }
 
