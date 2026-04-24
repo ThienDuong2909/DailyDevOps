@@ -1,195 +1,193 @@
-import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from "axios";
 
 const resolveApiBaseUrl = () => {
-    if (typeof window !== 'undefined') {
-        return process.env.NEXT_PUBLIC_API_URL || '';
-    }
+  if (typeof window !== "undefined") {
+    return process.env.NEXT_PUBLIC_API_URL || "";
+  }
 
-    return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return (
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:3001"
+  );
 };
 
 const api = axios.create({
-    baseURL: resolveApiBaseUrl(),
-    timeout: 3600000, // Increased to 60s to accommodate slow AI formatting requests
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: true,
+  baseURL: resolveApiBaseUrl(),
+  timeout: 60_000, // 60s default
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
 });
+
+/**
+ * Extended timeout for long-running AI endpoints (format, translate).
+ * Use as: apiClient.post(url, data, { timeout: AI_TIMEOUT })
+ */
+export const AI_TIMEOUT = 360_000; // 6 minutes
 
 let accessToken: string | null = null;
 
 export const setAccessToken = (token: string | null) => {
-    accessToken = token;
-
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    if (token) {
-        localStorage.setItem('accessToken', token);
-        return;
-    }
-
-    localStorage.removeItem('accessToken');
+  accessToken = token;
 };
 
 export const getAccessToken = (): string | null => {
-    if (accessToken) {
-        return accessToken;
-    }
-
-    if (typeof window !== 'undefined') {
-        accessToken = localStorage.getItem('accessToken');
-    }
-
-    return accessToken;
+  return accessToken;
 };
 
 api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const token = getAccessToken();
+  (config: InternalAxiosRequestConfig) => {
+    const token = getAccessToken();
 
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
-        return config;
-    },
-    (error) => Promise.reject(error)
+    return config;
+  },
+  (error) => Promise.reject(error),
 );
 
 let isRefreshing = false;
 let failedQueue: Array<{
-    resolve: (value?: unknown) => void;
-    reject: (reason?: unknown) => void;
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
 }> = [];
 
 const processQueue = (error: Error | null, token: string | null = null) => {
-    failedQueue.forEach((prom) => {
-        if (error) {
-            prom.reject(error);
-            return;
-        }
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+      return;
+    }
 
-        prom.resolve(token);
-    });
+    prom.resolve(token);
+  });
 
-    failedQueue = [];
+  failedQueue = [];
 };
 
 const shouldSkipAuthRefresh = (url?: string) => {
-    if (!url) {
-        return false;
-    }
+  if (!url) {
+    return false;
+  }
 
-    return [
-        '/api/v1/auth/login',
-        '/api/v1/auth/register',
-        '/api/v1/auth/verify-mfa-login',
-        '/api/v1/auth/verify-email',
-        '/api/v1/auth/resend-verification',
-        '/api/v1/auth/forgot-password',
-        '/api/v1/auth/reset-password',
-        '/api/v1/auth/refresh',
-        '/api/v1/auth/logout',
-    ].some((path) => url.includes(path));
+  return [
+    "/api/v1/auth/login",
+    "/api/v1/auth/register",
+    "/api/v1/auth/verify-mfa-login",
+    "/api/v1/auth/verify-email",
+    "/api/v1/auth/resend-verification",
+    "/api/v1/auth/forgot-password",
+    "/api/v1/auth/reset-password",
+    "/api/v1/auth/refresh",
+    "/api/v1/auth/logout",
+  ].some((path) => url.includes(path));
 };
 
 const shouldAttemptTokenRefresh = (error: AxiosError) => {
-    const message =
-        typeof error.response?.data === 'object' && error.response?.data
-            ? ((error.response.data as { error?: string; message?: string }).error ||
-                (error.response.data as { error?: string; message?: string }).message ||
-                '')
-            : '';
+  const message =
+    typeof error.response?.data === "object" && error.response?.data
+      ? (error.response.data as { error?: string; message?: string }).error ||
+        (error.response.data as { error?: string; message?: string }).message ||
+        ""
+      : "";
 
-    return [
-        'No token provided',
-        'Invalid token',
-        'Token expired',
-        'Access denied',
-        'User not found or inactive',
-    ].includes(message);
+  return [
+    "No token provided",
+    "Invalid token",
+    "Token expired",
+    "Access denied",
+    "User not found or inactive",
+  ].includes(message);
 };
 
 api.interceptors.response.use(
-    (response) => response,
-    async (error: AxiosError) => {
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
-        if (
-            error.response?.status === 401 &&
-            !originalRequest._retry &&
-            !shouldSkipAuthRefresh(originalRequest?.url) &&
-            shouldAttemptTokenRefresh(error)
-        ) {
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                })
-                    .then((token) => {
-                        if (originalRequest.headers) {
-                            originalRequest.headers.Authorization = `Bearer ${token}`;
-                        }
-
-                        return api(originalRequest);
-                    })
-                    .catch((err) => Promise.reject(err));
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !shouldSkipAuthRefresh(originalRequest?.url) &&
+      shouldAttemptTokenRefresh(error)
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
             }
 
-            originalRequest._retry = true;
-            isRefreshing = true;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
 
-            try {
-                const response = await api.post('/api/v1/auth/refresh');
-                const newToken =
-                    response.data?.data?.accessToken ||
-                    response.data?.accessToken ||
-                    response.data;
-                const resolvedToken = typeof newToken === 'string' ? newToken : newToken?.accessToken;
+      originalRequest._retry = true;
+      isRefreshing = true;
 
-                setAccessToken(resolvedToken);
-                processQueue(null, resolvedToken);
+      try {
+        const response = await api.post("/api/v1/auth/refresh");
+        const newToken =
+          response.data?.data?.accessToken ||
+          response.data?.accessToken ||
+          response.data;
+        const resolvedToken =
+          typeof newToken === "string" ? newToken : newToken?.accessToken;
 
-                if (originalRequest.headers) {
-                    originalRequest.headers.Authorization = `Bearer ${resolvedToken}`;
-                }
+        setAccessToken(resolvedToken);
+        processQueue(null, resolvedToken);
 
-                return api(originalRequest);
-            } catch (refreshError) {
-                processQueue(refreshError as Error, null);
-                setAccessToken(null);
-
-                if (typeof globalThis !== 'undefined') {
-                    globalThis.dispatchEvent(new CustomEvent('auth-expired'));
-                }
-
-                return Promise.reject(refreshError);
-            } finally {
-                isRefreshing = false;
-            }
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${resolvedToken}`;
         }
 
-        return Promise.reject(error);
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError as Error, null);
+        setAccessToken(null);
+
+        if (typeof globalThis !== "undefined") {
+          globalThis.dispatchEvent(new CustomEvent("auth-expired"));
+        }
+
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
+    return Promise.reject(error);
+  },
 );
 
 export default api;
 
 export const apiClient = {
-    get: <T>(url: string, config?: AxiosRequestConfig) =>
-        api.get<T>(url, config).then((res) => res.data),
+  get: <T>(url: string, config?: AxiosRequestConfig) =>
+    api.get<T>(url, config).then((res) => res.data),
 
-    post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-        api.post<T>(url, data, config).then((res) => res.data),
+  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    api.post<T>(url, data, config).then((res) => res.data),
 
-    put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-        api.put<T>(url, data, config).then((res) => res.data),
+  put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    api.put<T>(url, data, config).then((res) => res.data),
 
-    patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-        api.patch<T>(url, data, config).then((res) => res.data),
+  patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    api.patch<T>(url, data, config).then((res) => res.data),
 
-    delete: <T>(url: string, config?: AxiosRequestConfig) =>
-        api.delete<T>(url, config).then((res) => res.data),
+  delete: <T>(url: string, config?: AxiosRequestConfig) =>
+    api.delete<T>(url, config).then((res) => res.data),
 };

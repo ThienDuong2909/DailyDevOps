@@ -32,8 +32,8 @@ pipeline {
         // npm cache directory - persists across builds for faster installs
         NPM_CACHE_DIR = "${WORKSPACE}/.npm-cache"
         
-        // Define Docker BuildKit explicitly to resolve legacy builder "unknown parent image ID" bugs
-        DOCKER_BUILDKIT = '0'
+        // M4: Enable BuildKit for faster builds with layer cache mounts
+        DOCKER_BUILDKIT = '1'
 
         // Per-workspace Docker config — tránh race condition khi 2 pipeline chạy song song
         // trên cùng 1 agent (mỗi pipeline có ~/.docker riêng, không ghi đè nhau)
@@ -49,7 +49,8 @@ pipeline {
         // Block pipeline on CRITICAL and HIGH severity vulnerabilities only
         // (MEDIUM/LOW are reported but do not fail the build)
         TRIVY_SEVERITY = 'CRITICAL,HIGH'
-        RUN_E2E = "${env.RUN_E2E ?: 'false'}"
+        // L2: Run E2E smoke tests by default. Skip with [skip-e2e] in commit message.
+        RUN_E2E = "${env.RUN_E2E ?: 'true'}"
         PLAYWRIGHT_BASE_URL = 'http://localhost:3000'
         PLAYWRIGHT_API_URL = 'http://localhost:3001'
         NEXT_PUBLIC_APP_ENV_DEFAULT = 'production'
@@ -108,7 +109,6 @@ NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 NEXT_PUBLIC_APP_NAME=DevOps Blog
 NEXT_PUBLIC_SITE_URL=https://dailydevops.blog
-INTERNAL_API_URL=http://devops-blog-server-svc
 NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV:-${NEXT_PUBLIC_APP_ENV_DEFAULT}}
 NEXT_PUBLIC_SENTRY_DSN=${CLEAN_NEXT_PUBLIC_SENTRY_DSN}
 NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:-${NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE_DEFAULT}}

@@ -1,23 +1,21 @@
-import type { MetadataRoute } from 'next';
+import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/constants/site";
 
-const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    'https://dailydevops.blog';
+const siteUrl = SITE_URL;
 
 export default function robots(): MetadataRoute.Robots {
-    return {
-        rules: [
-            {
-                userAgent: '*',
-                allow: '/',
-                disallow: ['/admin/', '/login', '/api/'],
-            },
-            {
-                userAgent: 'Googlebot',
-                allow: '/',
-            },
-        ],
-        sitemap: `${siteUrl}/sitemap_index.xml`,
-    };
+  return {
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: ["/admin/", "/login", "/api/"],
+      },
+      {
+        userAgent: "Googlebot",
+        allow: "/",
+      },
+    ],
+    sitemap: `${siteUrl}/sitemap_index.xml`,
+  };
 }

@@ -32,3 +32,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dev scratch files (L1)
+jenkin_log.txt
+text.txt
+skills-lock.json
+
