@@ -27,14 +27,27 @@ import { useReadingProgress, usePostActions } from "@/hooks/use-post-actions";
 import { formatDate, getImageUrl } from "@/lib/utils";
 import type { Post, PostWithComments } from "@/types";
 
+const NON_AUTHOR_SLUG_CHARACTERS_REGEX = /[^a-z0-9\s-]/g;
+const AUTHOR_WHITESPACE_REGEX = /\s+/g;
+const AUTHOR_REPEATED_HYPHENS_REGEX = /-+/g;
+
 function buildAuthorUsername(firstName: string, lastName: string) {
-  return `${firstName || ""} ${lastName || ""}`
+  let slug = `${firstName || ""} ${lastName || ""}`
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replaceAll(NON_AUTHOR_SLUG_CHARACTERS_REGEX, "")
+    .replaceAll(AUTHOR_WHITESPACE_REGEX, "-")
+    .replaceAll(AUTHOR_REPEATED_HYPHENS_REGEX, "-");
+
+  while (slug.startsWith("-")) {
+    slug = slug.slice(1);
+  }
+
+  while (slug.endsWith("-")) {
+    slug = slug.slice(0, -1);
+  }
+
+  return slug;
 }
 
 export default function BlogDetailClient({
@@ -77,8 +90,8 @@ export default function BlogDetailClient({
 
   const contentRef = useRef<HTMLDivElement>(null);
   const siteUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
+    typeof globalThis.window !== "undefined"
+      ? globalThis.window.location.origin
       : "https://dailydevops.blog";
   const postUrl = `${siteUrl}${withLocale(`/${slug}`, locale)}`;
 
@@ -95,12 +108,16 @@ export default function BlogDetailClient({
 
   const scrollToHeading = useCallback(
     (headingId: string, options?: { updateHash?: boolean }) => {
-      const heading = document.getElementById(headingId);
+      const heading = globalThis.document.getElementById(headingId);
       if (!heading) return;
 
       if (options?.updateHash !== false) {
-        const targetUrl = `${window.location.pathname}#${headingId}`;
-        window.history.replaceState(window.history.state ?? {}, "", targetUrl);
+        const targetUrl = `${globalThis.window.location.pathname}#${headingId}`;
+        globalThis.window.history.replaceState(
+          globalThis.window.history.state ?? {},
+          "",
+          targetUrl,
+        );
       }
 
       heading.scrollIntoView({

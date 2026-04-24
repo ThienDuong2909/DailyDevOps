@@ -129,6 +129,11 @@ const initialTagDraft: TagDraftState = {
   slug: "",
 };
 
+const COMBINING_MARKS_REGEX = /[\u0300-\u036f]/g;
+const NON_SLUG_CHARACTERS_REGEX = /[^a-z0-9\s-]/g;
+const WHITESPACE_REGEX = /\s+/g;
+const REPEATED_HYPHENS_REGEX = /-+/g;
+
 function resolveData<T>(payload: T | { data?: T }, fallback: T): T {
   if (payload && typeof payload === "object" && "data" in payload) {
     return (payload.data ?? fallback) as T;
@@ -138,17 +143,26 @@ function resolveData<T>(payload: T | { data?: T }, fallback: T): T {
 }
 
 function createSlug(value: string) {
-  return value
+  let slug = value
     .normalize("NFD")
-    .replaceAll(/[\u0300-\u036f]/g, "")
-    .replaceAll(/[đĐ]/g, "d")
+    .replaceAll(COMBINING_MARKS_REGEX, "")
+    .replaceAll("\u0111", "d")
+    .replaceAll("\u0110", "d")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
+    .replaceAll(NON_SLUG_CHARACTERS_REGEX, "")
+    .replaceAll(WHITESPACE_REGEX, "-")
+    .replaceAll(REPEATED_HYPHENS_REGEX, "-");
+
+  while (slug.startsWith("-")) {
+    slug = slug.slice(1);
+  }
+
+  while (slug.endsWith("-")) {
+    slug = slug.slice(0, -1);
+  }
+
+  return slug.slice(0, 80);
 }
 
 function normalizeFeaturedImageValue(value: string | null | undefined) {
@@ -236,13 +250,9 @@ function countWords(content: string) {
     return 0;
   }
 
-  const parserHost = document.createElement("div");
+  const parserHost = globalThis.document.createElement("div");
   parserHost.innerHTML = content;
-  const plainText = (
-    parserHost.textContent ||
-    parserHost.innerText ||
-    ""
-  ).trim();
+  const plainText = (parserHost.textContent || "").trim();
 
   if (!plainText) {
     return 0;
@@ -481,7 +491,7 @@ export default function ArticleEditPage() {
   }, [formState.content]);
 
   const documentOutline = useMemo<OutlineItem[]>(() => {
-    if (typeof window === "undefined" || !formState.content) {
+    if (typeof globalThis.window === "undefined" || !formState.content) {
       return [];
     }
 
@@ -982,7 +992,7 @@ export default function ArticleEditPage() {
       return;
     }
 
-    const confirmed = window.confirm(
+    const confirmed = globalThis.window.confirm(
       activeTranslation
         ? "Ban dich tieng Anh da ton tai. Dich lai se ghi de noi dung hien tai. Ban co chac khong?"
         : "He thong se su dung AI de dich bai viet sang tieng Anh. Qua trinh nay co the mat vai phut. Tiep tuc?",
@@ -1260,7 +1270,9 @@ export default function ArticleEditPage() {
   };
 
   const handleReject = async () => {
-    const rejectionReason = window.prompt("Nhap ly do tu choi bai viet");
+    const rejectionReason = globalThis.window.prompt(
+      "Nhap ly do tu choi bai viet",
+    );
     if (!rejectionReason) {
       return;
     }
@@ -1279,7 +1291,7 @@ export default function ArticleEditPage() {
 
   const handleRestoreVersion = async (versionId: string) => {
     const reason =
-      window.prompt("Nhap ghi chu rollback (khong bat buoc)") || "";
+      globalThis.window.prompt("Nhap ghi chu rollback (khong bat buoc)") || "";
 
     try {
       const response = await apiClient.post<PostPayload>(

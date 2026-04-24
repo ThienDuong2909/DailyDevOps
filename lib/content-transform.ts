@@ -14,20 +14,33 @@ export interface HeadingNormalizationResult {
   toc: TocItem[];
 }
 
+const NON_HEADING_SLUG_CHARACTERS_REGEX = /[^a-z0-9\u00C0-\u024f\s-]/gi;
+const HEADING_WHITESPACE_REGEX = /\s+/g;
+const HEADING_REPEATED_HYPHENS_REGEX = /-+/g;
+
 export function slugifyHeading(value: string) {
-  return value
+  let slug = value
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\u00C0-\u024f\s-]/gi, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replaceAll(NON_HEADING_SLUG_CHARACTERS_REGEX, "")
+    .replaceAll(HEADING_WHITESPACE_REGEX, "-")
+    .replaceAll(HEADING_REPEATED_HYPHENS_REGEX, "-");
+
+  while (slug.startsWith("-")) {
+    slug = slug.slice(1);
+  }
+
+  while (slug.endsWith("-")) {
+    slug = slug.slice(0, -1);
+  }
+
+  return slug;
 }
 
 export function normalizeContentHeadings(
   html: string,
 ): HeadingNormalizationResult {
-  if (typeof window === "undefined" || !html.trim()) {
+  if (typeof globalThis.window === "undefined" || !html.trim()) {
     return { html, toc: [] };
   }
 
