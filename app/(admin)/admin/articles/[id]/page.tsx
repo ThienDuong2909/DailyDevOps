@@ -1467,40 +1467,45 @@ export default function ArticleEditPage() {
   const publishingStatusInputId = "article-status";
   const scheduledTimeInputId = "article-scheduled-at";
   const featuredImageInputId = "article-featured-image";
-  const autoTranslatePanel = isEditingEnglishTranslation ? (
-    <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted flex items-center justify-between gap-3">
-      <span>{translationNoticeText}</span>
-      <button
-        type="button"
-        onClick={() => void handleAutoTranslate()}
-        disabled={isTranslating || isNewArticle}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-      >
-        <span
-          className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
+  let autoTranslatePanel: React.ReactNode = null;
+  if (isEditingEnglishTranslation) {
+    autoTranslatePanel = (
+      <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted flex items-center justify-between gap-3">
+        <span>{translationNoticeText}</span>
+        <button
+          type="button"
+          onClick={() => void handleAutoTranslate()}
+          disabled={isTranslating || isNewArticle}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
         >
-          {autoTranslateButtonContent.icon}
-        </span>
-        <span>{autoTranslateButtonContent.label}</span>
-      </button>
-    </div>
-  ) : canAutoTranslate ? (
-    <div className="flex">
-      <button
-        type="button"
-        onClick={() => void handleAutoTranslate()}
-        disabled={isTranslating}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs font-bold text-emerald-400 transition-colors hover:bg-emerald-900/60 disabled:opacity-50"
-      >
-        <span
-          className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
+          <span
+            className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
+          >
+            {autoTranslateButtonContent.icon}
+          </span>
+          <span>{autoTranslateButtonContent.label}</span>
+        </button>
+      </div>
+    );
+  } else if (canAutoTranslate) {
+    autoTranslatePanel = (
+      <div className="flex">
+        <button
+          type="button"
+          onClick={() => void handleAutoTranslate()}
+          disabled={isTranslating}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs font-bold text-emerald-400 transition-colors hover:bg-emerald-900/60 disabled:opacity-50"
         >
-          {autoTranslateButtonContent.icon}
-        </span>
-        <span>{autoTranslateButtonContent.label}</span>
-      </button>
-    </div>
-  ) : null;
+          <span
+            className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
+          >
+            {autoTranslateButtonContent.icon}
+          </span>
+          <span>{autoTranslateButtonContent.label}</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
