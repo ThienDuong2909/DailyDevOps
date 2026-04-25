@@ -22,7 +22,7 @@ export default defineConfig({
   webServer: process.env.CI
     ? [
         {
-          command: "npm run dev",
+          command: "npm start",
           cwd: ".",
           url: baseURL,
           timeout: 120_000,
