@@ -15,14 +15,13 @@ test.describe("Public smoke", () => {
         .getByRole("link", { name: /^Newsletter$|^Bản tin$/i }),
     ).toBeVisible();
 
-    await page.goto("/search");
-    await page.getByPlaceholder(/Kubernetes/i).fill("Kubernetes");
-    await page.getByRole("button", { name: /^Tìm kiếm$|^Search$/i }).click();
+    await page.goto("/blog");
+    await page.getByPlaceholder(/Tìm kiếm bài viết/i).fill("Kubernetes");
 
-    await expect(page).toHaveURL(/\/search\?q=Kubernetes/);
+    await expect(page).toHaveURL(/\/blog\?q=Kubernetes/);
     await expect(
       page.getByRole("heading", {
-        name: /Tìm trong thư viện Daily DevOps|Search the DevOps Daily library/i,
+        name: /Tất cả bài viết|All articles/i,
       }),
     ).toBeVisible();
   });
