@@ -56,6 +56,7 @@ pipeline {
         PLAYWRIGHT_API_URL = 'http://localhost:3001'
         NEXT_PUBLIC_APP_ENV_DEFAULT = 'production'
         NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE_DEFAULT = "${env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?: '0'}"
+        CI = 'true'
     }
 
     stages {
@@ -225,6 +226,14 @@ EOF
             steps {
                 script {
                     echo "Building Docker image: ${IMAGE_TAG}:${BUILD_NUMBER}..."
+                    // Ensure docker-buildx is available since BuildKit is enabled
+                    sh """
+                        mkdir -p "${DOCKER_CONFIG}/cli-plugins"
+                        if [ ! -f "${DOCKER_CONFIG}/cli-plugins/docker-buildx" ]; then
+                            curl -sSLo "${DOCKER_CONFIG}/cli-plugins/docker-buildx" https://github.com/docker/buildx/releases/download/v0.12.1/buildx-v0.12.1.linux-amd64
+                            chmod +x "${DOCKER_CONFIG}/cli-plugins/docker-buildx"
+                        fi
+                    """
                     sh "docker build --no-cache --pull -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
                     sh "docker tag ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest"
                 }

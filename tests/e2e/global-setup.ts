@@ -1,14 +1,17 @@
-import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import path from "node:path";
+import { execFileSync } from "node:child_process";
 
-const adminEmail =
-    process.env.PLAYWRIGHT_ADMIN_EMAIL || 'admin@devopsblog.com';
-const adminPassword =
-    process.env.PLAYWRIGHT_ADMIN_PASSWORD || 'Admin@123';
+const adminEmail = process.env.PLAYWRIGHT_ADMIN_EMAIL || "admin@devopsblog.com";
+const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD || "Admin@123";
 
 export default async function globalSetup() {
-    const serverDir = path.resolve(__dirname, '../../../server-nodejs');
-    const script = `
+  if (process.env.CI) {
+    console.log("Skipping global setup in CI: Backend not available");
+    return;
+  }
+
+  const serverDir = path.resolve(__dirname, "../../../server-nodejs");
+  const script = `
         const { PrismaClient } = require('@prisma/client');
         const argon2 = require('argon2');
         const prisma = new PrismaClient();
@@ -56,8 +59,8 @@ export default async function globalSetup() {
             });
     `;
 
-    execFileSync('node', ['-e', script], {
-        cwd: serverDir,
-        stdio: 'inherit',
-    });
+  execFileSync("node", ["-e", script], {
+    cwd: serverDir,
+    stdio: "inherit",
+  });
 }
