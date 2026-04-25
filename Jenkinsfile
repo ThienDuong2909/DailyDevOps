@@ -32,8 +32,9 @@ pipeline {
         // npm cache directory - persists across builds for faster installs
         NPM_CACHE_DIR = "${WORKSPACE}/.npm-cache"
         
-        // M4: Enable BuildKit for faster builds with layer cache mounts
-        DOCKER_BUILDKIT = '1'
+        // Jenkins agent hiện tại chưa có buildx ổn định, nên giữ classic builder
+        // để tránh fail ở bước Docker Build dù source code và Sonar đều pass.
+        DOCKER_BUILDKIT = '0'
 
         // Per-workspace Docker config — tránh race condition khi 2 pipeline chạy song song
         // trên cùng 1 agent (mỗi pipeline có ~/.docker riêng, không ghi đè nhau)
