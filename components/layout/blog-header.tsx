@@ -100,37 +100,89 @@ function useHeaderSuggestions(locale: SiteLocale, searchQuery: string) {
 function LocaleSwitch({
   locale,
   switchLocale,
-  dictionary,
   mobile = false,
 }: Readonly<{
   locale: SiteLocale;
   switchLocale: (nextLocale: SiteLocale) => void;
-  dictionary: HeaderDictionary;
   mobile?: boolean;
 }>) {
-  const containerClassName = mobile
-    ? "mb-2 flex items-center gap-2 rounded-xl border border-gray-200 p-1 dark:border-gray-700"
-    : "hidden items-center gap-1 rounded-lg border border-gray-200 px-1 py-1 dark:border-gray-700 sm:flex";
-  const buttonClassName = mobile
-    ? "flex-1 rounded-lg px-3 py-2 text-sm font-semibold"
-    : "rounded-md px-2 py-1 text-xs font-semibold";
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!dropdownRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const locales: { code: SiteLocale; flag: string; label: string }[] = [
+    { code: "vi", flag: "🇻🇳", label: "Tiếng Việt" },
+    { code: "en", flag: "🇺🇸", label: "English" },
+  ];
+
+  const currentLocale = locales.find((l) => l.code === locale) || locales[0];
+
+  if (mobile) {
+    return (
+      <div className="mb-2 flex items-center gap-2 rounded-xl border border-gray-200 p-1 dark:border-gray-700">
+        {locales.map((l) => (
+          <button
+            key={l.code}
+            type="button"
+            onClick={() => switchLocale(l.code)}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === l.code ? "bg-primary text-white" : "text-text-sub"}`}
+          >
+            {l.flag} {l.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className={containerClassName}>
+    <div ref={dropdownRef} className="relative hidden sm:block">
       <button
         type="button"
-        onClick={() => switchLocale("vi")}
-        className={`${buttonClassName} ${locale === "vi" ? "bg-primary text-white" : "text-text-sub"}`}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-sm font-semibold transition-all active:scale-95 theme-panel-muted theme-border-ghost text-[color:var(--text-muted-theme)] hover:text-[color:var(--text-main-theme)]"
+        aria-label="Switch language"
+        title={`Language: ${currentLocale.label}`}
       >
-        {dictionary.header.languageVi}
+        <span className="material-symbols-outlined !text-[20px]">language</span>
+        <span className="text-xs">{currentLocale.flag}</span>
       </button>
-      <button
-        type="button"
-        onClick={() => switchLocale("en")}
-        className={`${buttonClassName} ${locale === "en" ? "bg-primary text-white" : "text-text-sub"}`}
-      >
-        {dictionary.header.languageEn}
-      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border shadow-xl theme-panel theme-border animate-in fade-in slide-in-from-top-1 duration-150">
+          {locales.map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => {
+                switchLocale(l.code);
+                setOpen(false);
+              }}
+              className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors ${
+                locale === l.code
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-[color:var(--text-main-theme)] hover:bg-primary/5"
+              }`}
+            >
+              <span className="text-base">{l.flag}</span>
+              <span>{l.label}</span>
+              {locale === l.code && (
+                <span className="material-symbols-outlined ml-auto !text-[16px] text-primary">
+                  check
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -263,12 +315,7 @@ function MobileHeaderMenu({
       </form>
 
       <nav className="flex flex-col gap-2">
-        <LocaleSwitch
-          locale={locale}
-          switchLocale={switchLocale}
-          dictionary={dictionary}
-          mobile
-        />
+        <LocaleSwitch locale={locale} switchLocale={switchLocale} mobile />
         {navigation.map((item) => (
           <Link
             key={`mobile-${item.href}-${item.label}`}
@@ -404,7 +451,7 @@ export function BlogHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 overflow-x-clip border-b border-gray-200 bg-surface-light shadow-sm dark:border-gray-800 dark:bg-surface-dark">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-surface-light shadow-sm dark:border-gray-800 dark:bg-surface-dark">
       <div className="mx-auto flex w-full max-w-[1280px] min-w-0 items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-10">
         <div className="flex min-w-0 items-center gap-3 md:gap-8">
           <Link
@@ -469,11 +516,7 @@ export function BlogHeader() {
               <Menu className="size-5" />
             )}
           </button>
-          <LocaleSwitch
-            locale={locale}
-            switchLocale={switchLocale}
-            dictionary={dictionary}
-          />
+          <LocaleSwitch locale={locale} switchLocale={switchLocale} />
           <ThemeToggle />
           <HeaderAuthButton />
         </div>

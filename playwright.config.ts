@@ -22,7 +22,7 @@ export default defineConfig({
   webServer: process.env.CI
     ? [
         {
-          command: "npm start",
+          command: "node .next/standalone/server.js",
           cwd: ".",
           url: baseURL,
           timeout: 120_000,
