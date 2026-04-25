@@ -283,6 +283,13 @@ export default function AdminAccountPage() {
     );
   }
 
+  let saveProfileLabel = "Save Profile";
+  if (isSavingProfile && isUploadingAvatar) {
+    saveProfileLabel = "Dang upload avatar va luu...";
+  } else if (isSavingProfile) {
+    saveProfileLabel = "Dang luu...";
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <section className="theme-panel overflow-hidden rounded-[28px]">
@@ -425,11 +432,7 @@ export default function AdminAccountPage() {
             disabled={isSavingProfile}
             className="mt-6 inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
-            {isSavingProfile && isUploadingAvatar
-              ? "Dang upload avatar va luu..."
-              : isSavingProfile
-                ? "Dang luu..."
-                : "Save Profile"}
+            {saveProfileLabel}
           </button>
         </form>
 

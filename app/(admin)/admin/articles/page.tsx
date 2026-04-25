@@ -100,6 +100,54 @@ function getAuthorInitials(post: Post) {
   );
 }
 
+function getBatchResultStatusColor(status: string) {
+  if (status === "success") {
+    return "bg-green-400";
+  }
+
+  if (status === "skipped") {
+    return "bg-yellow-400";
+  }
+
+  return "bg-red-400";
+}
+
+function getBatchResultStatusTextColor(status: string) {
+  if (status === "success") {
+    return "text-green-400";
+  }
+
+  if (status === "skipped") {
+    return "text-yellow-400";
+  }
+
+  return "text-red-400";
+}
+
+function getStatusAction(status: string) {
+  if (status === "PUBLISHED") {
+    return {
+      colorClass: "hover:text-yellow-400",
+      title: "Unpublish",
+      icon: "unpublished",
+    };
+  }
+
+  if (status === "DRAFT") {
+    return {
+      colorClass: "hover:text-violet-300",
+      title: "Submit for review",
+      icon: "rate_review",
+    };
+  }
+
+  return {
+    colorClass: "hover:text-green-400",
+    title: "Publish",
+    icon: "publish",
+  };
+}
+
 export default function ArticlesPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -426,24 +474,10 @@ export default function ArticlesPage() {
             {batchResult.results.map((r) => (
               <div key={r.id} className="flex items-center gap-2 text-xs">
                 <span
-                  className={`size-2 rounded-full ${
-                    r.status === "success"
-                      ? "bg-green-400"
-                      : r.status === "skipped"
-                        ? "bg-yellow-400"
-                        : "bg-red-400"
-                  }`}
+                  className={`size-2 rounded-full ${getBatchResultStatusColor(r.status)}`}
                 />
                 <span className="font-mono theme-muted">/{r.slug}</span>
-                <span
-                  className={
-                    r.status === "success"
-                      ? "text-green-400"
-                      : r.status === "skipped"
-                        ? "text-yellow-400"
-                        : "text-red-400"
-                  }
-                >
+                <span className={getBatchResultStatusTextColor(r.status)}>
                   {r.status}
                   {r.error ? `: ${r.error}` : ""}
                 </span>
@@ -551,24 +585,7 @@ export default function ArticlesPage() {
               ) : (
                 posts.map((post) => {
                   const badge = getStatusBadge(post.status);
-                  const statusActionColorClass =
-                    post.status === "PUBLISHED"
-                      ? "hover:text-yellow-400"
-                      : post.status === "DRAFT"
-                        ? "hover:text-violet-300"
-                        : "hover:text-green-400";
-                  const statusActionTitle =
-                    post.status === "PUBLISHED"
-                      ? "Unpublish"
-                      : post.status === "DRAFT"
-                        ? "Submit for review"
-                        : "Publish";
-                  const statusActionIcon =
-                    post.status === "PUBLISHED"
-                      ? "unpublished"
-                      : post.status === "DRAFT"
-                        ? "rate_review"
-                        : "publish";
+                  const statusAction = getStatusAction(post.status);
 
                   return (
                     <tr
@@ -715,11 +732,11 @@ export default function ArticlesPage() {
 
                                 void handleStatusChange(post, "PUBLISHED");
                               }}
-                              className={`theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] ${statusActionColorClass}`}
-                              title={statusActionTitle}
+                              className={`theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] ${statusAction.colorClass}`}
+                              title={statusAction.title}
                             >
                               <span className="material-symbols-outlined text-[20px]">
-                                {statusActionIcon}
+                                {statusAction.icon}
                               </span>
                             </button>
                           )}

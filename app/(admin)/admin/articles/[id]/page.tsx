@@ -83,6 +83,31 @@ interface ArticleFormState {
 }
 
 type EditorLocale = "vi" | "en";
+type ArticleSavePayload = {
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  contentHtml: string;
+  contentJson: Record<string, unknown> | null;
+  featuredImage: string | null;
+  status: PostStatus;
+  categoryId: string | null;
+  tagIds: string[];
+  scheduledAt: string | null;
+};
+type PostTranslationPayload = {
+  locale: EditorLocale;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  contentHtml: string;
+  contentJson: Record<string, unknown> | null;
+  featuredImage: string | null;
+  status: PostStatus;
+  scheduledAt: string | null;
+};
 
 interface CategoryDraftState {
   name: string;
@@ -491,7 +516,7 @@ export default function ArticleEditPage() {
   }, [formState.content]);
 
   const documentOutline = useMemo<OutlineItem[]>(() => {
-    if (typeof globalThis.window === "undefined" || !formState.content) {
+    if (globalThis.window === undefined || !formState.content) {
       return [];
     }
 
@@ -1124,6 +1149,71 @@ export default function ArticleEditPage() {
     }
   };
 
+  const finishAutosave = (snapshot: string) => {
+    lastSavedSnapshotRef.current = snapshot;
+    setAutosaveState("saved");
+  };
+
+  const autosaveNewArticleDraft = async (
+    payload: ArticleSavePayload,
+    snapshot: string,
+  ) => {
+    const response = await apiClient.post<PostPayload>(
+      "/api/v1/posts",
+      payload,
+    );
+    const createdPost = resolveData<Post | null>(response, null);
+
+    if (!createdPost?.id) {
+      return;
+    }
+
+    finishAutosave(snapshot);
+    router.replace(`/admin/articles/${createdPost.id}`);
+  };
+
+  const autosaveTranslationDraft = async (
+    payload: PostTranslationPayload,
+    snapshot: string,
+  ) => {
+    const response = await apiClient.post<
+      { data?: PostTranslation } | PostTranslation
+    >(`/api/v1/posts/${articleId}/translations`, payload);
+    const updatedTranslation = resolveData<PostTranslation | null>(
+      response,
+      null,
+    );
+
+    if (!updatedTranslation) {
+      return;
+    }
+
+    setActiveTranslation(updatedTranslation);
+    finishAutosave(snapshot);
+  };
+
+  const autosaveExistingPostDraft = async (
+    payload: ArticleSavePayload,
+    snapshot: string,
+  ) => {
+    const response = await apiClient.put<PostPayload>(
+      `/api/v1/posts/${articleId}`,
+      {
+        ...payload,
+        createVersion: false,
+      },
+    );
+    const updatedPost = resolveData<Post | null>(response, null);
+
+    if (!updatedPost) {
+      return;
+    }
+
+    setArticle(updatedPost);
+    finishAutosave(snapshot);
+    await fetchVersions();
+  };
+
   const autosaveDraft = useCallback(async () => {
     if (isSaving || isDeleting || isAutosavingRef.current) {
       return;
@@ -1143,60 +1233,24 @@ export default function ArticleEditPage() {
 
     try {
       const isDefaultEditorLocale = selectedLocale === "vi";
-      const payload = isDefaultEditorLocale
-        ? buildPayload()
-        : buildTranslationPayload();
 
       if (isNewArticle) {
         if (!isDefaultEditorLocale) {
           return;
         }
-        const response = await apiClient.post<PostPayload>(
-          "/api/v1/posts",
-          payload,
-        );
-        const createdPost = resolveData<Post | null>(response, null);
-
-        if (createdPost?.id) {
-          lastSavedSnapshotRef.current = snapshot;
-          setAutosaveState("saved");
-          router.replace(`/admin/articles/${createdPost.id}`);
-        }
-
+        const payload = buildPayload();
+        await autosaveNewArticleDraft(payload, snapshot);
         return;
       }
 
       if (!isDefaultEditorLocale) {
-        const response = await apiClient.post<
-          { data?: PostTranslation } | PostTranslation
-        >(`/api/v1/posts/${articleId}/translations`, payload);
-        const updatedTranslation = resolveData<PostTranslation | null>(
-          response,
-          null,
-        );
-
-        if (updatedTranslation) {
-          setActiveTranslation(updatedTranslation);
-          lastSavedSnapshotRef.current = snapshot;
-          setAutosaveState("saved");
-        }
-      } else {
-        const response = await apiClient.put<PostPayload>(
-          `/api/v1/posts/${articleId}`,
-          {
-            ...payload,
-            createVersion: false,
-          },
-        );
-        const updatedPost = resolveData<Post | null>(response, null);
-
-        if (updatedPost) {
-          setArticle(updatedPost);
-          lastSavedSnapshotRef.current = snapshot;
-          setAutosaveState("saved");
-          await fetchVersions();
-        }
+        const payload = buildTranslationPayload();
+        await autosaveTranslationDraft(payload, snapshot);
+        return;
       }
+
+      const payload = buildPayload();
+      await autosaveExistingPostDraft(payload, snapshot);
     } catch {
       setAutosaveState("error");
     } finally {
@@ -1206,12 +1260,12 @@ export default function ArticleEditPage() {
     articleId,
     buildAutosaveSnapshot,
     buildPayload,
+    buildTranslationPayload,
     formState.content,
     formState.title,
     isDeleting,
     isNewArticle,
     isSaving,
-    buildTranslationPayload,
     fetchVersions,
     router,
     selectedLocale,
@@ -1255,11 +1309,12 @@ export default function ArticleEditPage() {
 
   const handleApprove = async () => {
     try {
+      const nextApprovedStatus =
+        formState.status === "SCHEDULED" && formState.scheduledAt
+          ? "SCHEDULED"
+          : "PUBLISHED";
       await apiClient.post(`/api/v1/posts/${articleId}/approve`, {
-        status:
-          formState.status === "SCHEDULED" && formState.scheduledAt
-            ? "SCHEDULED"
-            : "PUBLISHED",
+        status: nextApprovedStatus,
       });
       toast.success("Da duyet bai viet");
       await fetchArticle();
@@ -1353,14 +1408,14 @@ export default function ArticleEditPage() {
     );
   }
 
-  const autosaveStatusLabel =
-    autosaveState === "saving"
-      ? "Dang autosave..."
-      : autosaveState === "saved"
-        ? "Autosave da cap nhat draft"
-        : autosaveState === "error"
-          ? "Autosave that bai, hay luu tay"
-          : "Autosave sau 3 giay khi dung go";
+  let autosaveStatusLabel = "Autosave sau 3 giay khi dung go";
+  if (autosaveState === "saving") {
+    autosaveStatusLabel = "Dang autosave...";
+  } else if (autosaveState === "saved") {
+    autosaveStatusLabel = "Autosave da cap nhat draft";
+  } else if (autosaveState === "error") {
+    autosaveStatusLabel = "Autosave that bai, hay luu tay";
+  }
   const previewHref =
     selectedLocale === "vi"
       ? `/${formState.slug}`
@@ -1368,11 +1423,12 @@ export default function ArticleEditPage() {
   const translationNoticeText = activeTranslation
     ? "Ban dang chinh sua ban dich tieng Anh cua bai viet nay."
     : "Chua co ban dich tieng Anh. Ban co the tao moi va luu ngay tai day.";
-  const translationButtonLabel = isTranslating
-    ? "Dang dich..."
-    : activeTranslation
-      ? "Dich lai bang AI"
-      : "Dich sang EN bang AI";
+  let translationButtonLabel = "Dich sang EN bang AI";
+  if (isTranslating) {
+    translationButtonLabel = "Dang dich...";
+  } else if (activeTranslation) {
+    translationButtonLabel = "Dich lai bang AI";
+  }
   const autoTranslateButtonLabel = isTranslating
     ? "Dang dich sang EN..."
     : "Auto-translate sang EN";
@@ -1380,6 +1436,13 @@ export default function ArticleEditPage() {
     selectedLocale === "vi"
       ? "https://dailydevops.blog/"
       : `https://dailydevops.blog/${selectedLocale}/`;
+  const isEditingEnglishTranslation = selectedLocale === "en";
+  const canAutoTranslate = !isNewArticle;
+  const saveButtonIcon = isSaving ? "sync" : "save";
+  const saveButtonLabel = isSaving ? "Dang luu..." : "Luu bai viet";
+  const translateButtonIcon = isTranslating ? "sync" : "translate";
+  const categoryToggleLabel = showCategoryCreator ? "Dong" : "Tao moi";
+  const tagToggleLabel = showTagCreator ? "Dong" : "Tao moi";
   const subtitleInputId = "article-subtitle";
   const publishingStatusInputId = "article-status";
   const scheduledTimeInputId = "article-scheduled-at";
@@ -1482,9 +1545,9 @@ export default function ArticleEditPage() {
             className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[18px]">
-              {isSaving ? "sync" : "save"}
+              {saveButtonIcon}
             </span>
-            {isSaving ? "Dang luu..." : "Luu bai viet"}
+            <span>{saveButtonLabel}</span>
           </button>
         </div>
       </header>
@@ -1492,7 +1555,7 @@ export default function ArticleEditPage() {
       <div className="grid max-w-[1600px] grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="flex flex-col gap-6 lg:col-span-8">
           <div className="flex flex-col gap-3">
-            {selectedLocale === "en" ? (
+            {isEditingEnglishTranslation ? (
               <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted flex items-center justify-between gap-3">
                 <span>{translationNoticeText}</span>
                 <button
@@ -1504,12 +1567,12 @@ export default function ArticleEditPage() {
                   <span
                     className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
                   >
-                    {isTranslating ? "sync" : "translate"}
+                    {translateButtonIcon}
                   </span>
                   {translationButtonLabel}
                 </button>
               </div>
-            ) : !isNewArticle ? (
+            ) : canAutoTranslate ? (
               <div className="flex">
                 <button
                   type="button"
@@ -1520,7 +1583,7 @@ export default function ArticleEditPage() {
                   <span
                     className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
                   >
-                    {isTranslating ? "sync" : "translate"}
+                    {translateButtonIcon}
                   </span>
                   {autoTranslateButtonLabel}
                 </button>
@@ -1874,7 +1937,7 @@ export default function ArticleEditPage() {
                     }
                     className="text-[11px] font-semibold text-primary hover:text-blue-400"
                   >
-                    {showCategoryCreator ? "Dong" : "Tao moi"}
+                    {categoryToggleLabel}
                   </button>
                 ) : null}
               </div>
@@ -2035,7 +2098,7 @@ export default function ArticleEditPage() {
                       onClick={() => setShowTagCreator((previous) => !previous)}
                       className="text-[11px] font-semibold text-primary hover:text-blue-400"
                     >
-                      {showTagCreator ? "Dong" : "Tao moi"}
+                      {tagToggleLabel}
                     </button>
                   ) : null}
                 </div>

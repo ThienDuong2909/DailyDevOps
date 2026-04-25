@@ -48,11 +48,12 @@ export default function CategoriesAdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formState, setFormState] =
     useState<CategoryFormState>(initialFormState);
-  const submitLabel = submitting
-    ? "Dang luu..."
-    : editingId
-      ? "Cap nhat category"
-      : "Tao category";
+  let submitLabel = "Tao category";
+  if (submitting) {
+    submitLabel = "Dang luu...";
+  } else if (editingId) {
+    submitLabel = "Cap nhat category";
+  }
 
   const fetchCategories = async () => {
     const payload =

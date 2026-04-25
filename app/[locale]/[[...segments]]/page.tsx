@@ -17,6 +17,7 @@ import { CookiePolicyPageContent } from "@/app/(main)/cookie-policy/cookie-polic
 import { DmcaPolicyPageContent } from "@/app/(main)/dmca-policy/dmca-policy-page-content";
 import { LocaleRouteSync } from "@/components/i18n/locale-route-sync";
 import { isSupportedLocale } from "@/lib/i18n/config";
+import type { SiteLocale } from "@/lib/i18n/config";
 import { SITE_URL, API_BASE_URL } from "@/lib/constants/site";
 import {
   fetchPostBySlug,
@@ -65,6 +66,17 @@ interface PostSeoData {
     focusKeywords?: string[];
   };
 }
+
+const KNOWN_STATIC_PAGES = new Set([
+  "about",
+  "contact",
+  "search",
+  "newsletter",
+  "privacy-policy",
+  "terms-of-service",
+  "cookie-policy",
+  "dmca-policy",
+]);
 
 function toAbsoluteUrl(value?: string | null) {
   if (!value) {
@@ -121,6 +133,28 @@ function buildQueryString(searchParams?: Record<string, string | undefined>) {
 
   const serialized = params.toString();
   return serialized ? `?${serialized}` : "";
+}
+
+function getLocaleAlternates(
+  currentPath: string,
+  querySuffix: string,
+): Record<"vi" | "en", string> {
+  return {
+    vi: `${buildLocalizedPath("vi", currentPath)}${querySuffix}`,
+    en: `${buildLocalizedPath("en", currentPath)}${querySuffix}`,
+  };
+}
+
+function wrapWithLocaleSync(
+  alternates: Record<"vi" | "en", string>,
+  content: React.ReactNode,
+) {
+  return (
+    <>
+      <LocaleRouteSync alternates={alternates} />
+      {content}
+    </>
+  );
 }
 
 function getStaticPageMetadata(locale: string, slug: string): Metadata | null {
@@ -328,6 +362,181 @@ async function buildArticleMetadata(
   };
 }
 
+function getHomeMetadata(locale: SiteLocale): Metadata {
+  return {
+    title: locale === "en" ? "DevOps Blog" : "Daily DevOps",
+    alternates: {
+      canonical: buildLocalizedPath(locale),
+    },
+  };
+}
+
+function getBlogIndexMetadata(locale: SiteLocale): Metadata {
+  return {
+    title: locale === "en" ? "Articles" : "BÃ i viáº¿t",
+    description:
+      locale === "en"
+        ? "Browse the latest DevOps Daily articles."
+        : "KhÃ¡m phÃ¡ nhá»¯ng bÃ i viáº¿t má»›i nháº¥t vá» DevOps, cloud vÃ  automation.",
+    alternates: {
+      canonical: buildLocalizedPath(locale, "/blog"),
+    },
+  };
+}
+
+async function resolveSegmentMetadata(
+  locale: SiteLocale,
+  segments: string[],
+): Promise<Metadata | null> {
+  if (segments.length === 0) {
+    return getHomeMetadata(locale);
+  }
+
+  if (segments[0] === "blog" && segments.length === 1) {
+    return getBlogIndexMetadata(locale);
+  }
+
+  const isDirectArticleRoute =
+    segments.length === 1 && !segments[0].includes(".");
+  const isBlogArticleRoute = segments.length === 2 && segments[0] === "blog";
+
+  if (!isDirectArticleRoute && !isBlogArticleRoute) {
+    return null;
+  }
+
+  const slug = isBlogArticleRoute ? segments[1] : segments[0];
+
+  if (isBlogArticleRoute && slug) {
+    return buildArticleMetadata(slug, locale);
+  }
+
+  if (!KNOWN_STATIC_PAGES.has(slug)) {
+    return buildArticleMetadata(slug, locale);
+  }
+
+  return getStaticPageMetadata(locale, slug);
+}
+
+async function fetchBlogDetailData(slug: string, locale: SiteLocale) {
+  const ssrPost = await fetchPostBySlug(slug, locale);
+  const ssrRelated = ssrPost?.id
+    ? await fetchRelatedPosts(ssrPost.id, locale)
+    : [];
+  const ssrPopular = await fetchPopularPosts(locale);
+
+  return {
+    ssrPost,
+    ssrRelated,
+    ssrPopular,
+  };
+}
+
+async function renderBlogDetailPage(
+  slug: string,
+  locale: SiteLocale,
+  alternates: Record<"vi" | "en", string>,
+) {
+  const { ssrPost, ssrRelated, ssrPopular } = await fetchBlogDetailData(
+    slug,
+    locale,
+  );
+
+  return wrapWithLocaleSync(
+    alternates,
+    <BlogDetailClient
+      slugOverride={slug}
+      initialPost={ssrPost}
+      initialRelatedPosts={ssrRelated}
+      initialPopularPosts={ssrPopular}
+    />,
+  );
+}
+
+async function renderSingleSegmentPage(
+  locale: SiteLocale,
+  slug: string,
+  alternates: Record<"vi" | "en", string>,
+  searchParams?: Promise<{ q?: string; page?: string }>,
+) {
+  switch (slug) {
+    case "about":
+      return wrapWithLocaleSync(
+        alternates,
+        <AboutPageContent locale={locale} />,
+      );
+    case "contact":
+      return wrapWithLocaleSync(alternates, <ContactPage />);
+    case "search":
+      await resolveSearchRedirect(searchParams, locale);
+      return null;
+    case "newsletter":
+      return wrapWithLocaleSync(
+        alternates,
+        <NewsletterPageContent locale={locale} />,
+      );
+    case "privacy-policy":
+      return wrapWithLocaleSync(
+        alternates,
+        <PrivacyPolicyPageContent locale={locale} />,
+      );
+    case "terms-of-service":
+      return wrapWithLocaleSync(
+        alternates,
+        <TermsOfServicePageContent locale={locale} />,
+      );
+    case "cookie-policy":
+      return wrapWithLocaleSync(
+        alternates,
+        <CookiePolicyPageContent locale={locale} />,
+      );
+    case "dmca-policy":
+      return wrapWithLocaleSync(
+        alternates,
+        <DmcaPolicyPageContent locale={locale} />,
+      );
+    case "blog":
+      return wrapWithLocaleSync(alternates, <BlogPage />);
+    default:
+      return renderBlogDetailPage(slug, locale, alternates);
+  }
+}
+
+async function renderTwoSegmentPage(
+  locale: SiteLocale,
+  segments: string[],
+  alternates: Record<"vi" | "en", string>,
+) {
+  const [section, slug] = segments;
+
+  switch (section) {
+    case "blog":
+      return renderBlogDetailPage(slug, locale, alternates);
+    case "category":
+      return wrapWithLocaleSync(
+        alternates,
+        await CategoryPage({ params: Promise.resolve({ slug, locale }) }),
+      );
+    case "tag":
+      return wrapWithLocaleSync(
+        alternates,
+        await TagPage({ params: Promise.resolve({ slug, locale }) }),
+      );
+    case "author":
+      return wrapWithLocaleSync(
+        alternates,
+        await AuthorPage({
+          params: Promise.resolve({ username: slug, locale }),
+        }),
+      );
+    case "newsletter":
+      return slug === "confirm"
+        ? wrapWithLocaleSync(alternates, <NewsletterConfirmPage />)
+        : null;
+    default:
+      return null;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -339,62 +548,16 @@ export async function generateMetadata({
     return {};
   }
 
-  if (segments.length === 0) {
-    return {
-      title: locale === "en" ? "DevOps Blog" : "Daily DevOps",
-      alternates: {
-        canonical: buildLocalizedPath(locale),
-      },
-    };
-  }
+  const activeLocale = locale as SiteLocale;
 
-  if (
-    (segments.length === 1 && !segments[0].includes(".")) ||
-    (segments.length === 2 && segments[0] === "blog")
-  ) {
-    const slug = segments.length === 2 ? segments[1] : segments[0];
-    const knownStaticPages = new Set([
-      "about",
-      "contact",
-      "search",
-      "newsletter",
-      "privacy-policy",
-      "terms-of-service",
-      "cookie-policy",
-      "dmca-policy",
-    ]);
-
-    if (!knownStaticPages.has(slug) && segments[0] !== "blog") {
-      return buildArticleMetadata(slug, locale);
-    }
-
-    if (segments[0] === "blog" && segments[1]) {
-      return buildArticleMetadata(segments[1], locale);
-    }
-
-    const staticMetadata = getStaticPageMetadata(locale, slug);
-
-    if (staticMetadata) {
-      return staticMetadata;
-    }
-  }
-
-  if (segments[0] === "blog" && segments.length === 1) {
-    return {
-      title: locale === "en" ? "Articles" : "Bài viết",
-      description:
-        locale === "en"
-          ? "Browse the latest DevOps Daily articles."
-          : "Khám phá những bài viết mới nhất về DevOps, cloud và automation.",
-      alternates: {
-        canonical: buildLocalizedPath(locale, "/blog"),
-      },
-    };
+  const metadata = await resolveSegmentMetadata(activeLocale, segments);
+  if (metadata) {
+    return metadata;
   }
 
   return {
     alternates: {
-      canonical: buildLocalizedPath(locale, `/${segments.join("/")}`),
+      canonical: buildLocalizedPath(activeLocale, `/${segments.join("/")}`),
     },
   };
 }
@@ -413,166 +576,29 @@ export default async function LocalizedPage({
     notFound();
   }
 
+  const activeLocale = locale as SiteLocale;
+
   const currentPath = segments.length === 0 ? "/" : `/${segments.join("/")}`;
   const querySuffix = buildQueryString(resolvedSearchParams);
-  const alternates = {
-    vi: `${buildLocalizedPath("vi", currentPath)}${querySuffix}`,
-    en: `${buildLocalizedPath("en", currentPath)}${querySuffix}`,
-  };
+  const alternates = getLocaleAlternates(currentPath, querySuffix);
 
   if (segments.length === 0) {
-    return (
-      <>
-        <LocaleRouteSync alternates={alternates} />
-        <MainHomePage />
-      </>
-    );
+    return wrapWithLocaleSync(alternates, <MainHomePage />);
   }
 
   if (segments.length === 1) {
-    switch (segments[0]) {
-      case "about":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <AboutPageContent locale={locale} />
-          </>
-        );
-      case "contact":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <ContactPage />
-          </>
-        );
-      case "search": {
-        await resolveSearchRedirect(searchParams, locale);
-        return null;
-      }
-      case "newsletter":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <NewsletterPageContent locale={locale} />
-          </>
-        );
-      case "privacy-policy":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <PrivacyPolicyPageContent locale={locale} />
-          </>
-        );
-      case "terms-of-service":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <TermsOfServicePageContent locale={locale} />
-          </>
-        );
-      case "cookie-policy":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <CookiePolicyPageContent locale={locale} />
-          </>
-        );
-      case "dmca-policy":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <DmcaPolicyPageContent locale={locale} />
-          </>
-        );
-      case "blog":
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <BlogPage />
-          </>
-        );
-      default: {
-        // C1: Server-side fetch for blog detail — serves real HTML to crawlers
-        const ssrPost = await fetchPostBySlug(segments[0], locale);
-        const ssrRelated = ssrPost?.id
-          ? await fetchRelatedPosts(ssrPost.id, locale)
-          : [];
-        const ssrPopular = await fetchPopularPosts(locale);
-        return (
-          <>
-            <LocaleRouteSync alternates={alternates} />
-            <BlogDetailClient
-              slugOverride={segments[0]}
-              initialPost={ssrPost}
-              initialRelatedPosts={ssrRelated}
-              initialPopularPosts={ssrPopular}
-            />
-          </>
-        );
-      }
-    }
+    return renderSingleSegmentPage(
+      activeLocale,
+      segments[0],
+      alternates,
+      searchParams,
+    );
   }
 
   if (segments.length === 2) {
-    if (segments[0] === "blog") {
-      const ssrPost = await fetchPostBySlug(segments[1], locale);
-      const ssrRelated = ssrPost?.id
-        ? await fetchRelatedPosts(ssrPost.id, locale)
-        : [];
-      const ssrPopular = await fetchPopularPosts(locale);
-      return (
-        <>
-          <LocaleRouteSync alternates={alternates} />
-          <BlogDetailClient
-            slugOverride={segments[1]}
-            initialPost={ssrPost}
-            initialRelatedPosts={ssrRelated}
-            initialPopularPosts={ssrPopular}
-          />
-        </>
-      );
-    }
-
-    if (segments[0] === "category") {
-      return (
-        <>
-          <LocaleRouteSync alternates={alternates} />
-          {await CategoryPage({
-            params: Promise.resolve({ slug: segments[1], locale }),
-          })}
-        </>
-      );
-    }
-
-    if (segments[0] === "tag") {
-      return (
-        <>
-          <LocaleRouteSync alternates={alternates} />
-          {await TagPage({
-            params: Promise.resolve({ slug: segments[1], locale }),
-          })}
-        </>
-      );
-    }
-
-    if (segments[0] === "author") {
-      return (
-        <>
-          <LocaleRouteSync alternates={alternates} />
-          {await AuthorPage({
-            params: Promise.resolve({ username: segments[1], locale }),
-          })}
-        </>
-      );
-    }
-
-    if (segments[0] === "newsletter" && segments[1] === "confirm") {
-      return (
-        <>
-          <LocaleRouteSync alternates={alternates} />
-          <NewsletterConfirmPage />
-        </>
-      );
+    const page = await renderTwoSegmentPage(activeLocale, segments, alternates);
+    if (page) {
+      return page;
     }
   }
 

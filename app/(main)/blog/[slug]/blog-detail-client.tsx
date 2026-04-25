@@ -62,10 +62,10 @@ export default function BlogDetailClient({
   initialPopularPosts?: Post[];
 } = {}) {
   const params = useParams<{ slug?: string; segments?: string[] }>();
-  const slug =
-    slugOverride ||
+  const routeSlug =
     params?.slug ||
     (Array.isArray(params?.segments) ? (params.segments.at(-1) ?? "") : "");
+  const slug = slugOverride || routeSlug;
   const locale = useLocale();
   const dictionary = useDictionary();
   const { setAlternatePaths, clearAlternatePaths } = useLocaleRoute();
@@ -88,10 +88,11 @@ export default function BlogDetailClient({
 
   const contentRef = useRef<HTMLDivElement>(null);
   const siteUrl =
-    globalThis.window !== undefined
-      ? globalThis.window.location.origin
-      : "https://dailydevops.blog";
-  const postUrl = `${siteUrl}${withLocale(`/${slug}`, locale)}`;
+    globalThis.window === undefined
+      ? "https://dailydevops.blog"
+      : globalThis.window.location.origin;
+  const localizedPostPath = withLocale(`/${slug}`, locale);
+  const postUrl = `${siteUrl}${localizedPostPath}`;
 
   const { form, setForm, submitting, handleCommentSubmit } = useCommentForm(
     post,
@@ -146,6 +147,24 @@ export default function BlogDetailClient({
   const formattedContent = normalizedContent.html;
   const derivedTocItems = normalizedContent.toc;
   const effectiveActiveTocId = activeTocId || derivedTocItems[0]?.id || "";
+
+  useEffect(() => {
+    const contentNode = contentRef.current;
+
+    if (!contentNode) {
+      return;
+    }
+
+    const onContentClick = (event: MouseEvent) => {
+      handleContentClick(event);
+    };
+
+    contentNode.addEventListener("click", onContentClick);
+
+    return () => {
+      contentNode.removeEventListener("click", onContentClick);
+    };
+  }, [formattedContent, handleContentClick]);
 
   useEffect(() => {
     if (!activeTocId && derivedTocItems[0]?.id) {
@@ -387,7 +406,6 @@ export default function BlogDetailClient({
             <div
               ref={contentRef}
               className="article-copy min-w-0 max-w-none overflow-x-hidden"
-              onClick={handleContentClick}
               dangerouslySetInnerHTML={{ __html: formattedContent }}
             />
 

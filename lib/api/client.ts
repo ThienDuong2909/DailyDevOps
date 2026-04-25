@@ -5,7 +5,7 @@ import axios, {
 } from "axios";
 
 const resolveApiBaseUrl = () => {
-  if (typeof window !== "undefined") {
+  if (globalThis.window !== undefined) {
     return process.env.NEXT_PUBLIC_API_URL || "";
   }
 

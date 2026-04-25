@@ -29,20 +29,24 @@ export function usePostActions(
   postTitle?: string,
   postExcerpt?: string,
 ) {
-  const handleContentClick = useCallback((event: React.MouseEvent) => {
-    const target = event.target as HTMLElement;
-    const button = target.closest(".copy-code-btn");
-    if (!button) return;
-    const code = button.closest(".macos-mockup")?.querySelector("code");
-    if (!code) return;
-    navigator.clipboard.writeText(code.textContent || "").then(() => {
-      const html = button.innerHTML;
-      button.innerHTML = "Copied!";
-      setTimeout(() => {
-        button.innerHTML = html;
-      }, 1600);
-    });
-  }, []);
+  const handleContentClick = useCallback(
+    (event: MouseEvent | React.MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const button = target.closest(".copy-code-btn");
+      if (!button) return;
+      const code = button.closest(".macos-mockup")?.querySelector("code");
+      if (!code) return;
+      navigator.clipboard.writeText(code.textContent || "").then(() => {
+        const html = button.innerHTML;
+        button.innerHTML = "Copied!";
+        setTimeout(() => {
+          button.innerHTML = html;
+        }, 1600);
+      });
+    },
+    [],
+  );
 
   const handleShare = async (mode: "native" | "copy") => {
     if (!postTitle) return;

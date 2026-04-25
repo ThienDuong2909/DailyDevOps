@@ -88,7 +88,7 @@ export function getImageUrl(path: string | null | undefined): string {
  */
 export function unwrap<T>(payload: unknown, fallback: T): T {
   if (payload && typeof payload === "object" && "data" in payload) {
-    return ((payload as { data?: T }).data ?? fallback) as T;
+    return (payload as { data?: T }).data ?? fallback;
   }
   return (payload as T) ?? fallback;
 }

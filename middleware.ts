@@ -25,7 +25,7 @@ const PASSTHROUGH_PREFIXES = [
   "/_next",
   "/uploads",
 ];
-const PASSTHROUGH_EXACT = [
+const PASSTHROUGH_EXACT = new Set([
   "/favicon.ico",
   "/robots.txt",
   "/sitemap.xml",
@@ -37,7 +37,7 @@ const PASSTHROUGH_EXACT = [
   "/tag-sitemap.xml",
   "/manifest.webmanifest",
   "/site.webmanifest",
-];
+]);
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -45,7 +45,7 @@ export function middleware(request: NextRequest) {
 
   if (
     isPublicFile(pathname) ||
-    PASSTHROUGH_EXACT.includes(pathname) ||
+    PASSTHROUGH_EXACT.has(pathname) ||
     PASSTHROUGH_PREFIXES.some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     )

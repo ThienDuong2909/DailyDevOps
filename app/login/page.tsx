@@ -39,11 +39,12 @@ export default function LoginPage() {
   const shouldShowResendVerification =
     typeof error === "string" &&
     error.toLowerCase().includes("verify your email");
-  const submitButtonLabel = isLoading
-    ? "Signing in..."
-    : mfaStep
-      ? "Verify Code"
-      : "Sign In";
+  let submitButtonLabel = "Sign In";
+  if (isLoading) {
+    submitButtonLabel = "Signing in...";
+  } else if (mfaStep) {
+    submitButtonLabel = "Verify Code";
+  }
 
   useEffect(() => {
     void initializeAuth();

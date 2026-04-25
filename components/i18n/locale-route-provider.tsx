@@ -24,16 +24,10 @@ export function LocaleRouteProvider({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [alternatePaths, setAlternatePathsState] = useState<LocaleAlternateMap>(
-    {},
-  );
-
-  const setAlternatePaths = useCallback((paths: LocaleAlternateMap) => {
-    setAlternatePathsState(paths);
-  }, []);
+  const [alternatePaths, setAlternatePaths] = useState<LocaleAlternateMap>({});
 
   const clearAlternatePaths = useCallback(() => {
-    setAlternatePathsState({});
+    setAlternatePaths({});
   }, []);
 
   const value = useMemo(
