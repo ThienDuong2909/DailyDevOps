@@ -139,10 +139,22 @@ EOF
                 // pipeline can still deploy when the test infra has issues.
                 // Skip via commit message [skip-e2e] or env RUN_E2E=false.
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    // Copy static assets to standalone directory so the Next.js standalone server can serve them during tests
+                    // Copy static assets + env to standalone directory so the Next.js standalone server can serve them during tests
                     sh 'mkdir -p .next/standalone/public .next/standalone/.next/static'
                     sh 'cp -r public/* .next/standalone/public/ || true'
                     sh 'cp -r .next/static/* .next/standalone/.next/static/ || true'
+                    sh 'cp .env.production .next/standalone/.env.production || true'
+
+                    // Diagnostic: verify standalone build output exists
+                    sh '''
+                        echo "=== E2E Diagnostic ==="
+                        ls -la .next/standalone/server.js || echo "ERROR: server.js not found!"
+                        echo "Standalone dir contents:"
+                        ls -la .next/standalone/ | head -20
+                        echo "Killing any stale process on port 3000..."
+                        fuser -k 3000/tcp 2>/dev/null || true
+                        echo "=== End Diagnostic ==="
+                    '''
                     
                     sh 'npm run test:e2e:install'
                     sh 'npm run test:e2e'
