@@ -139,6 +139,11 @@ EOF
                 // pipeline can still deploy when the test infra has issues.
                 // Skip via commit message [skip-e2e] or env RUN_E2E=false.
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    // Copy static assets to standalone directory so the Next.js standalone server can serve them during tests
+                    sh 'mkdir -p .next/standalone/public .next/standalone/.next/static'
+                    sh 'cp -r public/* .next/standalone/public/ || true'
+                    sh 'cp -r .next/static/* .next/standalone/.next/static/ || true'
+                    
                     sh 'npm run test:e2e:install'
                     sh 'npm run test:e2e'
                 }
