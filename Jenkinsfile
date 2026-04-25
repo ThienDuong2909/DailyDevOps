@@ -201,8 +201,7 @@ EOF
                             --ignore-unfixed \\
                             --skip-dirs node_modules \\
                             --format json \\
-                            --output /src/trivy-fs-report.json \\
-                            /src
+                            /src > trivy-fs-report.json
                 """
                 archiveArtifacts artifacts: 'trivy-fs-report.json', allowEmptyArchive: true
                 // Gate check — exit-code 1 fails the pipeline if CRITICAL/HIGH found
@@ -248,14 +247,12 @@ EOF
                     docker run --rm \\
                         -v /var/run/docker.sock:/var/run/docker.sock \\
                         -v "${TRIVY_CACHE_DIR}:/root/.cache/" \\
-                        -v "${WORKSPACE}:/output" \\
                         ${TRIVY_IMAGE} image \\
                             --severity "${TRIVY_SEVERITY}" \\
                             --ignore-unfixed \\
                             --scanners vuln,secret,misconfig \\
                             --format json \\
-                            --output /output/trivy-image-report.json \\
-                            ${IMAGE_TAG}:${BUILD_NUMBER}
+                            ${IMAGE_TAG}:${BUILD_NUMBER} > trivy-image-report.json
                 """
                 archiveArtifacts artifacts: 'trivy-image-report.json', allowEmptyArchive: true
                 // Gate check — exit-code 1 fails the pipeline if CRITICAL/HIGH found
