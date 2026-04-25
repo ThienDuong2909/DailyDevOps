@@ -149,7 +149,7 @@ export function PostSidebar({
                 <span className="material-symbols-outlined !text-[18px]">
                   link
                 </span>
-                Copy article link
+                <span>Copy article link</span>
               </button>
               {post.category ? (
                 <Link

@@ -28,6 +28,8 @@ type SearchSuggestion = {
   } | null;
 };
 
+type HeaderDictionary = ReturnType<typeof useDictionary>;
+
 function createSearchDestination(query: string, locale: SiteLocale) {
   const trimmed = query.trim();
   return trimmed
@@ -93,6 +95,258 @@ function useHeaderSuggestions(locale: SiteLocale, searchQuery: string) {
     suggestions,
     isLoadingSuggestions,
   };
+}
+
+function LocaleSwitch({
+  locale,
+  switchLocale,
+  dictionary,
+  mobile = false,
+}: Readonly<{
+  locale: SiteLocale;
+  switchLocale: (nextLocale: SiteLocale) => void;
+  dictionary: HeaderDictionary;
+  mobile?: boolean;
+}>) {
+  const containerClassName = mobile
+    ? "mb-2 flex items-center gap-2 rounded-xl border border-gray-200 p-1 dark:border-gray-700"
+    : "hidden items-center gap-1 rounded-lg border border-gray-200 px-1 py-1 dark:border-gray-700 sm:flex";
+  const buttonClassName = mobile
+    ? "flex-1 rounded-lg px-3 py-2 text-sm font-semibold"
+    : "rounded-md px-2 py-1 text-xs font-semibold";
+
+  return (
+    <div className={containerClassName}>
+      <button
+        type="button"
+        onClick={() => switchLocale("vi")}
+        className={`${buttonClassName} ${locale === "vi" ? "bg-primary text-white" : "text-text-sub"}`}
+      >
+        {dictionary.header.languageVi}
+      </button>
+      <button
+        type="button"
+        onClick={() => switchLocale("en")}
+        className={`${buttonClassName} ${locale === "en" ? "bg-primary text-white" : "text-text-sub"}`}
+      >
+        {dictionary.header.languageEn}
+      </button>
+    </div>
+  );
+}
+
+function SearchSuggestionsPanel({
+  showSuggestions,
+  searchQuery,
+  isLoadingSuggestions,
+  suggestions,
+  dictionary,
+  handleSuggestionSelect,
+}: Readonly<{
+  showSuggestions: boolean;
+  searchQuery: string;
+  isLoadingSuggestions: boolean;
+  suggestions: SearchSuggestion[];
+  dictionary: HeaderDictionary;
+  handleSuggestionSelect: (slug: string) => void;
+}>) {
+  if (!showSuggestions || !searchQuery.trim()) {
+    return null;
+  }
+
+  return (
+    <div className="theme-panel theme-border absolute top-12 z-50 w-full overflow-hidden rounded-2xl border shadow-2xl">
+      {isLoadingSuggestions ? (
+        <div className="px-4 py-3 text-sm theme-muted">
+          {dictionary.blog.suggestionsLoading}
+        </div>
+      ) : suggestions.length === 0 ? (
+        <button
+          type="submit"
+          className="block w-full px-4 py-3 text-left text-sm theme-muted transition-colors hover:bg-primary/5 hover:text-primary"
+        >
+          {dictionary.blog.searchLibraryFor} &quot;
+          {searchQuery.trim()}&quot;
+        </button>
+      ) : (
+        <>
+          {suggestions.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleSuggestionSelect(item.slug)}
+              className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/5"
+            >
+              <div className="theme-panel-muted theme-border flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border">
+                {item.featuredImage ? (
+                  <img
+                    src={getImageUrl(item.featuredImage)}
+                    alt={item.title}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="material-symbols-outlined text-primary">
+                    article
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[color:var(--text-main-theme)]">
+                  {item.title}
+                </p>
+                {item.category ? (
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                    {item.category.name}
+                  </p>
+                ) : null}
+                {item.excerpt ? (
+                  <p className="theme-muted mt-1 line-clamp-2 text-xs">
+                    {item.excerpt}
+                  </p>
+                ) : null}
+              </div>
+            </button>
+          ))}
+          <button
+            type="submit"
+            className="theme-border block w-full border-t px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/5"
+          >
+            {dictionary.blog.viewAllResults}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MobileHeaderMenu({
+  mobileMenuOpen,
+  handleSearchSubmit,
+  searchQuery,
+  setSearchQuery,
+  dictionary,
+  locale,
+  switchLocale,
+  navigation,
+}: Readonly<{
+  mobileMenuOpen: boolean;
+  handleSearchSubmit: (event: React.SyntheticEvent<HTMLFormElement>) => void;
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
+  dictionary: HeaderDictionary;
+  locale: SiteLocale;
+  switchLocale: (nextLocale: SiteLocale) => void;
+  navigation: Array<{ href: string; label: string }>;
+}>) {
+  if (!mobileMenuOpen) {
+    return null;
+  }
+
+  return (
+    <div className="absolute left-0 right-0 top-full animate-in slide-in-from-top-2 border-b border-gray-200 bg-surface-light/95 px-4 py-4 shadow-lg backdrop-blur-md dark:border-gray-800 dark:bg-surface-dark/95 md:hidden">
+      <form
+        onSubmit={handleSearchSubmit}
+        className="mb-4 flex items-center gap-2"
+      >
+        <input
+          className="theme-input h-11 flex-1 rounded-xl px-4 text-sm"
+          placeholder={dictionary.blog.searchPlaceholder}
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+        />
+        <button
+          type="submit"
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white"
+        >
+          {dictionary.common.search}
+        </button>
+      </form>
+
+      <nav className="flex flex-col gap-2">
+        <LocaleSwitch
+          locale={locale}
+          switchLocale={switchLocale}
+          dictionary={dictionary}
+          mobile
+        />
+        {navigation.map((item) => (
+          <Link
+            key={`mobile-${item.href}-${item.label}`}
+            href={withLocale(item.href, locale)}
+            className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
+          >
+            {item.label}
+          </Link>
+        ))}
+        <Link
+          href={withLocale("/blog", locale)}
+          className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
+        >
+          {dictionary.common.allArticles}
+        </Link>
+      </nav>
+    </div>
+  );
+}
+
+function DesktopSearchForm({
+  containerRef,
+  desktopSearchInputRef,
+  handleSearchSubmit,
+  dictionary,
+  searchQuery,
+  setSearchQuery,
+  setShowSuggestions,
+  showSuggestions,
+  isLoadingSuggestions,
+  suggestions,
+  handleSuggestionSelect,
+}: Readonly<{
+  containerRef: React.RefObject<HTMLFormElement | null>;
+  desktopSearchInputRef: React.RefObject<HTMLInputElement | null>;
+  handleSearchSubmit: (event: React.SyntheticEvent<HTMLFormElement>) => void;
+  dictionary: HeaderDictionary;
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
+  setShowSuggestions: (value: boolean) => void;
+  showSuggestions: boolean;
+  isLoadingSuggestions: boolean;
+  suggestions: SearchSuggestion[];
+  handleSuggestionSelect: (slug: string) => void;
+}>) {
+  return (
+    <form
+      ref={containerRef}
+      onSubmit={handleSearchSubmit}
+      className="group relative hidden h-10 min-w-40 max-w-64 flex-col sm:flex"
+    >
+      <div className="flex h-full max-w-64 items-center overflow-hidden rounded-lg border border-transparent bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 dark:bg-background-dark">
+        <button
+          type="submit"
+          className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
+          aria-label={dictionary.header.searchAria}
+        >
+          <span className="material-symbols-outlined !text-[20px]">search</span>
+        </button>
+        <input
+          ref={desktopSearchInputRef}
+          className="h-full max-w-52 min-w-0 flex-1 border-none bg-transparent pl-1 pr-3 text-sm font-normal text-text-main opacity-100 transition-[max-width,opacity,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] placeholder:text-text-sub focus:ring-0 dark:text-white"
+          placeholder={dictionary.blog.searchPlaceholder}
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+        />
+      </div>
+      <SearchSuggestionsPanel
+        showSuggestions={showSuggestions}
+        searchQuery={searchQuery}
+        isLoadingSuggestions={isLoadingSuggestions}
+        suggestions={suggestions}
+        dictionary={dictionary}
+        handleSuggestionSelect={handleSuggestionSelect}
+      />
+    </form>
+  );
 }
 
 export function BlogHeader() {
@@ -186,94 +440,19 @@ export function BlogHeader() {
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-2 sm:gap-3 md:gap-4">
-          <form
-            ref={containerRef}
-            onSubmit={handleSearchSubmit}
-            className="relative hidden h-10 flex-col group sm:flex min-w-40 max-w-64"
-          >
-            <div className="flex h-full items-center overflow-hidden rounded-lg border bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-background-dark max-w-64 border-transparent group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20">
-              <button
-                type="submit"
-                className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
-                aria-label={dictionary.header.searchAria}
-              >
-                <span className="material-symbols-outlined !text-[20px]">
-                  search
-                </span>
-              </button>
-              <input
-                ref={desktopSearchInputRef}
-                className="h-full min-w-0 border-none bg-transparent text-sm font-normal text-text-main placeholder:text-text-sub transition-[max-width,opacity,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-0 dark:text-white max-w-52 flex-1 pl-1 pr-3 opacity-100"
-                placeholder={dictionary.blog.searchPlaceholder}
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onFocus={() => setShowSuggestions(true)}
-              />
-            </div>
-            {showSuggestions && searchQuery.trim() ? (
-              <div className="theme-panel theme-border absolute top-12 z-50 w-full overflow-hidden rounded-2xl border shadow-2xl">
-                {isLoadingSuggestions ? (
-                  <div className="px-4 py-3 text-sm theme-muted">
-                    {dictionary.blog.suggestionsLoading}
-                  </div>
-                ) : suggestions.length === 0 ? (
-                  <button
-                    type="submit"
-                    className="block w-full px-4 py-3 text-left text-sm theme-muted transition-colors hover:bg-primary/5 hover:text-primary"
-                  >
-                    {dictionary.blog.searchLibraryFor} &quot;
-                    {searchQuery.trim()}&quot;
-                  </button>
-                ) : (
-                  <>
-                    {suggestions.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleSuggestionSelect(item.slug)}
-                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/5"
-                      >
-                        <div className="theme-panel-muted theme-border flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border">
-                          {item.featuredImage ? (
-                            <img
-                              src={getImageUrl(item.featuredImage)}
-                              alt={item.title}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="material-symbols-outlined text-primary">
-                              article
-                            </span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[color:var(--text-main-theme)]">
-                            {item.title}
-                          </p>
-                          {item.category ? (
-                            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                              {item.category.name}
-                            </p>
-                          ) : null}
-                          {item.excerpt ? (
-                            <p className="theme-muted mt-1 line-clamp-2 text-xs">
-                              {item.excerpt}
-                            </p>
-                          ) : null}
-                        </div>
-                      </button>
-                    ))}
-                    <button
-                      type="submit"
-                      className="theme-border block w-full border-t px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/5"
-                    >
-                      {dictionary.blog.viewAllResults}
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : null}
-          </form>
+          <DesktopSearchForm
+            containerRef={containerRef}
+            desktopSearchInputRef={desktopSearchInputRef}
+            handleSearchSubmit={handleSearchSubmit}
+            dictionary={dictionary}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            setShowSuggestions={setShowSuggestions}
+            showSuggestions={showSuggestions}
+            isLoadingSuggestions={isLoadingSuggestions}
+            suggestions={suggestions}
+            handleSuggestionSelect={handleSuggestionSelect}
+          />
           <button
             type="button"
             onClick={() => setMobileMenuOpen((value) => !value)}
@@ -290,81 +469,25 @@ export function BlogHeader() {
               <Menu className="size-5" />
             )}
           </button>
-          <div className="hidden items-center gap-1 rounded-lg border border-gray-200 px-1 py-1 dark:border-gray-700 sm:flex">
-            <button
-              type="button"
-              onClick={() => switchLocale("vi")}
-              className={`rounded-md px-2 py-1 text-xs font-semibold ${locale === "vi" ? "bg-primary text-white" : "text-text-sub"}`}
-            >
-              {dictionary.header.languageVi}
-            </button>
-            <button
-              type="button"
-              onClick={() => switchLocale("en")}
-              className={`rounded-md px-2 py-1 text-xs font-semibold ${locale === "en" ? "bg-primary text-white" : "text-text-sub"}`}
-            >
-              {dictionary.header.languageEn}
-            </button>
-          </div>
+          <LocaleSwitch
+            locale={locale}
+            switchLocale={switchLocale}
+            dictionary={dictionary}
+          />
           <ThemeToggle />
           <HeaderAuthButton />
         </div>
       </div>
-      {mobileMenuOpen ? (
-        <div className="absolute left-0 right-0 top-full border-b border-gray-200 bg-surface-light/95 backdrop-blur-md px-4 py-4 shadow-lg dark:border-gray-800 dark:bg-surface-dark/95 md:hidden animate-in slide-in-from-top-2">
-          <form
-            onSubmit={handleSearchSubmit}
-            className="mb-4 flex items-center gap-2"
-          >
-            <input
-              className="theme-input h-11 flex-1 rounded-xl px-4 text-sm"
-              placeholder={dictionary.blog.searchPlaceholder}
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-            <button
-              type="submit"
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white"
-            >
-              {dictionary.common.search}
-            </button>
-          </form>
-
-          <nav className="flex flex-col gap-2">
-            <div className="mb-2 flex items-center gap-2 rounded-xl border border-gray-200 p-1 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={() => switchLocale("vi")}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === "vi" ? "bg-primary text-white" : "text-text-sub"}`}
-              >
-                {dictionary.header.languageVi}
-              </button>
-              <button
-                type="button"
-                onClick={() => switchLocale("en")}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === "en" ? "bg-primary text-white" : "text-text-sub"}`}
-              >
-                {dictionary.header.languageEn}
-              </button>
-            </div>
-            {settings.content.headerNavigation.map((item) => (
-              <Link
-                key={`mobile-${item.href}-${item.label}`}
-                href={withLocale(item.href, locale)}
-                className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
-              >
-                {item.label}
-              </Link>
-            ))}
-            <Link
-              href={withLocale("/blog", locale)}
-              className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
-            >
-              {dictionary.common.allArticles}
-            </Link>
-          </nav>
-        </div>
-      ) : null}
+      <MobileHeaderMenu
+        mobileMenuOpen={mobileMenuOpen}
+        handleSearchSubmit={handleSearchSubmit}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        dictionary={dictionary}
+        locale={locale}
+        switchLocale={switchLocale}
+        navigation={settings.content.headerNavigation}
+      />
     </header>
   );
 }

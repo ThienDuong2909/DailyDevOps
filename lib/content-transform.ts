@@ -17,6 +17,9 @@ export interface HeadingNormalizationResult {
 const NON_HEADING_SLUG_CHARACTERS_REGEX = /[^a-z0-9\u00C0-\u024f\s-]/gi;
 const HEADING_WHITESPACE_REGEX = /\s+/g;
 const HEADING_REPEATED_HYPHENS_REGEX = /-+/g;
+const TITLE_HEADING_REGEX = /<h1[^>]*>[\s\S]*?<\/h1>/gi;
+const CODE_BLOCK_REGEX =
+  /<pre([^>]*)>\s*<code([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi;
 
 export function slugifyHeading(value: string) {
   let slug = value
@@ -81,12 +84,12 @@ export function normalizeContentHeadings(
  */
 export function transformPostContent(primaryContent: string): string {
   if (!primaryContent) return "";
-  const withoutTitleHeading = primaryContent.replace(
-    /<h1[^>]*>[\s\S]*?<\/h1>/i,
+  const withoutTitleHeading = primaryContent.replaceAll(
+    TITLE_HEADING_REGEX,
     "",
   );
-  return withoutTitleHeading.replace(
-    /<pre([^>]*)>\s*<code([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi,
+  return withoutTitleHeading.replaceAll(
+    CODE_BLOCK_REGEX,
     (_m, preAttrs, codeAttrs, content) => {
       const extractAttributeValue = (source: string, attributeName: string) => {
         const normalizedSource = String(source || "");

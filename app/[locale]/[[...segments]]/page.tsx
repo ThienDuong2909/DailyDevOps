@@ -135,6 +135,10 @@ function buildQueryString(searchParams?: Record<string, string | undefined>) {
   return serialized ? `?${serialized}` : "";
 }
 
+function toSiteLocale(locale: string): SiteLocale | null {
+  return isSupportedLocale(locale) ? locale : null;
+}
+
 function getLocaleAlternates(
   currentPath: string,
   querySuffix: string,
@@ -544,11 +548,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, segments = [] } = await params;
 
-  if (!isSupportedLocale(locale)) {
+  const activeLocale = toSiteLocale(locale);
+  if (!activeLocale) {
     return {};
   }
-
-  const activeLocale = locale as SiteLocale;
 
   const metadata = await resolveSegmentMetadata(activeLocale, segments);
   if (metadata) {
@@ -572,11 +575,10 @@ export default async function LocalizedPage({
   const { locale, segments = [] } = await params;
   const resolvedSearchParams = await searchParams;
 
-  if (!isSupportedLocale(locale)) {
+  const activeLocale = toSiteLocale(locale);
+  if (!activeLocale) {
     notFound();
   }
-
-  const activeLocale = locale as SiteLocale;
 
   const currentPath = segments.length === 0 ? "/" : `/${segments.join("/")}`;
   const querySuffix = buildQueryString(resolvedSearchParams);

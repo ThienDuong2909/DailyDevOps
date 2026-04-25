@@ -109,6 +109,11 @@ type PostTranslationPayload = {
   scheduledAt: string | null;
 };
 
+type ButtonContent = {
+  icon: string;
+  label: string;
+};
+
 interface CategoryDraftState {
   name: string;
   slug: string;
@@ -232,6 +237,16 @@ function buildFormState(post?: Post): ArticleFormState {
     categoryId: post.category?.id || "",
     tagIds: post.tags?.map((tag) => tag.id) || [],
     scheduledAt: post.scheduledAt ? post.scheduledAt.slice(0, 16) : "",
+  };
+}
+
+function getAutoTranslateButtonContent(
+  isTranslating: boolean,
+  label: string,
+): ButtonContent {
+  return {
+    icon: isTranslating ? "sync" : "translate",
+    label,
   };
 }
 
@@ -1440,13 +1455,52 @@ export default function ArticleEditPage() {
   const canAutoTranslate = !isNewArticle;
   const saveButtonIcon = isSaving ? "sync" : "save";
   const saveButtonLabel = isSaving ? "Dang luu..." : "Luu bai viet";
-  const translateButtonIcon = isTranslating ? "sync" : "translate";
+  const autoTranslateButtonContent = getAutoTranslateButtonContent(
+    isTranslating,
+    isEditingEnglishTranslation
+      ? translationButtonLabel
+      : autoTranslateButtonLabel,
+  );
   const categoryToggleLabel = showCategoryCreator ? "Dong" : "Tao moi";
   const tagToggleLabel = showTagCreator ? "Dong" : "Tao moi";
   const subtitleInputId = "article-subtitle";
   const publishingStatusInputId = "article-status";
   const scheduledTimeInputId = "article-scheduled-at";
   const featuredImageInputId = "article-featured-image";
+  const autoTranslatePanel = isEditingEnglishTranslation ? (
+    <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted flex items-center justify-between gap-3">
+      <span>{translationNoticeText}</span>
+      <button
+        type="button"
+        onClick={() => void handleAutoTranslate()}
+        disabled={isTranslating || isNewArticle}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+      >
+        <span
+          className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
+        >
+          {autoTranslateButtonContent.icon}
+        </span>
+        <span>{autoTranslateButtonContent.label}</span>
+      </button>
+    </div>
+  ) : canAutoTranslate ? (
+    <div className="flex">
+      <button
+        type="button"
+        onClick={() => void handleAutoTranslate()}
+        disabled={isTranslating}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs font-bold text-emerald-400 transition-colors hover:bg-emerald-900/60 disabled:opacity-50"
+      >
+        <span
+          className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
+        >
+          {autoTranslateButtonContent.icon}
+        </span>
+        <span>{autoTranslateButtonContent.label}</span>
+      </button>
+    </div>
+  ) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -1483,7 +1537,7 @@ export default function ArticleEditPage() {
               <span className="material-symbols-outlined text-[18px]">
                 rate_review
               </span>
-              Gui review
+              <span>Gui review</span>
             </button>
           ) : null}
           {showReviewActions &&
@@ -1497,7 +1551,7 @@ export default function ArticleEditPage() {
                 <span className="material-symbols-outlined text-[18px]">
                   cancel
                 </span>
-                Tu choi
+                <span>Tu choi</span>
               </button>
               <button
                 onClick={() => void handleApprove()}
@@ -1506,7 +1560,7 @@ export default function ArticleEditPage() {
                 <span className="material-symbols-outlined text-[18px]">
                   task_alt
                 </span>
-                Duyet bai
+                <span>Duyet bai</span>
               </button>
             </>
           ) : null}
@@ -1536,7 +1590,7 @@ export default function ArticleEditPage() {
               <span className="material-symbols-outlined text-[18px]">
                 visibility
               </span>
-              Preview
+              <span>Preview</span>
             </Link>
           ) : null}
           <button
@@ -1555,40 +1609,7 @@ export default function ArticleEditPage() {
       <div className="grid max-w-[1600px] grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="flex flex-col gap-6 lg:col-span-8">
           <div className="flex flex-col gap-3">
-            {isEditingEnglishTranslation ? (
-              <div className="theme-panel-muted theme-border rounded-2xl border px-4 py-3 text-xs theme-muted flex items-center justify-between gap-3">
-                <span>{translationNoticeText}</span>
-                <button
-                  type="button"
-                  onClick={() => void handleAutoTranslate()}
-                  disabled={isTranslating || isNewArticle}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
-                >
-                  <span
-                    className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
-                  >
-                    {translateButtonIcon}
-                  </span>
-                  {translationButtonLabel}
-                </button>
-              </div>
-            ) : canAutoTranslate ? (
-              <div className="flex">
-                <button
-                  type="button"
-                  onClick={() => void handleAutoTranslate()}
-                  disabled={isTranslating}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs font-bold text-emerald-400 transition-colors hover:bg-emerald-900/60 disabled:opacity-50"
-                >
-                  <span
-                    className={`material-symbols-outlined text-[14px] ${isTranslating ? "animate-spin" : ""}`}
-                  >
-                    {translateButtonIcon}
-                  </span>
-                  {autoTranslateButtonLabel}
-                </button>
-              </div>
-            ) : null}
+            {autoTranslatePanel}
             <input
               type="text"
               value={formState.title}
@@ -1789,7 +1810,7 @@ export default function ArticleEditPage() {
                         <span className="material-symbols-outlined text-[16px]">
                           history
                         </span>
-                        Restore
+                        <span>Restore</span>
                       </button>
                     </div>
                   </div>

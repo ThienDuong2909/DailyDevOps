@@ -400,13 +400,15 @@ export default function ArticlesPage() {
             >
               {isBatchTranslating ? "sync" : "translate"}
             </span>
-            {isBatchTranslating ? "Dang dich..." : "Batch Translate EN"}
+            <span>
+              {isBatchTranslating ? "Dang dich..." : "Batch Translate EN"}
+            </span>
           </button>
           <label className="theme-panel-muted theme-border inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold text-[color:var(--text-main-theme)] transition hover:border-primary hover:text-primary">
             <span className="material-symbols-outlined text-[18px]">
               upload_file
             </span>
-            Import tu Notion
+            <span>Import tu Notion</span>
             <input
               type="file"
               accept=".zip,application/zip,application/x-zip-compressed"
@@ -420,7 +422,7 @@ export default function ArticlesPage() {
             className="theme-glow-button inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold transition-opacity hover:opacity-95"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
-            Bai viet moi
+            <span>Bai viet moi</span>
           </Link>
         </div>
       </div>
@@ -579,7 +581,9 @@ export default function ArticlesPage() {
                     <span className="material-symbols-outlined mb-2 block text-4xl">
                       article
                     </span>
-                    Chua co bai viet nao. Hay tao bai viet dau tien.
+                    <span>
+                      Chua co bai viet nao. Hay tao bai viet dau tien.
+                    </span>
                   </td>
                 </tr>
               ) : (
