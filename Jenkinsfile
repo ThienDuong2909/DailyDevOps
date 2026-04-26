@@ -165,20 +165,23 @@ EOF
         stage('SonarQube Analysis') {
             steps {
                 echo 'Starting static code analysis...'
-                script {
-                    def scannerHome = tool 'sonar-scanner'
-                    
-                    withSonarQubeEnv('sonar-server') {
-                        sh """
-                            "${scannerHome}/bin/sonar-scanner" \\
-                            -Dsonar.projectKey=devops-blog-client \\
-                            -Dsonar.projectName='DevOps Blog Client' \\
-                            -Dsonar.sources=. \\
-                            -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,.trivy-cache/**,coverage/**,playwright-report/**,test-results/**,tests/**,**/*.d.ts \\
-                            -Dsonar.coverage.exclusions=app/**,components/**,hooks/**,lib/**,stores/**,types/**,middleware.ts,next.config.js,tailwind.config.js,postcss.config.js \\
-                            -Dsonar.cpd.exclusions="app/**,components/**,hooks/**,lib/**" \\
-                            -Dsonar.sourceEncoding=UTF-8
-                        """
+                // Wrapped in catchError to prevent pipeline failure when SonarQube server is down (Error 500)
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    script {
+                        def scannerHome = tool 'sonar-scanner'
+                        
+                        withSonarQubeEnv('sonar-server') {
+                            sh """
+                                "${scannerHome}/bin/sonar-scanner" \\
+                                -Dsonar.projectKey=devops-blog-client \\
+                                -Dsonar.projectName='DevOps Blog Client' \\
+                                -Dsonar.sources=. \\
+                                -Dsonar.exclusions=node_modules/**,.next/**,.npm-cache/**,.trivy-cache/**,coverage/**,playwright-report/**,test-results/**,tests/**,**/*.d.ts \\
+                                -Dsonar.coverage.exclusions=app/**,components/**,hooks/**,lib/**,stores/**,types/**,middleware.ts,next.config.js,tailwind.config.js,postcss.config.js \\
+                                -Dsonar.cpd.exclusions="app/**,components/**,hooks/**,lib/**" \\
+                                -Dsonar.sourceEncoding=UTF-8
+                            """
+                        }
                     }
                 }
             }
