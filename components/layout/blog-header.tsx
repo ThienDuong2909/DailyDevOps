@@ -106,25 +106,13 @@ function LocaleSwitch({
   switchLocale: (nextLocale: SiteLocale) => void;
   mobile?: boolean;
 }>) {
-  const [open, setOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!dropdownRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const locales: { code: SiteLocale; flag: string; label: string }[] = [
     { code: "vi", flag: "🇻🇳", label: "Tiếng Việt" },
     { code: "en", flag: "🇺🇸", label: "English" },
   ];
 
   const currentLocale = locales.find((l) => l.code === locale) || locales[0];
+  const nextLocale = locales.find((l) => l.code !== locale) || locales[1];
 
   if (mobile) {
     return (
@@ -135,8 +123,9 @@ function LocaleSwitch({
             type="button"
             onClick={() => switchLocale(l.code)}
             className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === l.code ? "bg-primary text-white" : "text-text-sub"}`}
+            aria-label={`Switch to ${l.label}`}
           >
-            {l.flag} {l.label}
+            {l.flag}
           </button>
         ))}
       </div>
@@ -144,45 +133,15 @@ function LocaleSwitch({
   }
 
   return (
-    <div ref={dropdownRef} className="relative hidden sm:block">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-10 items-center gap-1.5 rounded-2xl border px-3 text-sm font-semibold transition-all active:scale-95 theme-panel-muted theme-border-ghost text-[color:var(--text-muted-theme)] hover:text-[color:var(--text-main-theme)]"
-        aria-label="Switch language"
-        title={`Language: ${currentLocale.label}`}
-      >
-        <span className="text-sm">{currentLocale.flag}</span>
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border shadow-xl theme-panel theme-border animate-in fade-in slide-in-from-top-1 duration-150">
-          {locales.map((l) => (
-            <button
-              key={l.code}
-              type="button"
-              onClick={() => {
-                switchLocale(l.code);
-                setOpen(false);
-              }}
-              className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors ${
-                locale === l.code
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-[color:var(--text-main-theme)] hover:bg-primary/5"
-              }`}
-            >
-              <span className="text-base">{l.flag}</span>
-              <span>{l.label}</span>
-              {locale === l.code && (
-                <span className="material-symbols-outlined ml-auto !text-[16px] text-primary">
-                  check
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={() => switchLocale(nextLocale.code)}
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-lg transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:hover:border-primary sm:flex hidden"
+      aria-label="Switch language"
+      title={`Switch to ${nextLocale.label}`}
+    >
+      {currentLocale.flag}
+    </button>
   );
 }
 
@@ -347,6 +306,7 @@ function DesktopSearchForm({
   isLoadingSuggestions,
   suggestions,
   handleSuggestionSelect,
+  isSearchPage,
 }: Readonly<{
   containerRef: React.RefObject<HTMLFormElement | null>;
   desktopSearchInputRef: React.RefObject<HTMLInputElement | null>;
@@ -359,14 +319,19 @@ function DesktopSearchForm({
   isLoadingSuggestions: boolean;
   suggestions: SearchSuggestion[];
   handleSuggestionSelect: (slug: string) => void;
+  isSearchPage: boolean;
 }>) {
   return (
     <form
       ref={containerRef}
       onSubmit={handleSearchSubmit}
-      className="group relative hidden h-10 min-w-40 max-w-64 flex-col sm:flex"
+      className={`group relative hidden h-10 transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:flex flex-col ${
+        isSearchPage
+          ? "w-10 hover:w-40 focus-within:!w-64 max-w-64"
+          : "w-40 max-w-64 focus-within:w-64"
+      }`}
     >
-      <div className="flex h-full max-w-64 items-center overflow-hidden rounded-lg border border-transparent bg-background-light transition-[max-width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 dark:bg-background-dark">
+      <div className="flex h-full w-full items-center overflow-hidden rounded-lg border border-transparent bg-background-light transition-[width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 dark:bg-background-dark">
         <button
           type="submit"
           className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
@@ -376,11 +341,16 @@ function DesktopSearchForm({
         </button>
         <input
           ref={desktopSearchInputRef}
-          className="h-full max-w-52 min-w-0 flex-1 border-none bg-transparent pl-1 pr-3 text-sm font-normal text-text-main opacity-100 transition-[max-width,opacity,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] placeholder:text-text-sub focus:ring-0 dark:text-white"
+          className={`h-full min-w-0 flex-1 border-none bg-transparent py-2 pr-3 text-sm font-normal text-text-main transition-all duration-500 placeholder:text-text-sub focus:ring-0 dark:text-white ${
+            isSearchPage
+              ? "px-0 opacity-0 group-hover:px-1 group-hover:opacity-100 group-focus-within:!px-1 group-focus-within:!opacity-100"
+              : "px-1 opacity-100"
+          }`}
           placeholder={dictionary.blog.searchPlaceholder}
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           onFocus={() => setShowSuggestions(true)}
+          tabIndex={isSearchPage && !searchQuery ? -1 : 0}
         />
       </div>
       <SearchSuggestionsPanel
@@ -498,6 +468,9 @@ export function BlogHeader() {
             isLoadingSuggestions={isLoadingSuggestions}
             suggestions={suggestions}
             handleSuggestionSelect={handleSuggestionSelect}
+            isSearchPage={
+              pathname.endsWith("/blog") || pathname.endsWith("/blog/")
+            }
           />
           <button
             type="button"
