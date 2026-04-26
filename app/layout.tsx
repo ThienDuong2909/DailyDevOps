@@ -123,11 +123,8 @@ export default function RootLayout({
           as="style"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
           rel="stylesheet"
-          media="print"
-          // @ts-expect-error -- onLoad is valid on link elements
-          onLoad="this.media='all'"
         />
         <script
           dangerouslySetInnerHTML={{

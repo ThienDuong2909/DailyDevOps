@@ -152,8 +152,7 @@ function LocaleSwitch({
         aria-label="Switch language"
         title={`Language: ${currentLocale.label}`}
       >
-        <span className="material-symbols-outlined !text-[20px]">language</span>
-        <span className="text-xs">{currentLocale.flag}</span>
+        <span className="text-sm">{currentLocale.flag}</span>
       </button>
 
       {open && (
