@@ -306,7 +306,6 @@ function DesktopSearchForm({
   isLoadingSuggestions,
   suggestions,
   handleSuggestionSelect,
-  isSearchPage,
 }: Readonly<{
   containerRef: React.RefObject<HTMLFormElement | null>;
   desktopSearchInputRef: React.RefObject<HTMLInputElement | null>;
@@ -319,19 +318,14 @@ function DesktopSearchForm({
   isLoadingSuggestions: boolean;
   suggestions: SearchSuggestion[];
   handleSuggestionSelect: (slug: string) => void;
-  isSearchPage: boolean;
 }>) {
   return (
     <form
       ref={containerRef}
       onSubmit={handleSearchSubmit}
-      className={`group relative hidden h-10 transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:flex flex-col ${
-        isSearchPage
-          ? "w-10 hover:w-40 focus-within:!w-64 max-w-64"
-          : "w-40 max-w-64 focus-within:w-64"
-      }`}
+      className="group relative hidden h-10 w-40 max-w-64 flex-col transition-[width] duration-300 ease-out focus-within:w-64 sm:flex"
     >
-      <div className="flex h-full w-full items-center overflow-hidden rounded-lg border border-transparent bg-background-light transition-[width,border-color,box-shadow,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 dark:bg-background-dark">
+      <div className="flex h-full w-full items-center overflow-hidden rounded-lg border border-transparent bg-background-light transition-[border-color,box-shadow,background-color] duration-300 group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 dark:bg-background-dark">
         <button
           type="submit"
           className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
@@ -341,16 +335,11 @@ function DesktopSearchForm({
         </button>
         <input
           ref={desktopSearchInputRef}
-          className={`h-full min-w-0 flex-1 border-none bg-transparent py-2 pr-3 text-sm font-normal text-text-main transition-all duration-500 placeholder:text-text-sub focus:ring-0 dark:text-white ${
-            isSearchPage
-              ? "px-0 opacity-0 group-hover:px-1 group-hover:opacity-100 group-focus-within:!px-1 group-focus-within:!opacity-100"
-              : "px-1 opacity-100"
-          }`}
+          className="h-full min-w-0 flex-1 border-none bg-transparent py-2 pl-1 pr-3 text-sm font-normal text-text-main placeholder:text-text-sub focus:ring-0 dark:text-white"
           placeholder={dictionary.blog.searchPlaceholder}
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           onFocus={() => setShowSuggestions(true)}
-          tabIndex={isSearchPage && !searchQuery ? -1 : 0}
         />
       </div>
       <SearchSuggestionsPanel
@@ -468,9 +457,6 @@ export function BlogHeader() {
             isLoadingSuggestions={isLoadingSuggestions}
             suggestions={suggestions}
             handleSuggestionSelect={handleSuggestionSelect}
-            isSearchPage={
-              pathname.endsWith("/blog") || pathname.endsWith("/blog/")
-            }
           />
           <button
             type="button"
