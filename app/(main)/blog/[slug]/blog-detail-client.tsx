@@ -87,10 +87,7 @@ export default function BlogDetailClient({
   const [activeTocId, setActiveTocId] = useState("");
 
   const contentRef = useRef<HTMLDivElement>(null);
-  const siteUrl =
-    globalThis.window === undefined
-      ? "https://dailydevops.blog"
-      : globalThis.window.location.origin;
+  const siteUrl = "https://dailydevops.blog";
   const localizedPostPath = withLocale(`/${slug}`, locale);
   const postUrl = `${siteUrl}${localizedPostPath}`;
 

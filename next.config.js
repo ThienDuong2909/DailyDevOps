@@ -45,11 +45,11 @@ const nextConfig = {
                     key: 'Content-Security-Policy',
                     value: [
                         "default-src 'self'",
-                        "script-src 'self' 'unsafe-inline' https://*.sentry.io",
+                        "script-src 'self' 'unsafe-inline' https://*.sentry.io https://www.googletagmanager.com",
                         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                         "font-src 'self' https://fonts.gstatic.com",
                         "img-src 'self' data: blob: https:",
-                        "connect-src 'self' https://api.dailydevops.blog https://*.sentry.io",
+                        "connect-src 'self' https://api.dailydevops.blog https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com",
                         "frame-ancestors 'none'",
                     ].join('; '),
                 },
