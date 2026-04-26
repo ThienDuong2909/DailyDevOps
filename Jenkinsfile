@@ -395,6 +395,8 @@ EOF
             sh "rm -rf k8s-repo"
             // Remove Docker images from agent to free disk space
             sh "docker rmi ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest || true"
+            // Remove intermediate dangling <none> layers left by classic builder
+            sh "docker image prune -f || true"
         }
         success {
             echo "Pipeline executed successfully. Image: ${IMAGE_TAG}:${BUILD_NUMBER}"
