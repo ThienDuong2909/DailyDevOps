@@ -106,13 +106,26 @@ function LocaleSwitch({
   switchLocale: (nextLocale: SiteLocale) => void;
   mobile?: boolean;
 }>) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!dropdownRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const locales: { code: SiteLocale; flag: string; label: string }[] = [
     { code: "vi", flag: "🇻🇳", label: "Tiếng Việt" },
     { code: "en", flag: "🇺🇸", label: "English" },
   ];
 
   const currentLocale = locales.find((l) => l.code === locale) || locales[0];
-  const nextLocale = locales.find((l) => l.code !== locale) || locales[1];
+  const otherLocale = locales.find((l) => l.code !== locale) || locales[1];
 
   if (mobile) {
     return (
@@ -125,7 +138,7 @@ function LocaleSwitch({
             className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === l.code ? "bg-primary text-white" : "text-text-sub"}`}
             aria-label={`Switch to ${l.label}`}
           >
-            {l.flag}
+            {l.flag} {l.label}
           </button>
         ))}
       </div>
@@ -133,15 +146,33 @@ function LocaleSwitch({
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => switchLocale(nextLocale.code)}
-      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-lg transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:hover:border-primary sm:flex hidden"
-      aria-label="Switch language"
-      title={`Switch to ${nextLocale.label}`}
-    >
-      {currentLocale.flag}
-    </button>
+    <div ref={dropdownRef} className="relative hidden sm:block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-lg transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:hover:border-primary"
+        aria-label="Switch language"
+        title={`Language: ${currentLocale.label}`}
+      >
+        {currentLocale.flag}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border shadow-xl theme-panel theme-border animate-in fade-in slide-in-from-top-1 duration-150">
+          <button
+            type="button"
+            onClick={() => {
+              switchLocale(otherLocale.code);
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-[color:var(--text-main-theme)] transition-colors hover:bg-primary/5"
+          >
+            <span className="text-base">{otherLocale.flag}</span>
+            <span>{otherLocale.label}</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -306,6 +337,7 @@ function DesktopSearchForm({
   isLoadingSuggestions,
   suggestions,
   handleSuggestionSelect,
+  collapsed,
 }: Readonly<{
   containerRef: React.RefObject<HTMLFormElement | null>;
   desktopSearchInputRef: React.RefObject<HTMLInputElement | null>;
@@ -318,12 +350,17 @@ function DesktopSearchForm({
   isLoadingSuggestions: boolean;
   suggestions: SearchSuggestion[];
   handleSuggestionSelect: (slug: string) => void;
+  collapsed: boolean;
 }>) {
   return (
     <form
       ref={containerRef}
       onSubmit={handleSearchSubmit}
-      className="group relative hidden h-10 w-40 max-w-64 flex-col transition-[width] duration-300 ease-out focus-within:w-64 sm:flex"
+      className={`group relative hidden h-10 flex-col transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:flex ${
+        collapsed
+          ? "w-10 hover:w-44 focus-within:!w-64"
+          : "w-44 focus-within:w-64"
+      }`}
     >
       <div className="flex h-full w-full items-center overflow-hidden rounded-lg border border-transparent bg-background-light transition-[border-color,box-shadow,background-color] duration-300 group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 dark:bg-background-dark">
         <button
@@ -335,11 +372,16 @@ function DesktopSearchForm({
         </button>
         <input
           ref={desktopSearchInputRef}
-          className="h-full min-w-0 flex-1 border-none bg-transparent py-2 pl-1 pr-3 text-sm font-normal text-text-main placeholder:text-text-sub focus:ring-0 dark:text-white"
+          className={`h-full min-w-0 flex-1 border-none bg-transparent py-2 pr-3 text-sm font-normal text-text-main transition-all duration-500 placeholder:text-text-sub focus:ring-0 dark:text-white ${
+            collapsed
+              ? "pl-0 opacity-0 group-hover:pl-1 group-hover:opacity-100 group-focus-within:!pl-1 group-focus-within:!opacity-100"
+              : "pl-1 opacity-100"
+          }`}
           placeholder={dictionary.blog.searchPlaceholder}
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           onFocus={() => setShowSuggestions(true)}
+          tabIndex={collapsed ? -1 : 0}
         />
       </div>
       <SearchSuggestionsPanel
@@ -364,6 +406,7 @@ export function BlogHeader() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchCollapsed, setSearchCollapsed] = useState(false);
   const containerRef = useRef<HTMLFormElement | null>(null);
   const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
   const { suggestions, isLoadingSuggestions } = useHeaderSuggestions(
@@ -371,9 +414,18 @@ export function BlogHeader() {
     searchQuery,
   );
 
+  // Collapse search bar when on /blog or /search pages, expand on others
+  const isSearchOrBlogPage = !!(
+    pathname?.includes("/blog") || pathname?.includes("/search")
+  );
+
+  // Effective collapsed state: forced on search/blog pages, or after manual submit
+  const isCollapsed = isSearchOrBlogPage || searchCollapsed;
+
   const handleSearchSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     setShowSuggestions(false);
+    setSearchCollapsed(true); // collapse after submitting search
     router.push(createSearchDestination(searchQuery, locale));
   };
 
@@ -388,10 +440,14 @@ export function BlogHeader() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  // Reset collapse state and close menus when navigating away from search pages
   useEffect(() => {
     setMobileMenuOpen(false);
     setShowSuggestions(false);
-  }, [pathname]);
+    if (!isSearchOrBlogPage) {
+      setSearchCollapsed(false);
+    }
+  }, [pathname, isSearchOrBlogPage]);
 
   const switchLocale = (nextLocale: SiteLocale) => {
     document.cookie = `${LOCALE_COOKIE_NAME}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
@@ -405,6 +461,7 @@ export function BlogHeader() {
 
   const handleSuggestionSelect = (slug: string) => {
     setShowSuggestions(false);
+    setSearchCollapsed(true);
     router.push(withLocale(`/${slug}`, locale));
   };
 
@@ -457,6 +514,7 @@ export function BlogHeader() {
             isLoadingSuggestions={isLoadingSuggestions}
             suggestions={suggestions}
             handleSuggestionSelect={handleSuggestionSelect}
+            collapsed={isCollapsed}
           />
           <button
             type="button"
