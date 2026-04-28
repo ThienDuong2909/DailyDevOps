@@ -14,6 +14,7 @@ import type {
   PostTranslation,
   PostVersion,
   Tag,
+  TranslationJob,
 } from "@/types";
 import { formatDate, formatRelativeTime, getImageUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -324,6 +325,12 @@ export default function ArticleEditPage() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isFormattingContent, setIsFormattingContent] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [translationJob, setTranslationJob] = useState<TranslationJob | null>(
+    null,
+  );
+  const translationPollingTimerRef = useRef<ReturnType<
+    typeof setInterval
+  > | null>(null);
   const [thumbnailJob, setThumbnailJob] = useState<ThumbnailJob | null>(null);
   const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
   const [isLoadingMediaLibrary, setIsLoadingMediaLibrary] = useState(false);
@@ -1021,6 +1028,75 @@ export default function ArticleEditPage() {
     }
   };
 
+  const stopTranslationPolling = useCallback(() => {
+    if (translationPollingTimerRef.current) {
+      clearInterval(translationPollingTimerRef.current);
+      translationPollingTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopTranslationPolling();
+    };
+  }, [stopTranslationPolling]);
+
+  const applyCompletedTranslation = useCallback(
+    (job: TranslationJob) => {
+      if (!article || !job.result) return;
+      const translationFromJob: PostTranslation = {
+        id: `pending-${job.id}`,
+        locale: "en",
+        title: job.result.title,
+        slug: job.result.slug,
+        subtitle: job.result.subtitle,
+        excerpt: job.result.excerpt,
+        content: job.result.content,
+        contentHtml: job.result.contentHtml,
+        status: article.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+      };
+      setSelectedLocale("en");
+      setActiveTranslation(translationFromJob);
+      setFormState(buildTranslationFormState(article, translationFromJob));
+      shouldAutoGenerateSlugRef.current = false;
+    },
+    [article],
+  );
+
+  const startTranslationPolling = useCallback(
+    (postId: string, jobId: string) => {
+      stopTranslationPolling();
+      translationPollingTimerRef.current = setInterval(async () => {
+        try {
+          const payload = await apiClient.get<
+            { data?: TranslationJob } | TranslationJob
+          >(`/api/v1/posts/${postId}/translation-jobs/${jobId}`);
+          const job = resolveData<TranslationJob | null>(payload, null);
+          if (!job) return;
+          setTranslationJob(job);
+
+          if (job.status === "COMPLETED") {
+            stopTranslationPolling();
+            setIsTranslating(false);
+            applyCompletedTranslation(job);
+            toast.success("Da dich bai viet sang tieng Anh!");
+          } else if (job.status === "FAILED") {
+            stopTranslationPolling();
+            setIsTranslating(false);
+            toast.error(
+              job.error
+                ? `Dich that bai: ${job.error}`
+                : "Dich that bai. Thu lai sau.",
+            );
+          }
+        } catch {
+          // Transient polling failures are non-fatal; keep the timer running.
+        }
+      }, 3000);
+    },
+    [applyCompletedTranslation, stopTranslationPolling],
+  );
+
   const handleAutoTranslate = async () => {
     if (isNewArticle) {
       toast.error("Hay tao bai viet goc tieng Viet truoc khi dich");
@@ -1032,38 +1108,47 @@ export default function ArticleEditPage() {
       return;
     }
 
+    const hasExistingTranslation = Boolean(activeTranslation);
     const confirmed = globalThis.window.confirm(
-      activeTranslation
+      hasExistingTranslation
         ? "Ban dich tieng Anh da ton tai. Dich lai se ghi de noi dung hien tai. Ban co chac khong?"
-        : "He thong se su dung AI de dich bai viet sang tieng Anh. Qua trinh nay co the mat vai phut. Tiep tuc?",
+        : "He thong se dich bai viet sang tieng Anh chay nen. Ban co the tiep tuc lam viec khac.",
     );
 
     if (!confirmed) return;
 
     try {
       setIsTranslating(true);
+      setTranslationJob(null);
       const response = await apiClient.post<
-        { data?: PostTranslation } | PostTranslation
-      >(`/api/v1/posts/${article.id}/auto-translate`, undefined, {
-        timeout: AI_TIMEOUT,
-      });
-      const translation = resolveData<PostTranslation | null>(response, null);
+        { data?: TranslationJob } | TranslationJob
+      >(
+        `/api/v1/posts/${article.id}/auto-translate`,
+        hasExistingTranslation ? { force: true } : undefined,
+      );
+      const job = resolveData<TranslationJob | null>(response, null);
 
-      if (translation) {
-        setSelectedLocale("en");
-        setActiveTranslation(translation);
-        setFormState(buildTranslationFormState(article, translation));
-        shouldAutoGenerateSlugRef.current = false;
-        toast.success("Da dich bai viet sang tieng Anh thanh cong!");
-      } else {
-        toast.error("Khong nhan duoc ban dich tu AI");
+      if (!job) {
+        toast.error("Khong nhan duoc job dich tu server");
+        setIsTranslating(false);
+        return;
       }
+
+      setTranslationJob(job);
+      if (job.status === "COMPLETED") {
+        applyCompletedTranslation(job);
+        setIsTranslating(false);
+        toast.success("Da dich bai viet sang tieng Anh!");
+        return;
+      }
+
+      toast.success("Da gui yeu cau dich. He thong dang dich nen...");
+      startTranslationPolling(article.id, job.id);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Loi khi dich bai viet";
+        error instanceof Error ? error.message : "Loi khi gui yeu cau dich";
       toast.error(message);
       console.error("Translation error:", error);
-    } finally {
       setIsTranslating(false);
     }
   };
