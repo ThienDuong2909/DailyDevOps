@@ -101,12 +101,12 @@ const nextConfig = {
                 },
                 // All other clean paths — skip internal/asset prefixes
                 {
-                    source: '/:path((?!vi/|en/|vi$|en$|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
+                    source: '/:path((?!vi/|en/|vi$|en$|admin|login|register|account|forgot-password|reset-password|verify-email|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
                     has: [{ type: 'cookie', key: 'preferred_locale', value: 'en' }],
                     destination: '/en/:path',
                 },
                 {
-                    source: '/:path((?!vi/|en/|vi$|en$|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
+                    source: '/:path((?!vi/|en/|vi$|en$|admin|login|register|account|forgot-password|reset-password|verify-email|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
                     destination: '/vi/:path',
                 },
             ],
