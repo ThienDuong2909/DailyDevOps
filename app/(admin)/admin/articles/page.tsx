@@ -1,13 +1,38 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import type { PaginatedResponse, Post } from "@/types";
+import type {
+  PaginatedResponse,
+  Post,
+  TranslationJob,
+  TranslationJobStatus,
+} from "@/types";
 import { formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
+
+const TRANSLATION_POLL_INTERVAL_MS = 3000;
+const ACTIVE_JOB_STATUSES: ReadonlySet<TranslationJobStatus> = new Set([
+  "PENDING",
+  "RUNNING",
+]);
+
+function resolveTranslationJob(payload: unknown): TranslationJob | null {
+  if (!payload) return null;
+  if (typeof payload !== "object") return null;
+  const maybeWrapper = payload as { data?: TranslationJob | null };
+  if (maybeWrapper.data !== undefined) {
+    return maybeWrapper.data ?? null;
+  }
+  return payload as TranslationJob;
+}
+
+function postHasEnglishTranslation(post: Post): boolean {
+  return Boolean(post.translations?.some((t) => t.locale === "en"));
+}
 
 type PostsPayload =
   | PaginatedResponse<Post>
@@ -168,6 +193,19 @@ export default function ArticlesPage() {
     total: number;
     results: { id: string; slug: string; status: string; error?: string }[];
   } | null>(null);
+  const [activeTranslationJobs, setActiveTranslationJobs] = useState<
+    Record<string, TranslationJob>
+  >({});
+  const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Tracks which postIds are currently being polled so we can short-circuit
+  // duplicate click spam without relying on the async state.
+  const inFlightEnqueueRef = useRef<Set<string>>(new Set());
+  // Tracks post IDs we've already probed for an in-flight server-side job so
+  // we don't re-query /translation-job for the same post on every re-render
+  // of the scan effect (the activeTranslationJobs state updates every ~3s
+  // during polling, and that used to retrigger the scan for all untracked
+  // posts — O(N) redundant calls per polling tick).
+  const scannedPostIdsRef = useRef<Set<string>>(new Set());
 
   const fetchPosts = useCallback(
     async (showRefreshing = false) => {
@@ -211,6 +249,183 @@ export default function ArticlesPage() {
   useEffect(() => {
     void fetchPosts();
   }, [fetchPosts]);
+
+  /**
+   * Scan the visible posts and start tracking any that have an in-flight
+   * translation job on the server (e.g. another tab triggered it or the user
+   * refreshed the page mid-translation). Runs once per posts update. Posts
+   * we've already probed are remembered in scannedPostIdsRef so the same GET
+   * isn't re-fired on every polling tick. After `fetchPosts(true)` we
+   * intentionally leave the ref alone — a post that just got its EN
+   * translation will fail the hasEnglishTranslation guard, and polling
+   * already updates activeTranslationJobs for in-flight rows.
+   */
+  useEffect(() => {
+    if (posts.length === 0) return;
+
+    const candidates = posts.filter(
+      (post) =>
+        !postHasEnglishTranslation(post) &&
+        !scannedPostIdsRef.current.has(post.id),
+    );
+    if (candidates.length === 0) return;
+
+    // Mark up front so concurrent effect ticks don't duplicate the GETs.
+    for (const post of candidates) {
+      scannedPostIdsRef.current.add(post.id);
+    }
+
+    let cancelled = false;
+    (async () => {
+      const found: Record<string, TranslationJob> = {};
+      await Promise.all(
+        candidates.map(async (post) => {
+          try {
+            const payload = await apiClient.get(
+              `/api/v1/posts/${post.id}/translation-job`,
+            );
+            const job = resolveTranslationJob(payload);
+            if (job && ACTIVE_JOB_STATUSES.has(job.status)) {
+              found[post.id] = job;
+            }
+          } catch {
+            // Non-fatal — the post just won't show a spinner.
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      if (Object.keys(found).length > 0) {
+        setActiveTranslationJobs((prev) => ({ ...prev, ...found }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [posts]);
+
+  /**
+   * Polling loop: while any jobs are being tracked, poll each one every
+   * TRANSLATION_POLL_INTERVAL_MS. Stop when there are no active jobs left.
+   * On completion, refresh the posts list so the icon flips to "done" based
+   * on the newly-persisted PostTranslation row.
+   */
+  useEffect(() => {
+    const activeIds = Object.values(activeTranslationJobs)
+      .filter((job) => ACTIVE_JOB_STATUSES.has(job.status))
+      .map((job) => job.postId);
+
+    if (activeIds.length === 0) {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (pollingTimerRef.current) return;
+
+    const pollJob = async (postId: string, jobId: string): Promise<boolean> => {
+      try {
+        const payload = await apiClient.get(
+          `/api/v1/posts/${postId}/translation-jobs/${jobId}`,
+        );
+        const job = resolveTranslationJob(payload);
+        if (!job) return false;
+
+        setActiveTranslationJobs((prev) => ({ ...prev, [postId]: job }));
+
+        if (job.status === "COMPLETED") {
+          toast.success("Da dich bai viet sang EN");
+          return true;
+        }
+        if (job.status === "FAILED") {
+          toast.error(
+            job.error
+              ? `Dich that bai: ${job.error}`
+              : "Dich that bai. Thu lai sau.",
+          );
+          return true;
+        }
+        return false;
+      } catch {
+        // Ignore transient polling errors — the next tick will retry.
+        return false;
+      }
+    };
+
+    const pollOnce = async () => {
+      const currentActive = Object.values(activeTranslationJobs)
+        .filter((job) => ACTIVE_JOB_STATUSES.has(job.status))
+        .map((job) => ({ postId: job.postId, jobId: job.id }));
+
+      const results = await Promise.all(
+        currentActive.map(({ postId, jobId }) => pollJob(postId, jobId)),
+      );
+      const anyTerminal = results.some(Boolean);
+
+      if (anyTerminal) {
+        setActiveTranslationJobs((prev) => {
+          const next = { ...prev };
+          for (const key of Object.keys(next)) {
+            const status = next[key]?.status;
+            if (status === "COMPLETED" || status === "FAILED") {
+              delete next[key];
+            }
+          }
+          return next;
+        });
+        void fetchPosts(true);
+      }
+    };
+
+    pollingTimerRef.current = setInterval(() => {
+      void pollOnce();
+    }, TRANSLATION_POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+    };
+  }, [activeTranslationJobs, fetchPosts]);
+
+  const handleTranslatePost = useCallback(
+    async (post: Post) => {
+      if (inFlightEnqueueRef.current.has(post.id)) return;
+      if (activeTranslationJobs[post.id]) return;
+      if (postHasEnglishTranslation(post)) {
+        toast(
+          "Bai viet da co ban EN. Xoa ban dich cu trong trang chinh sua neu muon dich lai.",
+          { icon: "ℹ️" },
+        );
+        return;
+      }
+
+      inFlightEnqueueRef.current.add(post.id);
+      try {
+        const payload = await apiClient.post(
+          `/api/v1/posts/${post.id}/auto-translate`,
+        );
+        const job = resolveTranslationJob(payload);
+        if (!job) {
+          toast.error("Khong nhan duoc job dich tu server");
+          return;
+        }
+        setActiveTranslationJobs((prev) => ({ ...prev, [post.id]: job }));
+        toast.success("Da gui yeu cau dich. He thong se dich nen.");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Khong the gui yeu cau dich";
+        toast.error(message);
+      } finally {
+        inFlightEnqueueRef.current.delete(post.id);
+      }
+    },
+    [activeTranslationJobs],
+  );
 
   const handleSearch = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -590,6 +805,33 @@ export default function ArticlesPage() {
                 posts.map((post) => {
                   const badge = getStatusBadge(post.status);
                   const statusAction = getStatusAction(post.status);
+                  const hasEnglishTranslation = postHasEnglishTranslation(post);
+                  const activeJob = activeTranslationJobs[post.id];
+                  const isTranslating =
+                    !!activeJob && ACTIVE_JOB_STATUSES.has(activeJob.status);
+
+                  let translateTitle: string;
+                  if (isTranslating) {
+                    translateTitle = `Dang dich... ${activeJob?.progress ?? 0}% (${
+                      activeJob?.currentStep || "..."
+                    })`;
+                  } else if (hasEnglishTranslation) {
+                    translateTitle =
+                      "Da co ban EN — chinh sua trong trang bai viet";
+                  } else {
+                    translateTitle = "Tao ban dich tieng Anh tu bai goc";
+                  }
+
+                  let translateButtonClass: string;
+                  if (isTranslating) {
+                    translateButtonClass = "text-emerald-400";
+                  } else if (hasEnglishTranslation) {
+                    translateButtonClass =
+                      "cursor-not-allowed text-[color:var(--text-muted-theme)] opacity-40";
+                  } else {
+                    translateButtonClass =
+                      "text-emerald-400 hover:bg-emerald-500/10";
+                  }
 
                   return (
                     <tr
@@ -650,6 +892,22 @@ export default function ArticlesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2 opacity-100 transition-opacity sm:opacity-60 group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => void handleTranslatePost(post)}
+                            disabled={isTranslating || hasEnglishTranslation}
+                            className={`rounded-lg p-2 transition-colors ${translateButtonClass}`}
+                            title={translateTitle}
+                            aria-label={translateTitle}
+                          >
+                            <span
+                              className={`material-symbols-outlined text-[20px] ${
+                                isTranslating ? "animate-spin" : ""
+                              }`}
+                            >
+                              {isTranslating ? "sync" : "translate"}
+                            </span>
+                          </button>
                           <Link
                             href={`/admin/articles/${post.id}`}
                             className="theme-muted rounded-lg p-2 transition-colors hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-main-theme)]"
