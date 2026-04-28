@@ -1,10 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import {
-  DEFAULT_LOCALE,
-  isSupportedLocale,
-  LOCALE_COOKIE_NAME,
-} from "@/lib/i18n/config";
+import { isSupportedLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/config";
 
 /**
  * POST /api/set-locale
@@ -19,21 +15,23 @@ import {
  * - Works correctly in SSR/edge environments
  */
 export async function POST(req: NextRequest) {
-  let locale = DEFAULT_LOCALE;
+  let body: unknown;
 
   try {
-    const body = await req.json();
-    if (isSupportedLocale(body?.locale)) {
-      locale = body.locale;
-    } else {
-      return NextResponse.json(
-        { ok: false, error: "Unsupported locale" },
-        { status: 400 },
-      );
-    }
+    body = await req.json();
   } catch {
     return NextResponse.json(
       { ok: false, error: "Invalid request body" },
+      { status: 400 },
+    );
+  }
+
+  const parsed = body as Record<string, unknown> | null;
+  const locale = parsed?.locale;
+
+  if (!isSupportedLocale(locale)) {
+    return NextResponse.json(
+      { ok: false, error: "Unsupported locale" },
       { status: 400 },
     );
   }
@@ -44,8 +42,8 @@ export async function POST(req: NextRequest) {
     path: "/",
     maxAge: 60 * 60 * 24 * 365, // 1 year
     sameSite: "lax",
-    // httpOnly: false — middleware (Edge) cần đọc cookie này để resolve locale.
-    // Cookie này không chứa dữ liệu nhạy cảm, chỉ là "vi" hoặc "en".
+    // httpOnly: false — middleware (Edge) reads this cookie to resolve locale.
+    // Not sensitive data — only "vi" or "en".
     httpOnly: false,
     secure: process.env.NODE_ENV === "production",
   });

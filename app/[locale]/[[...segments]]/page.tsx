@@ -280,11 +280,12 @@ function getStaticPageMetadata(locale: string, slug: string): Metadata | null {
     return null;
   }
 
+  const canonicalPath = buildCleanPath(`/${slug}`);
   return {
     title: page.title,
     description: page.description,
     alternates: {
-      canonical: `${siteUrl}${buildCleanPath(`/${slug}`)}`,
+      canonical: `${siteUrl}${canonicalPath}`,
     },
     robots:
       slug === "privacy-policy" ||
@@ -584,9 +585,10 @@ export async function generateMetadata({
     return metadata;
   }
 
+  const fallbackPath = buildCleanPath(`/${segments.join("/")}`);
   return {
     alternates: {
-      canonical: `${siteUrl}${buildCleanPath(`/${segments.join("/")}`)}`,
+      canonical: `${siteUrl}${fallbackPath}`,
     },
   };
 }

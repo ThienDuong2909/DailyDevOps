@@ -68,49 +68,28 @@ const nextConfig = {
             ],
         }];
     },
+
     /**
-     * Locale-transparent URL rewrites.
+     * URL routing strategy: cookie-based locale, no locale prefix in URL.
      *
-     * Goal: User sees clean URLs (/blog/slug) while the app router
-     * internally receives the locale-prefixed path (/vi/blog/slug).
+     * Clean URLs (/blog/slug) are internally rewritten to the locale-prefixed
+     * app router path (/vi/blog/slug or /en/blog/slug) based on the
+     * `preferred_locale` cookie — invisible to the user.
      *
-     * How it works:
-     *   1. beforeFiles: API proxy (runs first, before filesystem checks)
-     *   2. afterFiles: locale rewrites (runs after filesystem, before 404)
-     *      — Reads the `preferred_locale` cookie to decide which locale
-     *        to rewrite to. Falls back to 'vi' when cookie is absent.
-     *      — The catch-all rewrite maps EVERY clean path to /{locale}/{path}.
-     *        Next.js internally routes it through [locale]/[[...segments]].
-     *
-     * IMPORTANT: /vi/* and /en/* direct paths still work (not rewritten here)
-     * so old bookmarks / crawlers that already know the prefixed URLs keep working.
-     * The redirects() below handle the SEO migration from prefixed → clean URLs.
+     * Any direct access to /vi/* or /en/* is redirected (302) back to the
+     * clean URL so there is exactly one canonical URL per page.
      */
     async rewrites() {
         return {
             beforeFiles: [
-                // API proxy — must stay in beforeFiles so it runs before locale rewrites
+                // API proxy — runs before locale rewrites
                 {
                     source: '/api/v1/:path*',
                     destination: `${apiBaseUrl}/api/v1/:path*`,
                 },
             ],
             afterFiles: [
-                // Locale-transparent rewrite:
-                // Any path that does NOT already start with a locale prefix
-                // is internally rewritten to /{preferred_locale}/{path}.
-                // The cookie is read via the `has` condition — Next.js matches
-                // the cookie value and substitutes it into the destination.
-                {
-                    source: '/:path((?!vi|en|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
-                    has: [{ type: 'cookie', key: 'preferred_locale', value: 'en' }],
-                    destination: '/en/:path',
-                },
-                {
-                    source: '/:path((?!vi|en|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
-                    destination: '/vi/:path',
-                },
-                // Root / → /{locale}
+                // Root /
                 {
                     source: '/',
                     has: [{ type: 'cookie', key: 'preferred_locale', value: 'en' }],
@@ -120,45 +99,30 @@ const nextConfig = {
                     source: '/',
                     destination: '/vi',
                 },
+                // All other clean paths — skip internal/asset prefixes
+                {
+                    source: '/:path((?!vi/|en/|vi$|en$|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
+                    has: [{ type: 'cookie', key: 'preferred_locale', value: 'en' }],
+                    destination: '/en/:path',
+                },
+                {
+                    source: '/:path((?!vi/|en/|vi$|en$|_next|api|uploads|favicon|robots|sitemap|rss|manifest|apple-icon|opengraph|twitter).*)',
+                    destination: '/vi/:path',
+                },
             ],
             fallback: [],
         };
     },
 
-    /**
-     * SEO migration: redirect old prefixed URLs → clean URLs (308 permanent).
-     *
-     * Google has already indexed /vi/blog/slug and /en/blog/slug.
-     * These redirects tell crawlers and users to update their bookmarks
-     * to the canonical clean URL (/blog/slug).
-     *
-     * Using 308 (Permanent Redirect) to preserve POST method; 301 for GETs is fine too.
-     * Set permanent: true → Next.js uses 308 by default.
-     */
+    // Block direct /vi/* and /en/* access — redirect to clean URL.
+    // Using permanent: false (302) since this is an architectural choice,
+    // not a content move.
     async redirects() {
         return [
-            // /vi/* → /* (strip Vietnamese prefix, it's the default)
-            {
-                source: '/vi',
-                destination: '/',
-                permanent: true,
-            },
-            {
-                source: '/vi/:path*',
-                destination: '/:path*',
-                permanent: true,
-            },
-            // /en/* → /* (strip English prefix)
-            {
-                source: '/en',
-                destination: '/',
-                permanent: true,
-            },
-            {
-                source: '/en/:path*',
-                destination: '/:path*',
-                permanent: true,
-            },
+            { source: '/vi', destination: '/', permanent: false },
+            { source: '/vi/:path*', destination: '/:path*', permanent: false },
+            { source: '/en', destination: '/', permanent: false },
+            { source: '/en/:path*', destination: '/:path*', permanent: false },
         ];
     },
 };

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import MainLayout from "@/app/(main)/layout";
 import { LocaleProvider } from "@/components/i18n/locale-provider";
-import { LocaleRouteProvider } from "@/components/i18n/locale-route-provider";
 import { isSupportedLocale } from "@/lib/i18n/config";
 
 export default async function LocalizedLayout({
@@ -19,9 +18,7 @@ export default async function LocalizedLayout({
 
   return (
     <LocaleProvider locale={locale}>
-      <LocaleRouteProvider>
-        <MainLayout>{children}</MainLayout>
-      </LocaleRouteProvider>
+      <MainLayout>{children}</MainLayout>
     </LocaleProvider>
   );
 }
