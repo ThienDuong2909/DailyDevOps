@@ -15,7 +15,6 @@ import { PrivacyPolicyPageContent } from "@/app/(main)/privacy-policy/privacy-po
 import { TermsOfServicePageContent } from "@/app/(main)/terms-of-service/terms-of-service-page-content";
 import { CookiePolicyPageContent } from "@/app/(main)/cookie-policy/cookie-policy-page-content";
 import { DmcaPolicyPageContent } from "@/app/(main)/dmca-policy/dmca-policy-page-content";
-import { LocaleRouteSync } from "@/components/i18n/locale-route-sync";
 import { isSupportedLocale } from "@/lib/i18n/config";
 import type { SiteLocale } from "@/lib/i18n/config";
 import { SITE_URL, API_BASE_URL } from "@/lib/constants/site";
@@ -113,6 +112,24 @@ async function getPostSeo(
   }
 }
 
+/**
+ * Build a clean canonical path without locale prefix.
+ * Phase 2: URLs are locale-agnostic — locale is stored in a cookie,
+ * not encoded in the path. hreflang alternates use absolute URLs.
+ */
+function buildCleanPath(path = "/") {
+  if (path === "/") {
+    return "/";
+  }
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
+/**
+ * @deprecated Keep for internal use in metadata only — generates absolute
+ * locale-prefixed alternate URLs for hreflang <link rel="alternate"> tags.
+ * These are absolute so Google can distinguish language variants even
+ * without locale in the visible URL.
+ */
 function buildLocalizedPath(locale: string, path = "/") {
   if (path === "/") {
     return `/${locale}`;
@@ -139,26 +156,32 @@ function toSiteLocale(locale: string): SiteLocale | null {
   return isSupportedLocale(locale) ? locale : null;
 }
 
+/**
+ * Generate hreflang alternate URLs (absolute, locale-prefixed).
+ * These are used in <head> metadata only — not visible in browser URL bar.
+ * Google uses these to serve the correct language version to each region.
+ */
 function getLocaleAlternates(
   currentPath: string,
   querySuffix: string,
 ): Record<"vi" | "en", string> {
+  const cleanPath = buildCleanPath(currentPath);
   return {
-    vi: `${buildLocalizedPath("vi", currentPath)}${querySuffix}`,
-    en: `${buildLocalizedPath("en", currentPath)}${querySuffix}`,
+    vi: `${siteUrl}${cleanPath}${querySuffix}`,
+    en: `${siteUrl}${cleanPath}${querySuffix}`,
   };
 }
 
+/**
+ * Wraps page content. LocaleRouteSync is no longer needed because
+ * switchLocale uses router.refresh() instead of router.push(), so
+ * the header does not need to know alternate paths for navigation.
+ */
 function wrapWithLocaleSync(
-  alternates: Record<"vi" | "en", string>,
+  _alternates: Record<"vi" | "en", string>,
   content: React.ReactNode,
 ) {
-  return (
-    <>
-      <LocaleRouteSync alternates={alternates} />
-      {content}
-    </>
-  );
+  return content;
 }
 
 function getStaticPageMetadata(locale: string, slug: string): Metadata | null {
@@ -261,7 +284,7 @@ function getStaticPageMetadata(locale: string, slug: string): Metadata | null {
     title: page.title,
     description: page.description,
     alternates: {
-      canonical: buildLocalizedPath(locale, `/${slug}`),
+      canonical: `${siteUrl}${buildCleanPath(`/${slug}`)}`,
     },
     robots:
       slug === "privacy-policy" ||
@@ -306,14 +329,17 @@ async function buildArticleMetadata(
   const ogImage = toAbsoluteUrl(post.seoSetting?.ogImage || post.featuredImage);
   const canonicalUrl =
     post.seoSetting?.canonicalUrl ||
-    `${siteUrl}${buildLocalizedPath(locale, "/" + post.slug)}`;
+    `${siteUrl}${buildCleanPath("/" + post.slug)}`;
   const authorName = `${post.author.firstName} ${post.author.lastName}`;
+  // hreflang alternates: use clean paths (slug may differ per locale)
   const languageAlternates = Object.entries(post.localeAlternates || {}).reduce<
     Record<string, string>
-  >((acc, [alternateLocale, alternateSlug]) => {
+  >((acc, [, alternateSlug]) => {
     if (alternateSlug) {
-      acc[alternateLocale] =
-        `${siteUrl}${buildLocalizedPath(alternateLocale, "/" + alternateSlug)}`;
+      // Both locales share the same clean URL — Google determines language
+      // via hreflang; slug differences are resolved via cookie-driven rewrite.
+      acc["vi"] = `${siteUrl}${buildCleanPath("/" + alternateSlug)}`;
+      acc["en"] = `${siteUrl}${buildCleanPath("/" + alternateSlug)}`;
     }
 
     return acc;
@@ -335,7 +361,7 @@ async function buildArticleMetadata(
       locale: locale === "vi" ? "vi_VN" : "en_US",
       title,
       description,
-      url: `${siteUrl}${buildLocalizedPath(locale, "/" + post.slug)}`,
+      url: `${siteUrl}${buildCleanPath("/" + post.slug)}`,
       siteName: "DevOps Blog",
       ...(ogImage && {
         images: [
@@ -370,7 +396,7 @@ function getHomeMetadata(locale: SiteLocale): Metadata {
   return {
     title: locale === "en" ? "DevOps Blog" : "Daily DevOps",
     alternates: {
-      canonical: buildLocalizedPath(locale),
+      canonical: siteUrl,
     },
   };
 }
@@ -383,7 +409,7 @@ function getBlogIndexMetadata(locale: SiteLocale): Metadata {
         ? "Browse the latest DevOps Daily articles."
         : "KhÃ¡m phÃ¡ nhá»¯ng bÃ i viáº¿t má»›i nháº¥t vá» DevOps, cloud vÃ  automation.",
     alternates: {
-      canonical: buildLocalizedPath(locale, "/blog"),
+      canonical: `${siteUrl}/blog`,
     },
   };
 }
@@ -560,7 +586,7 @@ export async function generateMetadata({
 
   return {
     alternates: {
-      canonical: buildLocalizedPath(activeLocale, `/${segments.join("/")}`),
+      canonical: `${siteUrl}${buildCleanPath(`/${segments.join("/")}`)}`,
     },
   };
 }

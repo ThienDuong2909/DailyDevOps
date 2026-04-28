@@ -15,6 +15,7 @@ function isPublicFile(pathname: string): boolean {
   const afterSlash = lastSlash >= 0 ? pathname.slice(lastSlash + 1) : pathname;
   return afterSlash.includes(".");
 }
+
 const PASSTHROUGH_PREFIXES = [
   "/api",
   "/login",
@@ -25,6 +26,7 @@ const PASSTHROUGH_PREFIXES = [
   "/_next",
   "/uploads",
 ];
+
 const PASSTHROUGH_EXACT = new Set([
   "/favicon.ico",
   "/robots.txt",
@@ -39,10 +41,28 @@ const PASSTHROUGH_EXACT = new Set([
   "/site.webmanifest",
 ]);
 
+/**
+ * Middleware responsibilities (Phase 2 — clean URL architecture):
+ *
+ * 1. Pass through static files, API routes, auth pages unchanged.
+ * 2. Guard admin routes (server-side auth gate).
+ * 3. Inject `x-locale` header so Server Components can read locale without
+ *    parsing the URL segment — decouples locale from URL structure.
+ * 4. Sync the `preferred_locale` cookie when a direct locale-prefixed link
+ *    is visited (e.g. someone shares /en/blog/slug before migration completes).
+ *
+ * What middleware does NOT do anymore:
+ * - Redirect /path → /vi/path  → handled by next.config.js rewrites (afterFiles)
+ * - Redirect /vi/path → /path  → handled by next.config.js redirects()
+ *
+ * This avoids the redirect loop that would occur if middleware redirected
+ * /blog/slug → /vi/blog/slug while redirects() sent /vi/blog/slug → /blog/slug.
+ */
 export function middleware(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
   const preferredLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
 
+  // Early exit: static files, known exact paths, and API/auth prefixes
   if (
     isPublicFile(pathname) ||
     PASSTHROUGH_EXACT.has(pathname) ||
@@ -66,36 +86,37 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Determine the active locale:
+  // - If URL has a locale prefix (/vi/... or /en/...) → use that as source of truth
+  //   (handles shared links, direct navigation before redirect kicks in)
+  // - Otherwise → read cookie (the rewrite in next.config.js handles internal mapping)
   const segments = pathname.split("/").filter(Boolean);
-  if (segments.length > 0 && isSupportedLocale(segments[0])) {
-    const response = NextResponse.next();
+  const urlLocale =
+    segments.length > 0 && isSupportedLocale(segments[0]) ? segments[0] : null;
 
-    if (preferredLocale !== segments[0]) {
-      response.cookies.set(LOCALE_COOKIE_NAME, segments[0], {
-        path: "/",
-        maxAge: 60 * 60 * 24 * 365,
-        sameSite: "lax",
-      });
-    }
+  const resolvedLocale =
+    urlLocale ||
+    (isSupportedLocale(preferredLocale) ? preferredLocale : DEFAULT_LOCALE);
 
-    return response;
-  }
+  // Inject x-locale header so Server Components and server-side fetch() calls
+  // can read the locale without parsing the URL path.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-locale", resolvedLocale);
 
-  const resolvedLocale = isSupportedLocale(preferredLocale)
-    ? preferredLocale
-    : DEFAULT_LOCALE;
-
-  const redirectUrl = request.nextUrl.clone();
-  redirectUrl.pathname =
-    pathname === "/" ? `/${resolvedLocale}` : `/${resolvedLocale}${pathname}`;
-  redirectUrl.search = search;
-
-  const response = NextResponse.redirect(redirectUrl, 308);
-  response.cookies.set(LOCALE_COOKIE_NAME, resolvedLocale, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
   });
+
+  // Sync cookie when locale was derived from a URL prefix (e.g. shared /en/... link),
+  // so subsequent clean-URL requests continue using the correct locale via rewrites.
+  if (urlLocale && preferredLocale !== urlLocale) {
+    response.cookies.set(LOCALE_COOKIE_NAME, urlLocale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
 
   return response;
 }

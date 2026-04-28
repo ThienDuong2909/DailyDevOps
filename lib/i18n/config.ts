@@ -41,14 +41,21 @@ export function stripLocaleFromPath(pathname: string): string {
   return pathname;
 }
 
-export function withLocale(pathname: string, locale: SiteLocale): string {
-  const normalizedPath = stripLocaleFromPath(pathname || "/");
-  if (normalizedPath === "/") {
-    return `/${locale}`;
-  }
-
-  const localizedPath = normalizedPath.startsWith("/")
-    ? normalizedPath
-    : `/${normalizedPath}`;
-  return `/${locale}${localizedPath}`;
+/**
+ * Returns a clean, locale-agnostic path for use in Next.js `href` attributes.
+ *
+ * Phase 2 (clean URL architecture): The locale is NO longer encoded in the URL.
+ * It is stored in a cookie (`preferred_locale`) and resolved server-side by
+ * `next.config.js` rewrites, which internally map `/blog/slug` → `/vi/blog/slug`
+ * without changing the browser URL.
+ *
+ * The `locale` parameter is kept for backward compatibility — all call sites
+ * continue to work without modification — but it is NOT used to build the path.
+ *
+ * @example
+ * withLocale("/blog/my-post", "vi") // → "/blog/my-post"
+ * withLocale("/",              "en") // → "/"
+ */
+export function withLocale(pathname: string, _locale: SiteLocale): string {
+  return stripLocaleFromPath(pathname || "/");
 }

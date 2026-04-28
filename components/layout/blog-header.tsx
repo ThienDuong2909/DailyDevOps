@@ -7,11 +7,10 @@ import { Menu, X } from "lucide-react";
 
 import { HeaderAuthButton } from "@/components/auth/header-auth-button";
 import { useDictionary, useLocale } from "@/components/i18n/locale-provider";
-import { useLocaleRoute } from "@/components/i18n/locale-route-provider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { apiClient } from "@/lib/api";
 import type { SiteLocale } from "@/lib/i18n/config";
-import { LOCALE_COOKIE_NAME, withLocale } from "@/lib/i18n/config";
+import { withLocale } from "@/lib/i18n/config";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { getImageUrl } from "@/lib/utils";
 
@@ -35,17 +34,6 @@ function createSearchDestination(query: string, locale: SiteLocale) {
   return trimmed
     ? `${withLocale("/blog", locale)}?q=${encodeURIComponent(trimmed)}`
     : withLocale("/blog", locale);
-}
-
-function createLocaleDestination(
-  nextLocale: SiteLocale,
-  pathname: string | null,
-  alternatePaths: Partial<Record<SiteLocale, string>>,
-) {
-  return (
-    alternatePaths[nextLocale] ||
-    (pathname ? withLocale(pathname, nextLocale) : withLocale("/", nextLocale))
-  );
 }
 
 function useHeaderSuggestions(locale: SiteLocale, searchQuery: string) {
@@ -400,7 +388,6 @@ export function BlogHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
-  const { alternatePaths } = useLocaleRoute();
   const dictionary = useDictionary();
   const { settings } = useSiteSettings();
   const [searchQuery, setSearchQuery] = useState("");
@@ -449,14 +436,19 @@ export function BlogHeader() {
     }
   }, [pathname, isSearchOrBlogPage]);
 
-  const switchLocale = (nextLocale: SiteLocale) => {
-    document.cookie = `${LOCALE_COOKIE_NAME}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
-    const nextPath = createLocaleDestination(
-      nextLocale,
-      pathname,
-      alternatePaths,
-    );
-    router.push(nextPath);
+  const switchLocale = async (nextLocale: SiteLocale) => {
+    // Set locale preference via API route (server-side cookie, validated).
+    // This avoids manual document.cookie manipulation and ensures consistent
+    // security attributes across all environments.
+    await fetch("/api/set-locale", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: nextLocale }),
+    });
+
+    // router.refresh() re-fetches Server Components with the new cookie
+    // without navigating — URL stays the same, client state is preserved.
+    router.refresh();
   };
 
   const handleSuggestionSelect = (slug: string) => {
