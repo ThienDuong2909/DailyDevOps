@@ -4,9 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useDictionary, useLocale } from "@/components/i18n/locale-provider";
-import { useLocaleRoute } from "@/components/i18n/locale-route-provider";
-import type { SiteLocale } from "@/lib/i18n/config";
-import { normalizeLocale, withLocale } from "@/lib/i18n/config";
+import { withLocale } from "@/lib/i18n/config";
 import {
   transformPostContent,
   normalizeContentHeadings,
@@ -68,7 +66,6 @@ export default function BlogDetailClient({
   const slug = slugOverride || routeSlug;
   const locale = useLocale();
   const dictionary = useDictionary();
-  const { setAlternatePaths, clearAlternatePaths } = useLocaleRoute();
   const { user, isAuthenticated, initializeAuth } = useAuthStore();
   const {
     post,
@@ -168,49 +165,6 @@ export default function BlogDetailClient({
       setActiveTocId(derivedTocItems[0].id);
     }
   }, [activeTocId, derivedTocItems]);
-
-  useEffect(() => {
-    if (post?.localeAlternates) {
-      const alternates = Object.entries(post.localeAlternates).reduce<
-        Partial<Record<SiteLocale, string>>
-      >((acc, [alternateLocale, alternateSlug]) => {
-        const normalizedAlternateLocale = normalizeLocale(alternateLocale);
-
-        if (alternateSlug) {
-          acc[normalizedAlternateLocale] = withLocale(
-            `/${alternateSlug}`,
-            normalizedAlternateLocale,
-          );
-        }
-
-        return acc;
-      }, {});
-
-      setAlternatePaths(alternates);
-      return () => clearAlternatePaths();
-    }
-
-    if (translationNotice?.sourceSlug) {
-      setAlternatePaths({
-        [locale]: withLocale(`/${slug}`, locale),
-        [translationNotice.sourceLocale]: withLocale(
-          `/${translationNotice.sourceSlug}`,
-          translationNotice.sourceLocale,
-        ),
-      });
-      return () => clearAlternatePaths();
-    }
-
-    clearAlternatePaths();
-    return () => clearAlternatePaths();
-  }, [
-    clearAlternatePaths,
-    locale,
-    post?.localeAlternates,
-    setAlternatePaths,
-    slug,
-    translationNotice,
-  ]);
 
   const tocNavRef = useRef<HTMLUListElement>(null);
 
