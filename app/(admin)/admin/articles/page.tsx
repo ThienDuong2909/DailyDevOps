@@ -200,6 +200,12 @@ export default function ArticlesPage() {
   // Tracks which postIds are currently being polled so we can short-circuit
   // duplicate click spam without relying on the async state.
   const inFlightEnqueueRef = useRef<Set<string>>(new Set());
+  // Tracks post IDs we've already probed for an in-flight server-side job so
+  // we don't re-query /translation-job for the same post on every re-render
+  // of the scan effect (the activeTranslationJobs state updates every ~3s
+  // during polling, and that used to retrigger the scan for all untracked
+  // posts — O(N) redundant calls per polling tick).
+  const scannedPostIdsRef = useRef<Set<string>>(new Set());
 
   const fetchPosts = useCallback(
     async (showRefreshing = false) => {
@@ -247,21 +253,30 @@ export default function ArticlesPage() {
   /**
    * Scan the visible posts and start tracking any that have an in-flight
    * translation job on the server (e.g. another tab triggered it or the user
-   * refreshed the page mid-translation). Runs once per posts update — we
-   * intentionally don't re-fetch jobs for posts that already have a local
-   * job record, since the polling loop handles those.
+   * refreshed the page mid-translation). Runs once per posts update. Posts
+   * we've already probed are remembered in scannedPostIdsRef so the same GET
+   * isn't re-fired on every polling tick. After `fetchPosts(true)` we
+   * intentionally leave the ref alone — a post that just got its EN
+   * translation will fail the hasEnglishTranslation guard, and polling
+   * already updates activeTranslationJobs for in-flight rows.
    */
   useEffect(() => {
     if (posts.length === 0) return;
 
+    const candidates = posts.filter(
+      (post) =>
+        !postHasEnglishTranslation(post) &&
+        !scannedPostIdsRef.current.has(post.id),
+    );
+    if (candidates.length === 0) return;
+
+    // Mark up front so concurrent effect ticks don't duplicate the GETs.
+    for (const post of candidates) {
+      scannedPostIdsRef.current.add(post.id);
+    }
+
     let cancelled = false;
     (async () => {
-      const candidates = posts.filter(
-        (post) =>
-          !postHasEnglishTranslation(post) && !activeTranslationJobs[post.id],
-      );
-      if (candidates.length === 0) return;
-
       const found: Record<string, TranslationJob> = {};
       await Promise.all(
         candidates.map(async (post) => {
@@ -288,7 +303,7 @@ export default function ArticlesPage() {
     return () => {
       cancelled = true;
     };
-  }, [posts, activeTranslationJobs]);
+  }, [posts]);
 
   /**
    * Polling loop: while any jobs are being tracked, poll each one every

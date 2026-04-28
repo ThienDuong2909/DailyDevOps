@@ -1060,6 +1060,15 @@ export default function ArticleEditPage() {
     [article],
   );
 
+  // Keep a ref pointing at the latest applyCompletedTranslation so the polling
+  // setInterval callback always reads the freshest `article` (otherwise
+  // handleSave's setArticle would leave the interval holding a stale closure
+  // and we'd apply the translation onto an outdated article snapshot).
+  const applyCompletedTranslationRef = useRef(applyCompletedTranslation);
+  useEffect(() => {
+    applyCompletedTranslationRef.current = applyCompletedTranslation;
+  }, [applyCompletedTranslation]);
+
   const startTranslationPolling = useCallback(
     (postId: string, jobId: string) => {
       stopTranslationPolling();
@@ -1074,7 +1083,7 @@ export default function ArticleEditPage() {
           if (job.status === "COMPLETED") {
             stopTranslationPolling();
             setIsTranslating(false);
-            applyCompletedTranslation(job);
+            applyCompletedTranslationRef.current(job);
             toast.success("Da dich bai viet sang tieng Anh!");
           } else if (job.status === "FAILED") {
             stopTranslationPolling();
@@ -1090,7 +1099,7 @@ export default function ArticleEditPage() {
         }
       }, 3000);
     },
-    [applyCompletedTranslation, stopTranslationPolling],
+    [stopTranslationPolling],
   );
 
   const handleAutoTranslate = async () => {
