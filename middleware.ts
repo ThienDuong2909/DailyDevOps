@@ -18,6 +18,7 @@ function isPublicFile(pathname: string): boolean {
 
 const PASSTHROUGH_PREFIXES = [
   "/api",
+  "/admin",
   "/login",
   "/register",
   "/reset-password",
@@ -44,11 +45,14 @@ const PASSTHROUGH_EXACT = new Set([
 /**
  * Middleware responsibilities (Phase 2 — clean URL architecture):
  *
- * 1. Pass through static files, API routes, auth pages unchanged.
- * 2. Guard admin routes (server-side auth gate).
- * 3. Inject `x-locale` header so Server Components can read locale without
+ * 1. Pass through static files, API routes, auth pages, and /admin unchanged.
+ *    Admin auth is enforced client-side by AdminRouteGuard; we cannot do a
+ *    server-side gate here because the refreshToken cookie is set by the
+ *    backend on a different host (e.g. api.<domain>) and is therefore not
+ *    visible to this middleware running on the frontend host.
+ * 2. Inject `x-locale` header so Server Components can read locale without
  *    parsing the URL segment — decouples locale from URL structure.
- * 4. Sync the `preferred_locale` cookie when a direct locale-prefixed link
+ * 3. Sync the `preferred_locale` cookie when a direct locale-prefixed link
  *    is visited (e.g. someone shares /en/blog/slug before migration completes).
  *
  * What middleware does NOT do anymore:
@@ -62,7 +66,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const preferredLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
 
-  // Early exit: static files, known exact paths, and API/auth prefixes
+  // Early exit: static files, known exact paths, and API/auth/admin prefixes.
   if (
     isPublicFile(pathname) ||
     PASSTHROUGH_EXACT.has(pathname) ||
@@ -70,19 +74,6 @@ export function middleware(request: NextRequest) {
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     )
   ) {
-    return NextResponse.next();
-  }
-
-  // M7: Server-side admin route guard — block unauthenticated users
-  // before they download the admin JS bundle.
-  // The client-side AdminRouteGuard remains as a role-level fallback.
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    const refreshToken = request.cookies.get("refreshToken")?.value;
-
-    if (!refreshToken) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
     return NextResponse.next();
   }
 
