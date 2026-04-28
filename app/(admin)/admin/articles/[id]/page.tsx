@@ -325,9 +325,6 @@ export default function ArticleEditPage() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isFormattingContent, setIsFormattingContent] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [translationJob, setTranslationJob] = useState<TranslationJob | null>(
-    null,
-  );
   const translationPollingTimerRef = useRef<ReturnType<
     typeof setInterval
   > | null>(null);
@@ -1073,7 +1070,6 @@ export default function ArticleEditPage() {
           >(`/api/v1/posts/${postId}/translation-jobs/${jobId}`);
           const job = resolveData<TranslationJob | null>(payload, null);
           if (!job) return;
-          setTranslationJob(job);
 
           if (job.status === "COMPLETED") {
             stopTranslationPolling();
@@ -1119,7 +1115,6 @@ export default function ArticleEditPage() {
 
     try {
       setIsTranslating(true);
-      setTranslationJob(null);
       const response = await apiClient.post<
         { data?: TranslationJob } | TranslationJob
       >(
@@ -1134,7 +1129,6 @@ export default function ArticleEditPage() {
         return;
       }
 
-      setTranslationJob(job);
       if (job.status === "COMPLETED") {
         applyCompletedTranslation(job);
         setIsTranslating(false);

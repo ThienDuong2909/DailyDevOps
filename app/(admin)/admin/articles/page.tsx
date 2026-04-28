@@ -15,7 +15,10 @@ import { formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 const TRANSLATION_POLL_INTERVAL_MS = 3000;
-const ACTIVE_JOB_STATUSES: TranslationJobStatus[] = ["PENDING", "RUNNING"];
+const ACTIVE_JOB_STATUSES: ReadonlySet<TranslationJobStatus> = new Set([
+  "PENDING",
+  "RUNNING",
+]);
 
 function resolveTranslationJob(payload: unknown): TranslationJob | null {
   if (!payload) return null;
@@ -267,7 +270,7 @@ export default function ArticlesPage() {
               `/api/v1/posts/${post.id}/translation-job`,
             );
             const job = resolveTranslationJob(payload);
-            if (job && ACTIVE_JOB_STATUSES.includes(job.status)) {
+            if (job && ACTIVE_JOB_STATUSES.has(job.status)) {
               found[post.id] = job;
             }
           } catch {
@@ -295,7 +298,7 @@ export default function ArticlesPage() {
    */
   useEffect(() => {
     const activeIds = Object.values(activeTranslationJobs)
-      .filter((job) => ACTIVE_JOB_STATUSES.includes(job.status))
+      .filter((job) => ACTIVE_JOB_STATUSES.has(job.status))
       .map((job) => job.postId);
 
     if (activeIds.length === 0) {
@@ -308,39 +311,44 @@ export default function ArticlesPage() {
 
     if (pollingTimerRef.current) return;
 
+    const pollJob = async (postId: string, jobId: string): Promise<boolean> => {
+      try {
+        const payload = await apiClient.get(
+          `/api/v1/posts/${postId}/translation-jobs/${jobId}`,
+        );
+        const job = resolveTranslationJob(payload);
+        if (!job) return false;
+
+        setActiveTranslationJobs((prev) => ({ ...prev, [postId]: job }));
+
+        if (job.status === "COMPLETED") {
+          toast.success("Da dich bai viet sang EN");
+          return true;
+        }
+        if (job.status === "FAILED") {
+          toast.error(
+            job.error
+              ? `Dich that bai: ${job.error}`
+              : "Dich that bai. Thu lai sau.",
+          );
+          return true;
+        }
+        return false;
+      } catch {
+        // Ignore transient polling errors — the next tick will retry.
+        return false;
+      }
+    };
+
     const pollOnce = async () => {
       const currentActive = Object.values(activeTranslationJobs)
-        .filter((job) => ACTIVE_JOB_STATUSES.includes(job.status))
+        .filter((job) => ACTIVE_JOB_STATUSES.has(job.status))
         .map((job) => ({ postId: job.postId, jobId: job.id }));
 
-      let anyTerminal = false;
-      await Promise.all(
-        currentActive.map(async ({ postId, jobId }) => {
-          try {
-            const payload = await apiClient.get(
-              `/api/v1/posts/${postId}/translation-jobs/${jobId}`,
-            );
-            const job = resolveTranslationJob(payload);
-            if (!job) return;
-
-            setActiveTranslationJobs((prev) => ({ ...prev, [postId]: job }));
-
-            if (job.status === "COMPLETED") {
-              anyTerminal = true;
-              toast.success("Da dich bai viet sang EN");
-            } else if (job.status === "FAILED") {
-              anyTerminal = true;
-              toast.error(
-                job.error
-                  ? `Dich that bai: ${job.error}`
-                  : "Dich that bai. Thu lai sau.",
-              );
-            }
-          } catch {
-            // Ignore transient polling errors — the next tick will retry.
-          }
-        }),
+      const results = await Promise.all(
+        currentActive.map(({ postId, jobId }) => pollJob(postId, jobId)),
       );
+      const anyTerminal = results.some(Boolean);
 
       if (anyTerminal) {
         setActiveTranslationJobs((prev) => {
@@ -785,15 +793,30 @@ export default function ArticlesPage() {
                   const hasEnglishTranslation = postHasEnglishTranslation(post);
                   const activeJob = activeTranslationJobs[post.id];
                   const isTranslating =
-                    !!activeJob &&
-                    ACTIVE_JOB_STATUSES.includes(activeJob.status);
-                  const translateTitle = isTranslating
-                    ? `Dang dich... ${activeJob?.progress ?? 0}% (${
-                        activeJob?.currentStep || "..."
-                      })`
-                    : hasEnglishTranslation
-                      ? "Da co ban EN — chinh sua trong trang bai viet"
-                      : "Tao ban dich tieng Anh tu bai goc";
+                    !!activeJob && ACTIVE_JOB_STATUSES.has(activeJob.status);
+
+                  let translateTitle: string;
+                  if (isTranslating) {
+                    translateTitle = `Dang dich... ${activeJob?.progress ?? 0}% (${
+                      activeJob?.currentStep || "..."
+                    })`;
+                  } else if (hasEnglishTranslation) {
+                    translateTitle =
+                      "Da co ban EN — chinh sua trong trang bai viet";
+                  } else {
+                    translateTitle = "Tao ban dich tieng Anh tu bai goc";
+                  }
+
+                  let translateButtonClass: string;
+                  if (isTranslating) {
+                    translateButtonClass = "text-emerald-400";
+                  } else if (hasEnglishTranslation) {
+                    translateButtonClass =
+                      "cursor-not-allowed text-[color:var(--text-muted-theme)] opacity-40";
+                  } else {
+                    translateButtonClass =
+                      "text-emerald-400 hover:bg-emerald-500/10";
+                  }
 
                   return (
                     <tr
@@ -858,13 +881,7 @@ export default function ArticlesPage() {
                             type="button"
                             onClick={() => void handleTranslatePost(post)}
                             disabled={isTranslating || hasEnglishTranslation}
-                            className={`rounded-lg p-2 transition-colors ${
-                              isTranslating
-                                ? "text-emerald-400"
-                                : hasEnglishTranslation
-                                  ? "cursor-not-allowed text-[color:var(--text-muted-theme)] opacity-40"
-                                  : "text-emerald-400 hover:bg-emerald-500/10"
-                            }`}
+                            className={`rounded-lg p-2 transition-colors ${translateButtonClass}`}
                             title={translateTitle}
                             aria-label={translateTitle}
                           >
