@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   }
 
   const parsed = body as Record<string, unknown> | null;
-  const locale = parsed?.locale;
+  const locale = typeof parsed?.locale === "string" ? parsed.locale : undefined;
 
   if (!isSupportedLocale(locale)) {
     return NextResponse.json(
