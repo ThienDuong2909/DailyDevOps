@@ -135,10 +135,10 @@ export function transformPostContent(primaryContent: string): string {
       const withClass = codeAttrs.includes("class=")
         ? codeAttrs.replace(
             /class=["'](.*?)["']/,
-            'class="$1 !bg-transparent !p-0 !text-code-text !border-none !shadow-none"',
+            'class="$1 macos-code-content"',
           )
-        : `${codeAttrs} class="!bg-transparent !p-0 !text-code-text !border-none !shadow-none"`;
-      return `<div class="macos-mockup relative rounded-xl overflow-hidden bg-code-bg my-8 shadow-xl border border-code-border font-mono group"><div class="flex items-center justify-between pl-4 pr-3 py-2 bg-code-header border-b border-code-border"><div class="flex gap-2"><div class="size-3 rounded-full bg-dot-red"></div><div class="size-3 rounded-full bg-dot-yellow"></div><div class="size-3 rounded-full bg-dot-green"></div></div><div class="flex items-center gap-3"><span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-code-label">${language}</span><button class="copy-code-btn flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-code-muted hover:text-white transition-colors text-[13px] font-semibold border border-white/5 opacity-0 group-hover:opacity-100 focus:opacity-100">Copy</button></div></div><div class="code-wrapper-scroll overflow-x-auto text-[13px] sm:text-sm leading-relaxed whitespace-pre font-mono text-code-text"><pre class="!bg-transparent !m-0 !p-5 !shadow-none !rounded-none !border-none"><code${withClass}>${content}</code></pre></div></div>`;
+        : `${codeAttrs} class="macos-code-content"`;
+      return `<div class="macos-mockup" data-language="${language}"><div class="macos-titlebar"><div class="macos-window-dots" aria-hidden="true"><span class="macos-dot macos-dot-red"></span><span class="macos-dot macos-dot-yellow"></span><span class="macos-dot macos-dot-green"></span></div><div class="macos-window-actions"><span class="macos-language">${language}</span><button class="copy-code-btn" type="button" aria-label="Copy code">Copy</button></div></div><div class="code-wrapper-scroll"><pre><code${withClass}>${content}</code></pre></div></div>`;
     },
   );
 }

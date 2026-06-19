@@ -388,12 +388,60 @@ export default function BlogDetailClient({
 
       <style jsx global>{`
         .article-copy {
-          color: var(--text-muted-theme);
+          --article-text: #334155;
+          --article-heading: #0f172a;
+          --article-muted: #52657d;
+          --article-link: #0f6fdc;
+          --article-link-hover: #0b58b0;
+          --article-inline-code-bg: color-mix(
+            in srgb,
+            var(--primary-theme) 11%,
+            #f8fafc
+          );
+          --article-inline-code-text: #0f4f9f;
+          --article-quote-bg: color-mix(
+            in srgb,
+            var(--primary-theme) 7%,
+            #ffffff
+          );
+          --code-window-bg: #172235;
+          --code-window-header: #111a2b;
+          --code-window-border: rgba(15, 111, 220, 0.18);
+          --code-window-text: #e6edf7;
+          --code-window-muted: #95a8bf;
+          --code-window-button: rgba(255, 255, 255, 0.07);
+          --code-window-button-hover: rgba(19, 127, 236, 0.2);
+          color: var(--article-text);
           font-size: 16px;
           line-height: 1.95;
           max-width: 100%;
           overflow-wrap: anywhere;
           word-break: break-word;
+        }
+        .dark .article-copy {
+          --article-text: #c8d4e4;
+          --article-heading: #f4f8fc;
+          --article-muted: #9dafc7;
+          --article-link: #60a5fa;
+          --article-link-hover: #93c5fd;
+          --article-inline-code-bg: color-mix(
+            in srgb,
+            var(--primary-theme) 17%,
+            var(--surface-strong)
+          );
+          --article-inline-code-text: #bfdbfe;
+          --article-quote-bg: color-mix(
+            in srgb,
+            var(--primary-theme) 11%,
+            var(--surface-muted)
+          );
+          --code-window-bg: #0d1728;
+          --code-window-header: #111d30;
+          --code-window-border: rgba(96, 165, 250, 0.2);
+          --code-window-text: #dbeafe;
+          --code-window-muted: #8ea2bd;
+          --code-window-button: rgba(255, 255, 255, 0.075);
+          --code-window-button-hover: rgba(59, 130, 246, 0.22);
         }
         .article-copy > * {
           max-width: 100%;
@@ -406,13 +454,13 @@ export default function BlogDetailClient({
           font-size: 22px;
           font-weight: 700;
           line-height: 1.5;
-          color: var(--text-main-theme);
+          color: var(--article-heading);
           scroll-margin-top: 8rem;
           overflow-wrap: anywhere;
         }
         .article-copy .heading-anchor-link {
           margin-left: 0.5rem;
-          color: #137fec;
+          color: var(--article-link);
           opacity: 0;
           text-decoration: none;
           transition: opacity 0.18s ease;
@@ -438,7 +486,7 @@ export default function BlogDetailClient({
         }
         .article-copy strong {
           font-weight: 700;
-          color: var(--text-main-theme);
+          color: var(--article-heading);
         }
         .article-copy em {
           font-style: italic;
@@ -448,46 +496,177 @@ export default function BlogDetailClient({
           text-underline-offset: 0.2em;
         }
         .article-copy a {
-          color: #137fec;
+          color: var(--article-link);
           font-weight: 600;
           text-decoration: underline;
           text-underline-offset: 0.2em;
+          text-decoration-color: color-mix(
+            in srgb,
+            var(--article-link) 42%,
+            transparent
+          );
+          transition:
+            color 0.18s ease,
+            text-decoration-color 0.18s ease;
+        }
+        .article-copy a:hover {
+          color: var(--article-link-hover);
+          text-decoration-color: currentColor;
         }
         .article-copy blockquote {
           margin: 1.5rem 0;
-          border-left: 3px solid #137fec;
-          padding-left: 1rem;
-          color: var(--text-muted-theme);
+          border-left: 4px solid var(--article-link);
+          border-radius: 0 1rem 1rem 0;
+          background: var(--article-quote-bg);
+          padding: 0.95rem 1rem;
+          color: var(--article-muted);
           font-style: italic;
         }
         .article-copy code {
-          background: color-mix(
-            in srgb,
-            var(--primary-theme) 10%,
-            var(--surface-muted)
-          );
-          color: var(--text-main-theme);
-          border-radius: 0.375rem;
+          background: var(--article-inline-code-bg);
+          color: var(--article-inline-code-text);
+          border: 1px solid
+            color-mix(in srgb, var(--primary-theme) 14%, transparent);
+          border-radius: 0.5rem;
           padding: 0.15rem 0.4rem;
           font-family: "JetBrains Mono", monospace;
-          font-size: 0.92em;
+          font-size: 0.9em;
+          font-weight: 600;
         }
         .article-copy pre {
-          margin: 1.75rem 0;
+          margin: 0;
           max-width: 100%;
           overflow-x: auto;
-          border-radius: 1rem;
-          background: color-mix(in srgb, var(--surface-strong) 88%, black 12%);
-          border: 1px solid var(--border-soft-theme);
-          color: #e6eef8;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          color: inherit;
         }
         .article-copy pre code {
           display: block;
           background: transparent;
+          border: 0;
           color: inherit;
           border-radius: 0;
-          padding: 1.1rem 1.25rem;
+          padding: 1.2rem 1.25rem;
           white-space: pre;
+          font-weight: 500;
+        }
+        .article-copy .macos-mockup {
+          margin: 1.9rem 0;
+          overflow: hidden;
+          border: 1px solid var(--code-window-border);
+          border-radius: 0.75rem;
+          background: var(--code-window-bg);
+          color: var(--code-window-text);
+          box-shadow:
+            0 18px 42px rgba(15, 23, 42, 0.12),
+            0 1px 0 rgba(255, 255, 255, 0.04) inset;
+          font-family: "JetBrains Mono", monospace;
+          overflow-wrap: normal;
+          word-break: normal;
+        }
+        .dark .article-copy .macos-mockup {
+          box-shadow:
+            0 22px 54px rgba(0, 0, 0, 0.28),
+            0 1px 0 rgba(255, 255, 255, 0.04) inset;
+        }
+        .article-copy .macos-titlebar {
+          display: flex;
+          min-height: 2.5rem;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          border-bottom: 1px solid var(--code-window-border);
+          background:
+            linear-gradient(
+              180deg,
+              rgba(255, 255, 255, 0.055),
+              rgba(255, 255, 255, 0)
+            ),
+            var(--code-window-header);
+          padding: 0.55rem 0.75rem 0.55rem 0.9rem;
+        }
+        .article-copy .macos-window-dots,
+        .article-copy .macos-window-actions {
+          display: inline-flex;
+          align-items: center;
+        }
+        .article-copy .macos-window-dots {
+          gap: 0.45rem;
+          flex: 0 0 auto;
+        }
+        .article-copy .macos-dot {
+          height: 0.72rem;
+          width: 0.72rem;
+          border-radius: 9999px;
+          box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.16) inset;
+        }
+        .article-copy .macos-dot-red {
+          background: #ff5f57;
+        }
+        .article-copy .macos-dot-yellow {
+          background: #febc2e;
+        }
+        .article-copy .macos-dot-green {
+          background: #28c840;
+        }
+        .article-copy .macos-window-actions {
+          min-width: 0;
+          gap: 0.65rem;
+        }
+        .article-copy .macos-language {
+          max-width: 10rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--code-window-muted);
+          font-size: 0.68rem;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+        .article-copy .copy-code-btn {
+          display: inline-flex;
+          height: 1.7rem;
+          align-items: center;
+          border: 1px solid rgba(255, 255, 255, 0.11);
+          border-radius: 0.45rem;
+          background: var(--code-window-button);
+          color: #d8e4f2;
+          cursor: pointer;
+          font-family: var(--font-inter), "Inter", sans-serif;
+          font-size: 0.75rem;
+          font-weight: 700;
+          line-height: 1;
+          padding: 0 0.65rem;
+          transition:
+            background 0.18s ease,
+            border-color 0.18s ease,
+            color 0.18s ease;
+        }
+        .article-copy .copy-code-btn:hover,
+        .article-copy .copy-code-btn:focus-visible {
+          border-color: color-mix(
+            in srgb,
+            var(--article-link) 36%,
+            rgba(255, 255, 255, 0.18)
+          );
+          background: var(--code-window-button-hover);
+          color: #ffffff;
+          outline: none;
+        }
+        .article-copy .code-wrapper-scroll {
+          overflow-x: auto;
+          background: var(--code-window-bg);
+          color: var(--code-window-text);
+          font-size: 0.86rem;
+          line-height: 1.75;
+          -webkit-overflow-scrolling: touch;
+        }
+        .article-copy .macos-code-content {
+          color: var(--code-window-text);
+          text-shadow: 0 1px 0 rgba(0, 0, 0, 0.14);
         }
         .article-copy img,
         .article-copy video,
