@@ -40,7 +40,7 @@
     "date-fns": "^3.3.1",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.488.0",
-    "next": "^15.3.0",
+    "next": "^15.5.18",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-easy-crop": "^5.5.7",
@@ -76,5 +76,8 @@
     "*.{json,md,css}": [
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "fast-uri": "3.1.2"
   }
 }
