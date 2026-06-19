@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { TocItem } from "@/lib/content-transform";
+import type { Dispatch, SetStateAction } from "react";
 
 function bindHeadingAnchorClicks(
   headings: HTMLElement[],
@@ -29,18 +30,7 @@ function resolveActiveHeadingId(headings: HTMLElement[]) {
   const headerHeight =
     globalThis.document.querySelector("header")?.getBoundingClientRect()
       .height ?? 72;
-  const threshold = headerHeight + 20;
-
-  let activeId = headings[0].id;
-
-  for (const heading of headings) {
-    if (heading.getBoundingClientRect().top > threshold) {
-      break;
-    }
-
-    activeId = heading.id;
-  }
-
+  const activationLine = headerHeight + 96;
   const scrollTop =
     globalThis.document.scrollingElement?.scrollTop ??
     globalThis.document.documentElement.scrollTop ??
@@ -56,27 +46,29 @@ function resolveActiveHeadingId(headings: HTMLElement[]) {
     return lastHeadingId;
   }
 
+  let activeId = headings[0].id;
+
+  for (const heading of headings) {
+    const headingTop =
+      heading.getBoundingClientRect().top + globalThis.window.scrollY;
+
+    if (headingTop > scrollTop + activationLine) {
+      break;
+    }
+
+    activeId = heading.id;
+  }
+
   return activeId;
 }
 
 function syncHeadingState(
   headings: HTMLElement[],
-  setActiveTocId: React.Dispatch<React.SetStateAction<string>>,
+  setActiveTocId: Dispatch<SetStateAction<string>>,
 ) {
   const activeId = resolveActiveHeadingId(headings);
 
   setActiveTocId((prev) => (prev === activeId ? prev : activeId));
-
-  const nextHash = `#${activeId}`;
-  if (globalThis.window.location.hash === nextHash) {
-    return;
-  }
-
-  globalThis.window.history.replaceState(
-    globalThis.window.history.state ?? {},
-    "",
-    `${globalThis.window.location.pathname}${nextHash}`,
-  );
 }
 
 function createScrollHandler(syncActiveHeading: () => void) {
@@ -99,7 +91,7 @@ function createScrollSpy(
     headingId: string,
     options?: { updateHash?: boolean },
   ) => void,
-  setActiveTocId: React.Dispatch<React.SetStateAction<string>>,
+  setActiveTocId: Dispatch<SetStateAction<string>>,
 ) {
   if (!root) {
     return undefined;
@@ -123,7 +115,7 @@ function createScrollSpy(
 
   const syncActiveHeading = () => syncHeadingState(headings, setActiveTocId);
   const scrollHandler = createScrollHandler(syncActiveHeading);
-  const pollInterval = setInterval(syncActiveHeading, 150);
+  const pollInterval = setInterval(syncActiveHeading, 300);
 
   syncActiveHeading();
 
@@ -164,7 +156,7 @@ export function useScrollSpy({
 }: {
   contentRef: React.RefObject<HTMLDivElement | null>;
   derivedTocItems: TocItem[];
-  setActiveTocId: React.Dispatch<React.SetStateAction<string>>;
+  setActiveTocId: Dispatch<SetStateAction<string>>;
   scrollToHeading: (
     headingId: string,
     options?: { updateHash?: boolean },
