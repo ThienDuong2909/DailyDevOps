@@ -36,15 +36,6 @@ function resolveActiveHeadingId(headings: HTMLElement[]) {
     globalThis.document.documentElement.scrollTop ??
     globalThis.document.body.scrollTop ??
     globalThis.window.scrollY;
-  const scrollHeight =
-    globalThis.document.scrollingElement?.scrollHeight ??
-    globalThis.document.documentElement.scrollHeight;
-  const clientHeight = globalThis.window.innerHeight;
-  const lastHeadingId = headings.at(-1)?.id ?? headings[0].id;
-
-  if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 4) {
-    return lastHeadingId;
-  }
 
   let activeId = headings[0].id;
 
