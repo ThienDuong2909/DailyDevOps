@@ -26,6 +26,34 @@ function bindHeadingAnchorClicks(
   });
 }
 
+function resolveActiveHeadingId(headings: HTMLElement[]) {
+  const headerHeight =
+    globalThis.document.querySelector("header")?.getBoundingClientRect()
+      .height ?? 72;
+  const activationLine = headerHeight + 32;
+  let activeHeading = headings[0];
+
+  for (const heading of headings) {
+    if (heading.getBoundingClientRect().top > activationLine) {
+      break;
+    }
+
+    activeHeading = heading;
+  }
+
+  return activeHeading.id;
+}
+
+function syncActiveHeading(
+  headings: HTMLElement[],
+  setActiveTocId: Dispatch<SetStateAction<string>>,
+) {
+  const activeId = resolveActiveHeadingId(headings);
+  setActiveTocId((previous) =>
+    previous === activeId ? previous : activeId,
+  );
+}
+
 function createScrollSpy(
   root: HTMLDivElement | null,
   scrollToHeading: (
@@ -55,6 +83,9 @@ function createScrollSpy(
   }
 
   const headingsInReadingLine = new Set<HTMLElement>();
+  const headerHeight =
+    globalThis.document.querySelector("header")?.getBoundingClientRect()
+      .height ?? 72;
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       const heading = entry.target as HTMLElement;
@@ -80,16 +111,41 @@ function createScrollSpy(
       );
     }
   }, {
-    // A narrow reading line below the sticky header prevents distant headings
-    // from competing with the section currently being read.
+    // Keep a useful reading zone below the sticky header instead of a tiny line
+    // that headings can skip during a regular wheel scroll.
     root: null,
-    rootMargin: "-15% 0px -75% 0px",
+    rootMargin: `-${Math.round(headerHeight + 16)}px 0px -55% 0px`,
     threshold: 0,
   });
   headings.forEach((heading) => observer.observe(heading));
 
+  let animationFrame = 0;
+  const onScroll = () => {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = requestAnimationFrame(() =>
+      syncActiveHeading(headings, setActiveTocId),
+    );
+  };
+
+  syncActiveHeading(headings, setActiveTocId);
+  globalThis.window.addEventListener("scroll", onScroll, {
+    passive: true,
+    capture: true,
+  });
+  globalThis.document.addEventListener("scroll", onScroll, {
+    passive: true,
+    capture: true,
+  });
+
   return () => {
+    cancelAnimationFrame(animationFrame);
     observer.disconnect();
+    globalThis.window.removeEventListener("scroll", onScroll, {
+      capture: true,
+    });
+    globalThis.document.removeEventListener("scroll", onScroll, {
+      capture: true,
+    });
   };
 }
 
