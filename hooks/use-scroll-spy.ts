@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { TocItem } from "@/lib/content-transform";
 import type { Dispatch, SetStateAction } from "react";
 
@@ -24,49 +24,6 @@ function bindHeadingAnchorClicks(
       scrollToHeading(node.id);
     };
   });
-}
-
-function resolveActiveHeadingId(headings: HTMLElement[]) {
-  const headerHeight =
-    globalThis.document.querySelector("header")?.getBoundingClientRect()
-      .height ?? 72;
-  const activationLine = headerHeight + 96;
-
-  let activeId = headings[0].id;
-
-  for (const heading of headings) {
-    // Viewport coordinates also work when the page is inside a scroll container.
-    if (heading.getBoundingClientRect().top > activationLine) {
-      break;
-    }
-
-    activeId = heading.id;
-  }
-
-  return activeId;
-}
-
-function syncHeadingState(
-  headings: HTMLElement[],
-  setActiveTocId: Dispatch<SetStateAction<string>>,
-) {
-  const activeId = resolveActiveHeadingId(headings);
-
-  setActiveTocId((prev) => (prev === activeId ? prev : activeId));
-}
-
-function createScrollHandler(syncActiveHeading: () => void) {
-  let rafId = 0;
-
-  return {
-    onScroll() {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(syncActiveHeading);
-    },
-    clear() {
-      cancelAnimationFrame(rafId);
-    },
-  };
 }
 
 function createScrollSpy(
@@ -97,34 +54,42 @@ function createScrollSpy(
     setActiveTocId(headings[0].id);
   }
 
-  const syncActiveHeading = () => syncHeadingState(headings, setActiveTocId);
-  const scrollHandler = createScrollHandler(syncActiveHeading);
-  const pollInterval = setInterval(syncActiveHeading, 300);
+  const headingsInReadingLine = new Set<HTMLElement>();
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const heading = entry.target as HTMLElement;
 
-  syncActiveHeading();
+      if (entry.isIntersecting) {
+        headingsInReadingLine.add(heading);
+      } else {
+        headingsInReadingLine.delete(heading);
+      }
+    });
 
-  globalThis.window.addEventListener("scroll", scrollHandler.onScroll, {
-    passive: true,
-    capture: true,
+    const activeHeading = headings
+      .filter((heading) => headingsInReadingLine.has(heading))
+      .sort(
+        (first, second) =>
+          first.getBoundingClientRect().top -
+          second.getBoundingClientRect().top,
+      )[0];
+
+    if (activeHeading) {
+      setActiveTocId((previous) =>
+        previous === activeHeading.id ? previous : activeHeading.id,
+      );
+    }
+  }, {
+    // A narrow reading line below the sticky header prevents distant headings
+    // from competing with the section currently being read.
+    root: null,
+    rootMargin: "-15% 0px -75% 0px",
+    threshold: 0,
   });
-  globalThis.document.addEventListener("scroll", scrollHandler.onScroll, {
-    passive: true,
-    capture: true,
-  });
-  globalThis.window.addEventListener("resize", syncActiveHeading, {
-    passive: true,
-  });
+  headings.forEach((heading) => observer.observe(heading));
 
   return () => {
-    scrollHandler.clear();
-    clearInterval(pollInterval);
-    globalThis.window.removeEventListener("scroll", scrollHandler.onScroll, {
-      capture: true,
-    });
-    globalThis.document.removeEventListener("scroll", scrollHandler.onScroll, {
-      capture: true,
-    });
-    globalThis.window.removeEventListener("resize", syncActiveHeading);
+    observer.disconnect();
   };
 }
 
@@ -146,8 +111,6 @@ export function useScrollSpy({
     options?: { updateHash?: boolean },
   ) => void;
 }) {
-  const rafRef = useRef(0);
-
   useEffect(() => {
     if (!contentRef.current || !derivedTocItems.length) return;
 
@@ -170,7 +133,6 @@ export function useScrollSpy({
     return () => {
       isCleanedUp = true;
       clearTimeout(setupTimer);
-      cancelAnimationFrame(rafRef.current);
       disposeScrollSpy?.();
     };
   }, [derivedTocItems, scrollToHeading, contentRef, setActiveTocId]);
