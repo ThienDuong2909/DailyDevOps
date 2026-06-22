@@ -31,19 +31,12 @@ function resolveActiveHeadingId(headings: HTMLElement[]) {
     globalThis.document.querySelector("header")?.getBoundingClientRect()
       .height ?? 72;
   const activationLine = headerHeight + 96;
-  const scrollTop =
-    globalThis.document.scrollingElement?.scrollTop ??
-    globalThis.document.documentElement.scrollTop ??
-    globalThis.document.body.scrollTop ??
-    globalThis.window.scrollY;
 
   let activeId = headings[0].id;
 
   for (const heading of headings) {
-    const headingTop =
-      heading.getBoundingClientRect().top + globalThis.window.scrollY;
-
-    if (headingTop > scrollTop + activationLine) {
+    // Viewport coordinates also work when the page is inside a scroll container.
+    if (heading.getBoundingClientRect().top > activationLine) {
       break;
     }
 

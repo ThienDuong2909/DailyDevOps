@@ -70,7 +70,6 @@ export default function BlogDetailClient({
   const {
     post,
     setPost,
-    relatedPosts,
     popularPosts,
     loading,
     errorMessage,
@@ -165,19 +164,6 @@ export default function BlogDetailClient({
       setActiveTocId(derivedTocItems[0].id);
     }
   }, [activeTocId, derivedTocItems]);
-
-  const tocNavRef = useRef<HTMLUListElement>(null);
-
-  // Auto-scroll active TOC item into view within the sidebar
-  useEffect(() => {
-    if (!activeTocId || !tocNavRef.current) return;
-    const activeBtn = tocNavRef.current.querySelector<HTMLElement>(
-      `[data-toc-id="${activeTocId}"]`,
-    );
-    if (activeBtn) {
-      activeBtn.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-  }, [activeTocId]);
 
   useScrollSpy({
     contentRef,
@@ -375,12 +361,8 @@ export default function BlogDetailClient({
 
           <PostSidebar
             derivedTocItems={derivedTocItems}
-            tocNavRef={tocNavRef}
             scrollToHeading={scrollToHeading}
             effectiveActiveTocId={effectiveActiveTocId}
-            post={post}
-            handleShare={handleShare}
-            relatedPosts={relatedPosts}
             popularPosts={popularPosts}
           />
         </div>
