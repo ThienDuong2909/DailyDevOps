@@ -116,7 +116,7 @@ export function useScrollSpy({
       rafId = requestAnimationFrame(syncActiveTocItem);
     }
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    globalThis.addEventListener("scroll", onScroll, { passive: true });
 
     // --- TOC sidebar button clicks → suppress scroll spy ---
     function onTocButtonClick(event: Event) {
@@ -133,12 +133,10 @@ export function useScrollSpy({
     function onAnchorClick(event: Event) {
       const target = event.target as HTMLElement | null;
       if (!target) return;
-      const anchor = target.closest(
-        ".heading-anchor-link",
-      ) as HTMLAnchorElement | null;
+      const anchor = target.closest(".heading-anchor-link");
       if (!anchor) return;
 
-      const heading = anchor.closest("h2[id], h3[id]") as HTMLElement | null;
+      const heading = anchor.closest("h2[id], h3[id]");
       if (!heading) return;
 
       event.preventDefault();
@@ -151,7 +149,7 @@ export function useScrollSpy({
 
     // --- Hash change handler ---
     function onHashChange() {
-      const hash = window.location.hash.slice(1);
+      const hash = globalThis.location.hash.slice(1);
       if (hash) {
         const headings = getHeadings();
         if (headings.some((h) => h.id === hash)) {
@@ -161,10 +159,10 @@ export function useScrollSpy({
       }
     }
 
-    window.addEventListener("hashchange", onHashChange);
+    globalThis.addEventListener("hashchange", onHashChange);
 
     // --- Initial sync ---
-    const initialHash = window.location.hash.slice(1);
+    const initialHash = globalThis.location.hash.slice(1);
     if (initialHash) {
       // Delay to let layout settle
       requestAnimationFrame(() => {
@@ -184,12 +182,12 @@ export function useScrollSpy({
       if (suppressionTimer.current) {
         clearTimeout(suppressionTimer.current);
       }
-      window.removeEventListener("scroll", onScroll);
+      globalThis.removeEventListener("scroll", onScroll);
       document.removeEventListener("click", onTocButtonClick, {
         capture: true,
       });
       document.removeEventListener("click", onAnchorClick);
-      window.removeEventListener("hashchange", onHashChange);
+      globalThis.removeEventListener("hashchange", onHashChange);
     };
   }, [derivedTocItems, suppressScrollSpy]);
 }
