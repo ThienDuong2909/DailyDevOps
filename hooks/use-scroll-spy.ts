@@ -1,59 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import type { TocItem } from "@/lib/content-transform";
 import type { Dispatch, SetStateAction } from "react";
 
 /**
- * Returns the height of the sticky header element, or a sensible default.
- */
-function getHeaderHeight(): number {
-  return (
-    globalThis.document?.querySelector("header")?.getBoundingClientRect()
-      .height ?? 72
-  );
-}
-
-/**
- * Determines which heading is currently "active" based on scroll position.
- *
- * Strategy: pick the last heading whose top edge has scrolled past the
- * activation line (header height + a small buffer). If none have scrolled
- * past, default to the first heading.
- */
-function resolveActiveHeadingId(headings: HTMLElement[]): string {
-  if (!headings.length) return "";
-
-  const activationLine = getHeaderHeight() + 40;
-  let activeHeading = headings[0];
-
-  for (const heading of headings) {
-    const rect = heading.getBoundingClientRect();
-    // Only consider headings that are visible (have layout)
-    if (rect.height === 0) continue;
-
-    if (rect.top <= activationLine) {
-      activeHeading = heading;
-    } else {
-      // Headings are in DOM order, so once we find one below the
-      // activation line, all subsequent ones are also below it.
-      break;
-    }
-  }
-
-  return activeHeading.id;
-}
-
-/**
  * Scroll-spy hook: tracks which heading is currently in view
- * and syncs the URL hash and TOC active state accordingly.
+ * and syncs the TOC active state accordingly.
  *
- * Also handles:
- * - Suppressing scroll-spy updates while a programmatic smooth-scroll
- *   is in progress (to avoid "fighting" between click-to-scroll and
- *   the spy).
- * - Binding heading anchor link clicks to scroll-to-heading.
- * - Restoring hash-based heading on initial load and on hashchange.
+ * Key design decisions:
+ * - Headings are queried fresh from the DOM on every sync (not cached)
+ *   because React may replace the innerHTML when re-rendering
+ *   dangerouslySetInnerHTML, which detaches cached element references.
+ * - Uses refs for callbacks to avoid stale closures and effect re-runs.
+ * - Throttled via requestAnimationFrame (max once per frame).
  */
 export function useScrollSpy({
   contentRef,
@@ -69,130 +29,167 @@ export function useScrollSpy({
     options?: { updateHash?: boolean },
   ) => void;
 }) {
-  // Tracks whether we should suppress scroll-spy updates.
-  // This is set to `true` when a programmatic smooth-scroll begins
-  // (e.g., user clicks a TOC item) and cleared after scrolling settles.
-  const isScrollingProgrammatically = useRef(false);
-  const programmaticScrollTimer = useRef<ReturnType<typeof setTimeout>>(
-    undefined as unknown as ReturnType<typeof setTimeout>,
-  );
+  // Store callbacks in refs to keep closures fresh without re-running effects
+  const setActiveTocIdRef = useRef(setActiveTocId);
+  setActiveTocIdRef.current = setActiveTocId;
+
+  const scrollToHeadingRef = useRef(scrollToHeading);
+  scrollToHeadingRef.current = scrollToHeading;
+
+  const contentRefRef = useRef(contentRef);
+  contentRefRef.current = contentRef;
+
+  // Suppression flag for programmatic smooth-scrolls
+  const isProgrammaticScroll = useRef(false);
+  const suppressionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const suppressScrollSpy = useCallback(() => {
+    isProgrammaticScroll.current = true;
+    if (suppressionTimer.current) {
+      clearTimeout(suppressionTimer.current);
+    }
+    suppressionTimer.current = setTimeout(() => {
+      isProgrammaticScroll.current = false;
+      suppressionTimer.current = null;
+    }, 1200);
+  }, []);
 
   useEffect(() => {
-    const root = contentRef.current;
-    if (!root || !derivedTocItems.length) return;
+    // Wait until we have TOC items (means content has been parsed)
+    if (!derivedTocItems.length) return;
 
-    // Collect heading elements from the content area
-    const headings = Array.from(
-      root.querySelectorAll<HTMLElement>("h2[id], h3[id]"),
-    );
-    if (!headings.length) return;
-
-    // --- Bind heading anchor clicks ---
-    const anchorClickHandlers: Array<{
-      anchor: HTMLAnchorElement;
-      handler: (e: MouseEvent) => void;
-    }> = [];
-
-    headings.forEach((node) => {
-      const anchor = node.querySelector<HTMLAnchorElement>(
-        ".heading-anchor-link",
-      );
-      if (!anchor) return;
-
-      const handler = (event: MouseEvent) => {
-        event.preventDefault();
-        suppressScrollSpy();
-        scrollToHeading(node.id);
-      };
-
-      anchor.addEventListener("click", handler);
-      anchorClickHandlers.push({ anchor, handler });
-    });
-
-    // --- Suppress scroll-spy during programmatic scrolls ---
-    function suppressScrollSpy() {
-      isScrollingProgrammatically.current = true;
-      clearTimeout(programmaticScrollTimer.current);
-      // Re-enable after smooth-scroll has had time to settle.
-      // 800ms is generous enough for most smooth-scroll durations.
-      programmaticScrollTimer.current = setTimeout(() => {
-        isScrollingProgrammatically.current = false;
-        // Sync once after scroll finishes
-        syncActiveHeading();
-      }, 800);
+    /**
+     * Query heading elements FRESH from the DOM every time.
+     * This is critical because React can replace the entire innerHTML
+     * of the article-copy div on re-renders, which detaches any
+     * previously cached element references.
+     */
+    function getHeadings(): HTMLElement[] {
+      const root = contentRefRef.current?.current;
+      if (!root) return [];
+      return Array.from(root.querySelectorAll<HTMLElement>("h2[id], h3[id]"));
     }
 
-    // --- Scroll spy handler ---
+    /**
+     * Determine which heading is currently "active" based on scroll position.
+     * Strategy: pick the last heading whose top edge has scrolled past
+     * the activation line (header height + buffer).
+     */
+    function computeActiveId(): string {
+      const headings = getHeadings();
+      if (!headings.length) return "";
+
+      const headerEl = document.querySelector("header");
+      const headerHeight = headerEl?.getBoundingClientRect().height ?? 72;
+      const activationLine = headerHeight + 40;
+
+      let activeId = headings[0].id;
+
+      for (const heading of headings) {
+        const rect = heading.getBoundingClientRect();
+        if (rect.height === 0) continue;
+
+        if (rect.top <= activationLine) {
+          activeId = heading.id;
+        } else {
+          break;
+        }
+      }
+
+      return activeId;
+    }
+
+    function syncActiveTocItem() {
+      if (isProgrammaticScroll.current) return;
+      const id = computeActiveId();
+      if (id) {
+        setActiveTocIdRef.current((prev) => (prev === id ? prev : id));
+      }
+    }
+
+    // --- Scroll listener (throttled with rAF) ---
     let rafId = 0;
 
-    function syncActiveHeading() {
-      const activeId = resolveActiveHeadingId(headings);
-      setActiveTocId((prev) => (prev === activeId ? prev : activeId));
-    }
-
     function onScroll() {
-      if (isScrollingProgrammatically.current) return;
-
+      if (isProgrammaticScroll.current) return;
       cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(syncActiveHeading);
+      rafId = requestAnimationFrame(syncActiveTocItem);
     }
 
-    // --- Initial state ---
-    const hash = globalThis.window.location.hash.replace("#", "");
-    if (hash && headings.some((h) => h.id === hash)) {
-      suppressScrollSpy();
-      scrollToHeading(hash, { updateHash: false });
-    } else {
-      // Sync active heading based on current scroll position
-      syncActiveHeading();
-    }
+    window.addEventListener("scroll", onScroll, { passive: true });
 
-    // --- Attach scroll listener ---
-    // Using window scroll since the page scrolls at the document level.
-    globalThis.window.addEventListener("scroll", onScroll, { passive: true });
-
-    // --- Intercept TOC button clicks to suppress scroll spy ---
-    // Listen to clicks on the sidebar TOC buttons. When a TOC button is
-    // clicked, `scrollToHeading` is called by the PostSidebar component,
-    // which triggers a smooth scroll. We need to suppress the scroll spy
-    // during this time.
-    function onTocClick(event: MouseEvent) {
+    // --- TOC sidebar button clicks → suppress scroll spy ---
+    function onTocButtonClick(event: Event) {
       const target = event.target as HTMLElement | null;
       if (!target) return;
-      const button = target.closest<HTMLElement>("button[data-toc-id]");
-      if (button) {
+      if (target.closest("button[data-toc-id]")) {
         suppressScrollSpy();
       }
     }
 
-    globalThis.document.addEventListener("click", onTocClick, {
-      capture: true,
-    });
+    document.addEventListener("click", onTocButtonClick, { capture: true });
 
-    // --- Hashchange handler ---
+    // --- Heading anchor link clicks ---
+    function onAnchorClick(event: Event) {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const anchor = target.closest(
+        ".heading-anchor-link",
+      ) as HTMLAnchorElement | null;
+      if (!anchor) return;
+
+      const heading = anchor.closest("h2[id], h3[id]") as HTMLElement | null;
+      if (!heading) return;
+
+      event.preventDefault();
+      suppressScrollSpy();
+      scrollToHeadingRef.current(heading.id);
+    }
+
+    // Attach to document so it works even if content DOM is replaced
+    document.addEventListener("click", onAnchorClick);
+
+    // --- Hash change handler ---
     function onHashChange() {
-      const currentHash = globalThis.window.location.hash.replace("#", "");
-      if (currentHash) {
-        suppressScrollSpy();
-        scrollToHeading(currentHash, { updateHash: false });
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const headings = getHeadings();
+        if (headings.some((h) => h.id === hash)) {
+          suppressScrollSpy();
+          scrollToHeadingRef.current(hash, { updateHash: false });
+        }
       }
     }
 
-    globalThis.window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("hashchange", onHashChange);
+
+    // --- Initial sync ---
+    const initialHash = window.location.hash.slice(1);
+    if (initialHash) {
+      // Delay to let layout settle
+      requestAnimationFrame(() => {
+        const headings = getHeadings();
+        if (headings.some((h) => h.id === initialHash)) {
+          suppressScrollSpy();
+          scrollToHeadingRef.current(initialHash, { updateHash: false });
+        }
+      });
+    } else {
+      requestAnimationFrame(syncActiveTocItem);
+    }
 
     // --- Cleanup ---
     return () => {
       cancelAnimationFrame(rafId);
-      clearTimeout(programmaticScrollTimer.current);
-      globalThis.window.removeEventListener("scroll", onScroll);
-      globalThis.document.removeEventListener("click", onTocClick, {
+      if (suppressionTimer.current) {
+        clearTimeout(suppressionTimer.current);
+      }
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("click", onTocButtonClick, {
         capture: true,
       });
-      globalThis.window.removeEventListener("hashchange", onHashChange);
-
-      anchorClickHandlers.forEach(({ anchor, handler }) => {
-        anchor.removeEventListener("click", handler);
-      });
+      document.removeEventListener("click", onAnchorClick);
+      window.removeEventListener("hashchange", onHashChange);
     };
-  }, [derivedTocItems, scrollToHeading, contentRef, setActiveTocId]);
+  }, [derivedTocItems, suppressScrollSpy]);
 }

@@ -1,20 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 
 /**
  * Tracks page reading progress (scroll percentage).
+ * Uses requestAnimationFrame throttling to avoid triggering
+ * excessive re-renders during fast scrolling.
  */
 export function useReadingProgress() {
   const [progress, setProgress] = useState(0);
+  const rafId = useRef(0);
+
   useEffect(() => {
-    const onScroll = () => {
+    const updateProgress = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       setProgress(Math.min(100, max > 0 ? (window.scrollY / max) * 100 : 0));
     };
+
+    const onScroll = () => {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(updateProgress);
+    };
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      cancelAnimationFrame(rafId.current);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
   return progress;
 }

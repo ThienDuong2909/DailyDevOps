@@ -38,6 +38,13 @@ const nextConfig = {
     },
     // M6: Security headers — CSP, X-Frame-Options, etc.
     async headers() {
+        const isDev = process.env.NODE_ENV === 'development';
+        const scriptSrc = isDev
+            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://www.googletagmanager.com"
+            : "script-src 'self' 'unsafe-inline' https://*.sentry.io https://www.googletagmanager.com";
+        const connectSrc = isDev
+            ? "connect-src 'self' http://localhost:3001 https://api.dailydevops.blog https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com ws://localhost:3000"
+            : "connect-src 'self' https://api.dailydevops.blog https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com";
         return [{
             source: '/(.*)',
             headers: [
@@ -45,11 +52,11 @@ const nextConfig = {
                     key: 'Content-Security-Policy',
                     value: [
                         "default-src 'self'",
-                        "script-src 'self' 'unsafe-inline' https://*.sentry.io https://www.googletagmanager.com",
+                        scriptSrc,
                         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                         "font-src 'self' https://fonts.gstatic.com",
                         "img-src 'self' data: blob: https:",
-                        "connect-src 'self' https://api.dailydevops.blog https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com",
+                        connectSrc,
                         "frame-ancestors 'none'",
                     ].join('; '),
                 },
