@@ -1,6 +1,34 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Public smoke", () => {
+  test("english locale cookie localizes clean public routes", async ({
+    context,
+    page,
+  }) => {
+    await context.addCookies([
+      {
+        name: "preferred_locale",
+        value: "en",
+        url: "http://localhost:3000",
+      },
+    ]);
+
+    await page.goto("/");
+
+    await expect(page).toHaveURL("/");
+    await expect(
+      page.getByRole("button", { name: "Switch language" }),
+    ).toHaveAttribute("title", "Language: English");
+
+    await page.goto("/blog");
+
+    await expect(page).toHaveURL("/blog");
+    await expect(
+      page.getByRole("heading", { name: /All articles/i }),
+    ).toBeVisible();
+    await expect(page.getByPlaceholder("Search articles...")).toBeVisible();
+  });
+
   test("homepage renders and header search opens the search page", async ({
     page,
   }) => {
