@@ -1,136 +1,145 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
-import { useAuthStore } from '@/hooks/use-auth';
+import { useAuthStore } from "@/hooks/use-auth";
+import {
+  adminPrimaryNavItems,
+  adminSecondaryNavItems,
+  isAdminNavItemActive,
+  type AdminNavItem,
+} from "@/components/layout/admin-navigation";
+import { cn } from "@/lib/utils";
 
-interface NavItem {
-    label: string;
-    href: string;
-    icon: string;
-    badge?: number;
+interface AdminSidebarProps {
+  mode?: "desktop" | "mobile";
+  onNavigate?: () => void;
 }
 
-const navItems: NavItem[] = [
-    { label: 'Dashboard', href: '/admin', icon: 'dashboard' },
-    { label: 'Articles', href: '/admin/articles', icon: 'article' },
-    { label: 'Categories', href: '/admin/categories', icon: 'folder_open' },
-    { label: 'Tags', href: '/admin/tags', icon: 'sell' },
-    { label: 'Media Library', href: '/admin/media', icon: 'imagesmode' },
-    { label: 'Comments', href: '/admin/comments', icon: 'chat', badge: 23 },
-    { label: 'Newsletter', href: '/admin/newsletter', icon: 'mail' },
-    { label: 'SEO Manager', href: '/admin/seo', icon: 'search' },
-    { label: 'Performance', href: '/admin/performance', icon: 'monitoring' },
-    { label: 'Compliance', href: '/admin/compliance', icon: 'policy' },
-    { label: 'Backup & Export', href: '/admin/ops', icon: 'database_backup' },
-    { label: 'Roles & Users', href: '/admin/users', icon: 'manage_accounts' },
-];
+function AdminNavLink({
+  item,
+  active,
+  compact,
+  onNavigate,
+}: Readonly<{
+  item: AdminNavItem;
+  active: boolean;
+  compact?: boolean;
+  onNavigate?: () => void;
+}>) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      className={cn(
+        "group flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-all",
+        active
+          ? "border-primary/20 bg-primary/10 text-[color:var(--text-main-theme)] shadow-sm"
+          : "theme-muted hover:border-[color:var(--border-soft-theme)] hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-main-theme)]",
+      )}
+    >
+      <span
+        className={cn(
+          "material-symbols-outlined flex size-9 shrink-0 items-center justify-center rounded-lg text-[20px] transition-colors",
+          active
+            ? "bg-primary text-white"
+            : "bg-[color:var(--surface-muted)] text-[color:var(--text-muted-theme)] group-hover:text-primary",
+        )}
+      >
+        {item.icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold">
+          {item.label}
+        </span>
+        {!compact && item.description ? (
+          <span className="theme-soft mt-0.5 block truncate text-[11px]">
+            {item.description}
+          </span>
+        ) : null}
+      </span>
+    </Link>
+  );
+}
 
-const bottomItems: NavItem[] = [
-    { label: 'Account Security', href: '/admin/account', icon: 'shield_lock' },
-    { label: 'System Settings', href: '/admin/settings', icon: 'settings' },
-];
+export function AdminSidebar({
+  mode = "desktop",
+  onNavigate,
+}: Readonly<AdminSidebarProps>) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { logout, user } = useAuthStore();
+  const compact = mode === "mobile";
 
-export function AdminSidebar() {
-    const pathname = usePathname();
-    const router = useRouter();
-    const { logout, user } = useAuthStore();
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/login");
+      onNavigate?.();
+    } catch {
+      toast.error("Logout failed");
+    }
+  };
 
-    const isActive = (href: string) => {
-        if (href === '/admin') {
-            return pathname === '/admin';
-        }
+  return (
+    <aside
+      className={cn(
+        "theme-surface flex h-full w-[280px] shrink-0 flex-col border-r",
+        mode === "desktop" && "hidden lg:flex",
+      )}
+    >
+      <div className="flex min-h-0 flex-1 flex-col p-5">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
+            <span className="material-symbols-outlined">
+              admin_panel_settings
+            </span>
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-bold leading-tight text-[color:var(--text-main-theme)]">
+              {user ? `${user.firstName} ${user.lastName}` : "DevOps Admin"}
+            </h1>
+            <p className="theme-muted text-xs">DailyDevOps Control</p>
+          </div>
+        </div>
 
-        return pathname.startsWith(href);
-    };
+        <nav className="custom-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+          {adminPrimaryNavItems.map((item) => (
+            <AdminNavLink
+              key={item.href}
+              item={item}
+              active={isAdminNavItemActive(pathname, item.href)}
+              compact={compact}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </nav>
 
-    const handleLogout = async () => {
-        try {
-            await logout();
-            toast.success('Logged out successfully');
-            router.push('/login');
-        } catch (error) {
-            toast.error('Logout failed');
-        }
-    };
-
-    return (
-        <aside className="theme-surface hidden h-full w-[280px] flex-shrink-0 flex-col border-r lg:flex">
-            <div className="p-6 flex flex-col h-full justify-between">
-                <div>
-                    <div className="flex items-center gap-4 mb-8">
-                        <div
-                            className="bg-center bg-no-repeat bg-cover rounded-full size-12 border-2 border-border-dark"
-                            style={{
-                                backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuAYwa5RYhMpWN2Zu9mX8Dm2D94pw2ejreOlwViiOGBifn_FunjZvSiMq8aGr5ZtzAkGY-fkzIH_F-jvm-ObMr-0x95JMpIfOe9BMFn44fr0Nc1S-oPjLWGHm6YH1aqw5pK5AEqSTJAtOw3nvpHZBH1VDzTjLmaeEG7Ijur2L_JooJm5pqgMQlAeLpb8eYvwfiRZzMVxvyFNykeOIjM1wma5VpngmF21T0qAJuKQnXBgojIkSPaJY_lkYrM3gUwUYE2I4Be8KNV3B30Q")`,
-                            }}
-                        />
-                        <div className="flex flex-col">
-                            <h1 className="text-base font-bold leading-tight text-[color:var(--text-main-theme)]">
-                                {user ? `${user.firstName} ${user.lastName}` : 'DevOps Admin'}
-                            </h1>
-                            <p className="theme-muted text-xs font-mono">v2.4.0-stable</p>
-                        </div>
-                    </div>
-
-                    <nav className="flex flex-col gap-2">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg group transition-all ${isActive(item.href)
-                                    ? 'border-l-4 border-primary bg-[color:color-mix(in_srgb,var(--primary-theme)_12%,transparent)]'
-                                    : 'border-l-4 border-transparent hover:bg-[color:var(--surface-muted)]'
-                                    }`}
-                            >
-                                <span
-                                    className={`material-symbols-outlined ${isActive(item.href)
-                                        ? 'text-primary'
-                                        : 'text-[color:var(--text-muted-theme)] group-hover:text-[color:var(--text-main-theme)]'
-                                        }`}
-                                >
-                                    {item.icon}
-                                </span>
-                                <p
-                                    className={`text-sm font-medium ${isActive(item.href)
-                                        ? 'text-[color:var(--text-main-theme)]'
-                                        : 'text-[color:var(--text-muted-theme)] group-hover:text-[color:var(--text-main-theme)]'
-                                        }`}
-                                >
-                                    {item.label}
-                                </p>
-                                {item.badge && (
-                                    <span className="ml-auto bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                        {item.badge}
-                                    </span>
-                                )}
-                            </Link>
-                        ))}
-                    </nav>
-                </div>
-
-                <div className="theme-border pt-4 border-t">
-                    {bottomItems.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className="flex items-center gap-3 rounded-lg px-4 py-2 text-[color:var(--text-muted-theme)] transition-colors hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-main-theme)]"
-                        >
-                            <span className="material-symbols-outlined text-lg">{item.icon}</span>
-                            <p className="text-sm font-medium">{item.label}</p>
-                        </Link>
-                    ))}
-                    <button
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-[#fa6238] transition-colors hover:bg-[color:var(--surface-muted)] hover:text-[#fa6238]/80"
-                    >
-                        <span className="material-symbols-outlined text-lg">logout</span>
-                        <p className="text-sm font-medium">Logout</p>
-                    </button>
-                </div>
-            </div>
-        </aside>
-    );
+        <div className="theme-border mt-5 space-y-1 border-t pt-4">
+          {adminSecondaryNavItems.map((item) => (
+            <AdminNavLink
+              key={item.href}
+              item={item}
+              active={isAdminNavItemActive(pathname, item.href)}
+              compact
+              onNavigate={onNavigate}
+            />
+          ))}
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[#fa6238] transition-colors hover:bg-[color:var(--surface-muted)]"
+            type="button"
+          >
+            <span className="material-symbols-outlined flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-[20px]">
+              logout
+            </span>
+            <span className="text-sm font-semibold">Logout</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
 }
