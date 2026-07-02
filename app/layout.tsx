@@ -141,13 +141,19 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${manrope.variable} font-display bg-background-light dark:bg-background-dark text-gray-900 dark:text-white antialiased`}
+        className={`${inter.variable} ${manrope.variable} site-ambient-shell font-display bg-background-light text-gray-900 antialiased dark:bg-background-dark dark:text-white`}
       >
+        <div className="site-ambient-background" aria-hidden="true">
+          <span className="site-liquid-blob site-liquid-blob-one" />
+          <span className="site-liquid-blob site-liquid-blob-two" />
+          <span className="site-liquid-blob site-liquid-blob-three" />
+          <span className="site-liquid-blob site-liquid-blob-four" />
+        </div>
         <SentryProvider />
         <Suspense fallback={null}>
           <AnalyticsProvider />
         </Suspense>
-        {children}
+        <div className="relative z-10 min-h-screen">{children}</div>
         <Toaster
           position="top-right"
           toastOptions={{
