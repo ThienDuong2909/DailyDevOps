@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Inter, Manrope } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
+import { LiquidBlobBackground } from "@/components/layout/liquid-blob-background";
 import { SentryProvider } from "@/components/observability/sentry-provider";
 import { SITE_URL } from "@/lib/constants/site";
 import "./globals.css";
@@ -143,12 +144,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${manrope.variable} site-ambient-shell font-display bg-background-light text-gray-900 antialiased dark:bg-background-dark dark:text-white`}
       >
-        <div className="site-ambient-background" aria-hidden="true">
-          <span className="site-liquid-blob site-liquid-blob-one" />
-          <span className="site-liquid-blob site-liquid-blob-two" />
-          <span className="site-liquid-blob site-liquid-blob-three" />
-          <span className="site-liquid-blob site-liquid-blob-four" />
-        </div>
+        <LiquidBlobBackground className="z-0" count={8} />
         <SentryProvider />
         <Suspense fallback={null}>
           <AnalyticsProvider />
