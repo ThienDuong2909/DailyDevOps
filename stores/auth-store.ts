@@ -24,11 +24,11 @@ function unwrapApiData<T>(payload: unknown): T | null {
 }
 
 function resolveStoredAccessToken() {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return null;
   }
 
-  return window.localStorage.getItem("accessToken");
+  return globalThis.window.localStorage.getItem("accessToken");
 }
 
 interface AuthState {

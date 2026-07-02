@@ -41,11 +41,11 @@ export const setAccessToken = (token: string | null) => {
   }
 
   if (token) {
-    window.localStorage.setItem("accessToken", token);
+    globalThis.window.localStorage.setItem("accessToken", token);
     return;
   }
 
-  window.localStorage.removeItem("accessToken");
+  globalThis.window.localStorage.removeItem("accessToken");
 };
 
 export const getAccessToken = (): string | null => {
