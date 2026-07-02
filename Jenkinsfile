@@ -253,7 +253,22 @@ EOF
                             chmod +x "${DOCKER_CONFIG}/cli-plugins/docker-buildx"
                         fi
                     """
-                    sh "docker build --no-cache --pull -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
+                    sh '''
+                        for attempt in 1 2 3; do
+                            if docker pull node:20-alpine; then
+                                exit 0
+                            fi
+
+                            echo "Docker Hub pull failed on attempt ${attempt}/3"
+                            if [ "${attempt}" -eq 3 ]; then
+                                exit 1
+                            fi
+                            sleep $((attempt * 15))
+                        done
+                    '''
+                    retry(2) {
+                        sh "docker build --no-cache -t ${IMAGE_TAG}:${BUILD_NUMBER} -f Dockerfile ${BUILD_CONTEXT}"
+                    }
                     sh "docker tag ${IMAGE_TAG}:${BUILD_NUMBER} ${IMAGE_TAG}:latest"
                 }
             }
