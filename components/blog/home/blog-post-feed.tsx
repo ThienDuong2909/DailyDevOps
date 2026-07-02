@@ -8,18 +8,17 @@ import { withLocale } from "@/lib/i18n/config";
 import type { Post } from "@/types";
 
 interface BlogPostFeedProps {
-  isFallback: boolean;
+  isFallback?: boolean;
   isLoading: boolean;
-  posts: Post[];
+  posts: readonly Post[];
 }
 
 const HOME_POST_LIMIT = 9;
 
 export function BlogPostFeed({
-  isFallback,
   isLoading,
   posts,
-}: BlogPostFeedProps) {
+}: Readonly<BlogPostFeedProps>) {
   const locale = useLocale();
   const dictionary = useDictionary();
   const visiblePosts = posts.slice(0, HOME_POST_LIMIT);
@@ -58,7 +57,7 @@ export function BlogPostFeed({
         action={
           <Link
             href={withLocale("/blog", locale)}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary-dark"
+            className="theme-glow-button inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white"
           >
             {dictionary.blog.viewAll}
             <ArrowRight className="size-4" />
@@ -85,7 +84,7 @@ export function BlogPostFeed({
             <div className="flex justify-center pt-2">
               <Link
                 href={withLocale("/blog", locale)}
-                className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+                className="theme-glow-button inline-flex h-12 items-center justify-center rounded-xl px-6 text-sm font-semibold text-white"
               >
                 {dictionary.blog.viewAllPosts}
               </Link>
