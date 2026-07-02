@@ -38,8 +38,9 @@ export function AdminShell({
     <div className="theme-shell flex h-screen w-full overflow-hidden font-body">
       <AdminSidebar />
 
-      <div
+      <button
         aria-hidden={!mobileNavOpen}
+        aria-label="Close admin navigation"
         className={cn(
           "fixed inset-0 z-[70] bg-slate-950/45 backdrop-blur-sm transition-opacity lg:hidden",
           mobileNavOpen
@@ -47,6 +48,8 @@ export function AdminShell({
             : "pointer-events-none opacity-0",
         )}
         onClick={() => setMobileNavOpen(false)}
+        tabIndex={mobileNavOpen ? 0 : -1}
+        type="button"
       />
       <div
         className={cn(

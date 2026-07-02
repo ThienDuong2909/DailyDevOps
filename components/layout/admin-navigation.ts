@@ -5,7 +5,7 @@ export interface AdminNavItem {
   description?: string;
 }
 
-export const adminPrimaryNavItems: AdminNavItem[] = [
+export const adminPrimaryNavItems = [
   {
     label: "Dashboard",
     href: "/admin",
@@ -78,9 +78,9 @@ export const adminPrimaryNavItems: AdminNavItem[] = [
     icon: "manage_accounts",
     description: "Access management",
   },
-];
+] as const satisfies readonly AdminNavItem[];
 
-export const adminSecondaryNavItems: AdminNavItem[] = [
+export const adminSecondaryNavItems = [
   {
     label: "Account Security",
     href: "/admin/account",
@@ -93,7 +93,7 @@ export const adminSecondaryNavItems: AdminNavItem[] = [
     icon: "settings",
     description: "Site configuration",
   },
-];
+] as const satisfies readonly AdminNavItem[];
 
 export const adminNavItems = [
   ...adminPrimaryNavItems,
