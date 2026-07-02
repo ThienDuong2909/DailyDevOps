@@ -98,17 +98,17 @@ body {
     ),
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--primary-theme) 30%, transparent),
-      color-mix(in srgb, #22d3ee 24%, transparent)
+      color-mix(in srgb, var(--primary-theme) 46%, transparent),
+      color-mix(in srgb, #22d3ee 38%, transparent)
     );
-  filter: blur(46px);
-  opacity: 0.2;
+  filter: blur(38px);
+  opacity: 0.34;
   transform: translate3d(0, 0, 0);
   will-change: transform, border-radius;
 }
 
 .dark .site-liquid-blob {
-  opacity: 0.18;
+  opacity: 0.28;
 }
 
 .site-liquid-blob-one {
