@@ -1,49 +1,151 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
 
-type BlobParticle = {
-  id: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  r: number;
-  targetR: number;
-  growing: boolean;
-  phase1: number;
-  phase2: number;
-  w1: number;
-  w2: number;
-  cooldown: number;
-  squishV: number;
-  squishH: number;
+type BlobState = {
+  mesh: THREE.Mesh<THREE.IcosahedronGeometry, THREE.ShaderMaterial>;
+  material: THREE.ShaderMaterial;
+  center: THREE.Vector3;
+  velocity: THREE.Vector3;
+  baseScale: number;
+  driftX: number;
+  driftY: number;
+  driftSpeed: number;
+  turnSpeed: number;
+  seed: number;
+  age: number;
+  birthDuration: number;
+  lifeDuration: number;
 };
-
-type RenderBlob = Pick<BlobParticle, "id">;
 
 type LiquidBlobBackgroundProps = {
   count?: number;
-  opacity?: number;
   className?: string;
 };
 
-type Bounds = {
-  w: number;
-  h: number;
-};
+const BLOB_COLOR = new THREE.Color("#137fec");
+const BLOB_OPACITY = 0.3;
+const TURN_AXIS = new THREE.Vector3(0, 0, 1);
+const VIEW_HEIGHT = 10;
+const MIN_BLOBS = 6;
+const MAX_BLOBS = 10;
+const VERTEX_SHADER = `
+uniform float u_intensity;
+uniform float u_time;
 
-const BASE_COLOR = "#137fec";
-const HIGHLIGHT_COLOR = "rgba(255, 255, 255, 0.44)";
-const MIN_BLOBS = 7;
-const MAX_BLOBS = 12;
-const MAX_RADIUS_FACTOR = 0.18;
-const MIN_RADIUS_FACTOR = 0.065;
-const ATTRACT_DISTANCE = 2.7;
-const MERGE_DISTANCE = 0.62;
-const SPLIT_CHILDREN = 3;
+varying vec2 vUv;
+varying vec3 vNormal;
+varying float vDisplacement;
 
-let blobUid = 0;
+vec4 permute(vec4 x) {
+  return mod(((x * 34.0) + 1.0) * x, 289.0);
+}
+
+vec4 taylorInvSqrt(vec4 r) {
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+vec3 fade(vec3 t) {
+  return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+float cnoise(vec3 P) {
+  vec3 Pi0 = floor(P);
+  vec3 Pi1 = Pi0 + vec3(1.0);
+  Pi0 = mod(Pi0, 289.0);
+  Pi1 = mod(Pi1, 289.0);
+  vec3 Pf0 = fract(P);
+  vec3 Pf1 = Pf0 - vec3(1.0);
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 / 7.0;
+  vec4 gy0 = fract(floor(gx0) / 7.0) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 / 7.0;
+  vec4 gy1 = fract(floor(gx1) / 7.0) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x, gy0.x, gz0.x);
+  vec3 g100 = vec3(gx0.y, gy0.y, gz0.y);
+  vec3 g010 = vec3(gx0.z, gy0.z, gz0.z);
+  vec3 g110 = vec3(gx0.w, gy0.w, gz0.w);
+  vec3 g001 = vec3(gx1.x, gy1.x, gz1.x);
+  vec3 g101 = vec3(gx1.y, gy1.y, gz1.y);
+  vec3 g011 = vec3(gx1.z, gy1.z, gz1.z);
+  vec3 g111 = vec3(gx1.w, gy1.w, gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  g000 *= norm0.x;
+  g010 *= norm0.y;
+  g100 *= norm0.z;
+  g110 *= norm0.w;
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+  g001 *= norm1.x;
+  g011 *= norm1.y;
+  g101 *= norm1.z;
+  g111 *= norm1.w;
+
+  float n000 = dot(g000, Pf0);
+  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n111 = dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
+  return 2.2 * n_xyz;
+}
+
+void main() {
+  vUv = uv;
+  vNormal = normalize(normalMatrix * normal);
+  vDisplacement = cnoise(position + vec3(1.85 * u_time));
+
+  vec3 newPosition = position + normal * (u_intensity * vDisplacement);
+  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(newPosition, 1.0);
+}
+`;
+
+const FRAGMENT_SHADER = `
+uniform vec3 u_color;
+uniform float u_opacity;
+uniform float u_time;
+
+varying vec2 vUv;
+varying vec3 vNormal;
+varying float vDisplacement;
+
+void main() {
+  float rim = pow(1.0 - max(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 0.0), 1.9);
+  float glow = 0.72 + 0.22 * sin(vUv.y * 7.0 + u_time + vDisplacement * 2.0);
+  float highlight = smoothstep(0.48, 0.0, distance(vUv, vec2(0.36, 0.3)));
+  vec3 color = u_color * glow + vec3(0.36, 0.82, 1.0) * highlight * 0.42 + vec3(0.12, 0.5, 1.0) * rim * 0.5;
+
+  gl_FragColor = vec4(color, u_opacity);
+}
+`;
 
 function randomUnit() {
   const cryptoApi = globalThis.crypto;
@@ -51,541 +153,244 @@ function randomUnit() {
     return 0.5;
   }
 
-  const randomValues = new Uint32Array(1);
-  cryptoApi.getRandomValues(randomValues);
-  return randomValues[0] / 2 ** 32;
+  const values = new Uint32Array(1);
+  cryptoApi.getRandomValues(values);
+  return values[0] / 2 ** 32;
 }
 
 function randomBetween(min: number, max: number) {
   return min + randomUnit() * (max - min);
 }
 
-function nextBlobId() {
-  blobUid += 1;
-  return `blob-${blobUid}`;
+function easeOutBack(progress: number) {
+  const overshoot = 1.72;
+  const shifted = progress - 1;
+  return 1 + (overshoot + 1) * shifted ** 3 + overshoot * shifted ** 2;
 }
 
-function getRadiusLimits(w: number, h: number) {
-  const shortestSide = Math.max(Math.min(w, h), 320);
+function getBounds(aspect: number) {
+  const halfHeight = VIEW_HEIGHT / 2;
+  const halfWidth = halfHeight * aspect;
 
   return {
-    min: shortestSide * MIN_RADIUS_FACTOR,
-    max: shortestSide * MAX_RADIUS_FACTOR,
+    minX: -halfWidth - 0.8,
+    maxX: halfWidth + 0.8,
+    minY: -halfHeight - 0.8,
+    maxY: halfHeight + 0.8,
   };
 }
 
-function createEdgePosition(w: number, h: number, r: number) {
-  const side = Math.floor(randomBetween(0, 4));
-  const speed = randomBetween(14, 30);
+function isOutsideBounds(
+  position: THREE.Vector3,
+  aspect: number,
+  scale: number,
+) {
+  const bounds = getBounds(aspect);
+  const margin = scale + 0.8;
 
-  if (side === 0) {
-    return {
-      x: -r * 0.35,
-      y: randomBetween(0, h),
-      vx: speed,
-      vy: randomBetween(-speed, speed),
-    };
-  }
+  return (
+    position.x < bounds.minX - margin ||
+    position.x > bounds.maxX + margin ||
+    position.y < bounds.minY - margin ||
+    position.y > bounds.maxY + margin
+  );
+}
 
-  if (side === 1) {
-    return {
-      x: w + r * 0.35,
-      y: randomBetween(0, h),
-      vx: -speed,
-      vy: randomBetween(-speed, speed),
-    };
-  }
-
-  if (side === 2) {
-    return {
-      x: randomBetween(0, w),
-      y: -r * 0.35,
-      vx: randomBetween(-speed, speed),
-      vy: speed,
-    };
-  }
-
-  return {
-    x: randomBetween(0, w),
-    y: h + r * 0.35,
-    vx: randomBetween(-speed, speed),
-    vy: -speed,
-  };
+function createMaterial(opacity: number) {
+  return new THREE.ShaderMaterial({
+    vertexShader: VERTEX_SHADER,
+    fragmentShader: FRAGMENT_SHADER,
+    uniforms: {
+      u_color: { value: BLOB_COLOR },
+      u_intensity: { value: 0.5 },
+      u_opacity: { value: opacity },
+      u_time: { value: 0 },
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.NormalBlending,
+  });
 }
 
 function createBlob(
-  bounds: Bounds,
-  spawnFromEdge = false,
-  targetRadius?: number,
-): BlobParticle {
-  const { min, max } = getRadiusLimits(bounds.w, bounds.h);
-  const baseRadius = targetRadius ?? randomBetween(min, max * 0.74);
-  const position = spawnFromEdge
-    ? createEdgePosition(bounds.w, bounds.h, baseRadius)
-    : {
-        x: randomBetween(baseRadius, bounds.w - baseRadius),
-        y: randomBetween(baseRadius, bounds.h - baseRadius),
-        vx: randomBetween(-18, 18),
-        vy: randomBetween(-18, 18),
-      };
+  geometry: THREE.IcosahedronGeometry,
+  aspect: number,
+  opacity: number,
+): BlobState {
+  const material = createMaterial(opacity);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.frustumCulled = false;
 
-  return {
-    id: nextBlobId(),
-    x: position.x,
-    y: position.y,
-    vx: position.vx,
-    vy: position.vy,
-    r: spawnFromEdge ? baseRadius * 0.08 : baseRadius,
-    targetR: baseRadius,
-    growing: spawnFromEdge,
-    phase1: randomBetween(0, Math.PI * 2),
-    phase2: randomBetween(0, Math.PI * 2),
-    w1: randomBetween(0.26, 0.44),
-    w2: randomBetween(0.2, 0.36),
-    cooldown: spawnFromEdge ? 1.1 : 0,
-    squishV: 0,
-    squishH: 0,
+  const blob: BlobState = {
+    mesh,
+    material,
+    center: new THREE.Vector3(),
+    velocity: new THREE.Vector3(),
+    baseScale: 1,
+    driftX: 0,
+    driftY: 0,
+    driftSpeed: 1,
+    turnSpeed: 0,
+    seed: randomBetween(0, Math.PI * 2),
+    age: 0,
+    birthDuration: randomBetween(1.2, 1.8),
+    lifeDuration: randomBetween(12, 22),
   };
+
+  respawnBlob(blob, aspect);
+  return blob;
 }
 
-function catmullToBezier(points: Array<[number, number]>) {
-  const total = points.length;
-  let path = `M ${points[0][0].toFixed(2)} ${points[0][1].toFixed(2)} `;
+function respawnBlob(blob: BlobState, aspect: number) {
+  const bounds = getBounds(aspect);
+  const angle = randomBetween(0, Math.PI * 2);
+  const speed = randomBetween(0.32, 0.58);
 
-  for (let index = 0; index < total; index += 1) {
-    const p0 = points[(index - 1 + total) % total];
-    const p1 = points[index];
-    const p2 = points[(index + 1) % total];
-    const p3 = points[(index + 2) % total];
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
-
-    path += `C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)} `;
-  }
-
-  return `${path}Z`;
+  blob.center.set(
+    randomBetween(bounds.minX, bounds.maxX),
+    randomBetween(bounds.minY, bounds.maxY),
+    randomBetween(-1.8, 0.5),
+  );
+  blob.velocity.set(Math.cos(angle) * speed, Math.sin(angle) * speed, 0);
+  blob.baseScale = randomBetween(0.9, 1.85);
+  blob.driftX = randomBetween(0.16, 0.42);
+  blob.driftY = randomBetween(0.14, 0.36);
+  blob.driftSpeed = randomBetween(0.055, 0.12);
+  blob.turnSpeed = randomBetween(0.16, 0.32);
+  blob.seed = randomBetween(0, Math.PI * 2);
+  blob.age = 0;
+  blob.birthDuration = randomBetween(1.15, 1.85);
+  blob.lifeDuration = randomBetween(13, 24);
+  blob.mesh.position.copy(blob.center);
+  blob.mesh.scale.setScalar(0.001);
 }
 
-function conserveAreaScale(
-  x: number,
-  y: number,
-  squishV: number,
-  squishH: number,
+function updateBlob(
+  blob: BlobState,
+  elapsed: number,
+  dt: number,
+  aspect: number,
 ) {
-  const sxV = 1 / (1 - squishV);
-  const syV = 1 - squishV;
-  const sxH = 1 - squishH;
-  const syH = 1 / (1 - squishH);
-
-  return [x * sxV * sxH, y * syV * syH] as const;
-}
-
-function createBlobPath(blob: BlobParticle, time: number, points = 24) {
-  const pathPoints: Array<[number, number]> = [];
-
-  for (let index = 0; index < points; index += 1) {
-    const angle = (index / points) * Math.PI * 2;
-    const wobble =
-      1 +
-      0.04 * Math.sin(angle * 2 + blob.phase1 + time * blob.w1) +
-      0.018 * Math.sin(angle * 3 - blob.phase2 + time * blob.w2);
-    const radius = blob.r * wobble;
-    const [scaledX, scaledY] = conserveAreaScale(
-      radius * Math.cos(angle),
-      radius * Math.sin(angle),
-      blob.squishV,
-      blob.squishH,
-    );
-
-    pathPoints.push([blob.x + scaledX, blob.y + scaledY]);
+  blob.age += dt;
+  if (
+    blob.age > blob.lifeDuration ||
+    isOutsideBounds(blob.center, aspect, blob.baseScale)
+  ) {
+    respawnBlob(blob, aspect);
   }
 
-  return catmullToBezier(pathPoints);
-}
+  blob.center.addScaledVector(blob.velocity, dt);
+  blob.velocity.applyAxisAngle(
+    TURN_AXIS,
+    Math.sin(elapsed * blob.turnSpeed + blob.seed) * dt * 0.16,
+  );
 
-function clampBlobToBounds(blob: BlobParticle, bounds: Bounds) {
-  if (blob.x - blob.r < 0) {
-    blob.x = blob.r;
-    blob.vx = Math.abs(blob.vx);
-    blob.squishH = Math.min(
-      0.42,
-      blob.squishH + Math.min(0.32, Math.abs(blob.vx) / 260),
-    );
-  }
+  const birthProgress = Math.min(blob.age / blob.birthDuration, 1);
+  const birthScale = Math.max(easeOutBack(birthProgress), 0);
+  const breathe = 1 + Math.sin(elapsed * 0.72 + blob.seed) * 0.035;
+  const scale = blob.baseScale * birthScale * breathe;
+  const driftTime = elapsed * blob.driftSpeed + blob.seed;
 
-  if (blob.x + blob.r > bounds.w) {
-    blob.x = bounds.w - blob.r;
-    blob.vx = -Math.abs(blob.vx);
-    blob.squishH = Math.min(
-      0.42,
-      blob.squishH + Math.min(0.32, Math.abs(blob.vx) / 260),
-    );
-  }
-
-  if (blob.y - blob.r < 0) {
-    blob.y = blob.r;
-    blob.vy = Math.abs(blob.vy);
-    blob.squishV = Math.min(
-      0.42,
-      blob.squishV + Math.min(0.32, Math.abs(blob.vy) / 260),
-    );
-  }
-
-  if (blob.y + blob.r > bounds.h) {
-    blob.y = bounds.h - blob.r;
-    blob.vy = -Math.abs(blob.vy);
-    blob.squishV = Math.min(
-      0.42,
-      blob.squishV + Math.min(0.32, Math.abs(blob.vy) / 260),
-    );
-  }
-}
-
-function moveBlob(blob: BlobParticle, bounds: Bounds, dt: number) {
-  if (blob.growing) {
-    blob.r += (blob.targetR - blob.r) * Math.min(dt * 3.2, 1);
-    if (Math.abs(blob.r - blob.targetR) < 0.45) {
-      blob.r = blob.targetR;
-      blob.growing = false;
-    }
-  }
-
-  blob.cooldown = Math.max(0, blob.cooldown - dt);
-  blob.squishV *= Math.exp(-dt * 5.5);
-  blob.squishH *= Math.exp(-dt * 5.5);
-  blob.x += blob.vx * dt;
-  blob.y += blob.vy * dt;
-  blob.vx *= 0.999;
-  blob.vy *= 0.999;
-
-  clampBlobToBounds(blob, bounds);
-}
-
-function applyAttraction(blobs: BlobParticle[], dt: number) {
-  for (let i = 0; i < blobs.length; i += 1) {
-    for (let j = i + 1; j < blobs.length; j += 1) {
-      const first = blobs[i];
-      const second = blobs[j];
-      const dx = second.x - first.x;
-      const dy = second.y - first.y;
-      const distance = Math.max(Math.hypot(dx, dy), 1);
-      const influenceRadius = (first.r + second.r) * ATTRACT_DISTANCE;
-
-      if (
-        distance >= influenceRadius ||
-        first.cooldown > 0 ||
-        second.cooldown > 0
-      ) {
-        continue;
-      }
-
-      const pull = (1 - distance / influenceRadius) * 12 * dt;
-      const nx = dx / distance;
-      const ny = dy / distance;
-
-      first.vx += nx * pull;
-      first.vy += ny * pull;
-      second.vx -= nx * pull;
-      second.vy -= ny * pull;
-    }
-  }
-}
-
-function createSplitBlobs(
-  source: BlobParticle,
-  bounds: Bounds,
-  childCount = SPLIT_CHILDREN,
-) {
-  const sourceArea = source.r * source.r;
-  const childRadius = Math.sqrt(sourceArea / childCount) * 0.94;
-  const children: BlobParticle[] = [];
-
-  for (let index = 0; index < childCount; index += 1) {
-    const angle =
-      (index / childCount) * Math.PI * 2 + randomBetween(-0.35, 0.35);
-    const speed = randomBetween(26, 42);
-    const offset = source.r * 0.34;
-    const child = createBlob(bounds, false, childRadius);
-
-    child.x = Math.min(
-      Math.max(source.x + Math.cos(angle) * offset, childRadius),
-      bounds.w - childRadius,
-    );
-    child.y = Math.min(
-      Math.max(source.y + Math.sin(angle) * offset, childRadius),
-      bounds.h - childRadius,
-    );
-    child.vx = source.vx * 0.22 + Math.cos(angle) * speed;
-    child.vy = source.vy * 0.22 + Math.sin(angle) * speed;
-    child.r = childRadius * 0.72;
-    child.targetR = childRadius;
-    child.growing = true;
-    child.cooldown = 1.35;
-    children.push(child);
-  }
-
-  return children;
-}
-
-function mergeOrSplitBlobs(blobs: BlobParticle[], bounds: Bounds) {
-  const { max } = getRadiusLimits(bounds.w, bounds.h);
-
-  for (let i = 0; i < blobs.length; i += 1) {
-    for (let j = i + 1; j < blobs.length; j += 1) {
-      const first = blobs[i];
-      const second = blobs[j];
-
-      if (
-        first.cooldown > 0 ||
-        second.cooldown > 0 ||
-        first.growing ||
-        second.growing
-      ) {
-        continue;
-      }
-
-      const distance = Math.hypot(first.x - second.x, first.y - second.y);
-      if (distance >= (first.r + second.r) * MERGE_DISTANCE) {
-        continue;
-      }
-
-      const areaA = first.r * first.r;
-      const areaB = second.r * second.r;
-      const combinedArea = areaA + areaB;
-      const combinedRadius = Math.sqrt(combinedArea);
-      const centerX = (first.x * areaA + second.x * areaB) / combinedArea;
-      const centerY = (first.y * areaA + second.y * areaB) / combinedArea;
-      const velocityX = (first.vx * areaA + second.vx * areaB) / combinedArea;
-      const velocityY = (first.vy * areaA + second.vy * areaB) / combinedArea;
-      const rest = blobs.filter(
-        (blob) => blob.id !== first.id && blob.id !== second.id,
-      );
-
-      if (combinedRadius >= max) {
-        const temporaryBlob = {
-          ...first,
-          x: centerX,
-          y: centerY,
-          vx: velocityX,
-          vy: velocityY,
-          r: Math.min(combinedRadius, max),
-        };
-        return [...rest, ...createSplitBlobs(temporaryBlob, bounds)];
-      }
-
-      const mergedBlob: BlobParticle = {
-        ...first,
-        id: nextBlobId(),
-        x: centerX,
-        y: centerY,
-        vx: velocityX,
-        vy: velocityY,
-        r: combinedRadius,
-        targetR: combinedRadius,
-        growing: false,
-        phase1: randomBetween(0, Math.PI * 2),
-        phase2: randomBetween(0, Math.PI * 2),
-        cooldown: 0.9,
-        squishV: 0,
-        squishH: 0,
-      };
-
-      return [...rest, mergedBlob];
-    }
-  }
-
-  return blobs;
-}
-
-function replenishBlobs(
-  blobs: BlobParticle[],
-  bounds: Bounds,
-  targetCount: number,
-) {
-  if (blobs.length >= targetCount && blobs.length <= MAX_BLOBS) {
-    return blobs;
-  }
-
-  if (blobs.length > MAX_BLOBS) {
-    return blobs.slice(0, MAX_BLOBS);
-  }
-
-  const nextBlobs = [...blobs];
-
-  while (nextBlobs.length < targetCount) {
-    nextBlobs.push(createBlob(bounds, true));
-  }
-
-  return nextBlobs;
+  blob.mesh.position.set(
+    blob.center.x + Math.sin(driftTime) * blob.driftX,
+    blob.center.y + Math.cos(driftTime * 0.86) * blob.driftY,
+    blob.center.z + Math.sin(driftTime * 0.42) * 0.18,
+  );
+  blob.mesh.rotation.x += dt * (0.035 + blob.driftSpeed * 0.08);
+  blob.mesh.rotation.y += dt * (0.05 + blob.driftSpeed * 0.1);
+  blob.mesh.scale.setScalar(scale);
+  blob.material.uniforms.u_time.value = elapsed * 0.38 + blob.seed;
+  blob.material.uniforms.u_intensity.value =
+    0.48 + Math.sin(elapsed * 0.48 + blob.seed) * 0.08;
 }
 
 export function LiquidBlobBackground({
-  count = MIN_BLOBS,
-  opacity = 0.72,
+  count = 8,
   className = "",
 }: Readonly<LiquidBlobBackgroundProps>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const pathRefs = useRef(new Map<string, SVGPathElement>());
-  const highlightRefs = useRef(new Map<string, SVGEllipseElement>());
-  const blobsRef = useRef<BlobParticle[]>([]);
-  const boundsRef = useRef<Bounds>({ w: 0, h: 0 });
-  const animationRef = useRef<number | null>(null);
-  const lastFrameRef = useRef<number | null>(null);
-  const [renderList, setRenderList] = useState<RenderBlob[]>([]);
-
-  const targetCount = Math.min(Math.max(count, MIN_BLOBS), MAX_BLOBS);
-  const syncRenderList = useCallback(() => {
-    setRenderList(blobsRef.current.map((blob) => ({ id: blob.id })));
-  }, []);
 
   useEffect(() => {
-    const element = containerRef.current;
-    if (!element) {
+    const container = containerRef.current;
+    if (!container) {
       return undefined;
     }
 
-    const initBlobs = (bounds: Bounds) => {
-      boundsRef.current = bounds;
-      blobsRef.current = Array.from({ length: targetCount }, () =>
-        createBlob(bounds),
-      );
-      syncRenderList();
-    };
+    let frameId = 0;
+    let lastFrame = 0;
+    const blobCount = Math.min(Math.max(count, MIN_BLOBS), MAX_BLOBS);
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+    camera.position.set(0, 0, 10);
 
-    const bounds = element.getBoundingClientRect();
-    initBlobs({ w: bounds.width, h: bounds.height });
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
-      boundsRef.current = { w: width, h: height };
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      powerPreference: "low-power",
     });
-    resizeObserver.observe(element);
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio ?? 1, 1.5));
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.width = "100%";
+    container.appendChild(renderer.domElement);
 
-    return () => resizeObserver.disconnect();
-  }, [syncRenderList, targetCount]);
+    const geometry = new THREE.IcosahedronGeometry(1, 7);
+    let aspect = 1;
+    const blobs = Array.from({ length: blobCount }, () => {
+      const blob = createBlob(geometry, aspect, BLOB_OPACITY);
+      scene.add(blob.mesh);
+      return blob;
+    });
 
-  useEffect(() => {
-    const tick = (timestamp: number) => {
-      lastFrameRef.current ??= timestamp;
-
-      const dt = Math.min((timestamp - lastFrameRef.current) / 1000, 0.05);
-      lastFrameRef.current = timestamp;
-      const bounds = boundsRef.current;
-
-      if (bounds.w > 0 && bounds.h > 0) {
-        const blobs = blobsRef.current;
-        applyAttraction(blobs, dt);
-        blobs.forEach((blob) => moveBlob(blob, bounds, dt));
-
-        const changedBlobs = replenishBlobs(
-          mergeOrSplitBlobs(blobs, bounds),
-          bounds,
-          targetCount,
-        );
-        if (changedBlobs !== blobs) {
-          blobsRef.current = changedBlobs;
-          syncRenderList();
-        }
-
-        const time = timestamp / 1000;
-        blobsRef.current.forEach((blob) => {
-          const path = pathRefs.current.get(blob.id);
-          if (path) {
-            path.setAttribute("d", createBlobPath(blob, time));
-          }
-
-          const highlight = highlightRefs.current.get(blob.id);
-          if (highlight) {
-            highlight.setAttribute("cx", `${blob.x - blob.r * 0.3}`);
-            highlight.setAttribute("cy", `${blob.y - blob.r * 0.36}`);
-            highlight.setAttribute("rx", `${blob.r * 0.3}`);
-            highlight.setAttribute("ry", `${blob.r * 0.18}`);
-          }
-        });
-      }
-
-      animationRef.current = requestAnimationFrame(tick);
+    const resize = () => {
+      const { width, height } = container.getBoundingClientRect();
+      const safeWidth = Math.max(width, 1);
+      const safeHeight = Math.max(height, 1);
+      aspect = safeWidth / safeHeight;
+      camera.left = (-VIEW_HEIGHT * aspect) / 2;
+      camera.right = (VIEW_HEIGHT * aspect) / 2;
+      camera.top = VIEW_HEIGHT / 2;
+      camera.bottom = -VIEW_HEIGHT / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(safeWidth, safeHeight, false);
     };
 
-    animationRef.current = requestAnimationFrame(tick);
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(container);
+    resize();
+
+    const animate = (timestamp: number) => {
+      const elapsed = timestamp / 1000;
+      const dt =
+        lastFrame === 0 ? 0 : Math.min((timestamp - lastFrame) / 1000, 0.05);
+      lastFrame = timestamp;
+
+      blobs.forEach((blob) => updateBlob(blob, elapsed, dt, aspect));
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(animate);
+    };
+
+    frameId = requestAnimationFrame(animate);
 
     return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      blobs.forEach((blob) => {
+        scene.remove(blob.mesh);
+        blob.material.dispose();
+      });
+      geometry.dispose();
+      renderer.dispose();
+      renderer.domElement.remove();
     };
-  }, [syncRenderList, targetCount]);
+  }, [count]);
 
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
-      style={{ opacity }}
-    >
-      <svg aria-hidden="true" className="block h-full w-full">
-        <defs>
-          <filter
-            id="liquid-blob-goo"
-            x="-45%"
-            y="-45%"
-            width="190%"
-            height="190%"
-          >
-            <feGaussianBlur
-              in="SourceGraphic"
-              stdDeviation="18"
-              result="blur"
-            />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11"
-              result="goo"
-            />
-            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-          </filter>
-          <radialGradient id="liquid-blob-gradient" cx="38%" cy="32%" r="74%">
-            <stop offset="0%" stopColor="#9bd7ff" />
-            <stop offset="52%" stopColor={BASE_COLOR} />
-            <stop offset="100%" stopColor="#0758b8" />
-          </radialGradient>
-        </defs>
-
-        <g filter="url(#liquid-blob-goo)">
-          {renderList.map((blob) => (
-            <path
-              key={blob.id}
-              ref={(element) => {
-                if (element) {
-                  pathRefs.current.set(blob.id, element);
-                } else {
-                  pathRefs.current.delete(blob.id);
-                }
-              }}
-              fill="url(#liquid-blob-gradient)"
-            />
-          ))}
-        </g>
-
-        <g style={{ mixBlendMode: "screen" }}>
-          {renderList.map((blob) => (
-            <ellipse
-              key={blob.id}
-              ref={(element) => {
-                if (element) {
-                  highlightRefs.current.set(blob.id, element);
-                } else {
-                  highlightRefs.current.delete(blob.id);
-                }
-              }}
-              fill={HIGHLIGHT_COLOR}
-              style={{ filter: "blur(4px)" }}
-            />
-          ))}
-        </g>
-      </svg>
-    </div>
+      className={`fixed inset-0 pointer-events-none overflow-hidden ${className}`}
+      aria-hidden="true"
+    />
   );
 }

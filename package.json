@@ -47,6 +47,7 @@
     "react-hook-form": "^7.49.3",
     "react-hot-toast": "^2.4.1",
     "tailwind-merge": "^2.2.1",
+    "three": "^0.185.1",
     "zod": "^3.22.4",
     "zustand": "^4.5.0"
   },
@@ -58,6 +59,7 @@
     "@types/node": "^20.19.27",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.185.0",
     "autoprefixer": "^10.4.23",
     "eslint": "^8.56.0",
     "eslint-config-next": "^15.3.0",
