@@ -6,7 +6,17 @@
 :root {
   color-scheme: light;
   --page-bg: #eef3f8;
-  --page-bg-accent: radial-gradient(circle at top left, rgba(19, 127, 236, 0.14), transparent 28%), radial-gradient(circle at top right, rgba(56, 189, 248, 0.1), transparent 22%);
+  --page-bg-accent:
+    radial-gradient(
+      circle at top left,
+      rgba(19, 127, 236, 0.14),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(56, 189, 248, 0.1),
+      transparent 22%
+    );
   --surface-base: rgba(255, 255, 255, 0.86);
   --surface-elevated: #ffffff;
   --surface-muted: #f3f6fa;
@@ -25,7 +35,17 @@
 .dark {
   color-scheme: dark;
   --page-bg: #07111f;
-  --page-bg-accent: radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 26%), radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 22%);
+  --page-bg-accent:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.18),
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(14, 165, 233, 0.14),
+      transparent 22%
+    );
   --surface-base: rgba(10, 18, 34, 0.88);
   --surface-elevated: #0c1527;
   --surface-muted: #0a1223;
@@ -47,14 +67,89 @@ html {
 }
 
 body {
-  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-family: var(--font-inter), "Inter", sans-serif;
   background: var(--page-bg-accent), var(--page-bg);
   color: var(--text-main-theme);
   overflow-x: clip;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-manrope), 'Inter', sans-serif;
+.site-ambient-shell {
+  isolation: isolate;
+  overflow-x: clip;
+}
+
+.site-ambient-background {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.site-liquid-blob {
+  position: absolute;
+  display: block;
+  border-radius: 44% 56% 62% 38% / 54% 42% 58% 46%;
+  background:
+    radial-gradient(
+      circle at 34% 28%,
+      rgba(255, 255, 255, 0.42),
+      transparent 26%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary-theme) 30%, transparent),
+      color-mix(in srgb, #22d3ee 24%, transparent)
+    );
+  filter: blur(46px);
+  opacity: 0.2;
+  transform: translate3d(0, 0, 0);
+  will-change: transform, border-radius;
+}
+
+.dark .site-liquid-blob {
+  opacity: 0.18;
+}
+
+.site-liquid-blob-one {
+  top: 8rem;
+  left: -11rem;
+  height: 24rem;
+  width: 31rem;
+  animation: liquidBlobFloatOne 31s ease-in-out infinite;
+}
+
+.site-liquid-blob-two {
+  top: 32rem;
+  right: -13rem;
+  height: 28rem;
+  width: 34rem;
+  animation: liquidBlobFloatTwo 37s ease-in-out -7s infinite;
+}
+
+.site-liquid-blob-three {
+  top: 78rem;
+  left: 12vw;
+  height: 22rem;
+  width: 32rem;
+  animation: liquidBlobFloatThree 43s ease-in-out -13s infinite;
+}
+
+.site-liquid-blob-four {
+  bottom: 10rem;
+  right: 14vw;
+  height: 26rem;
+  width: 36rem;
+  animation: liquidBlobFloatFour 49s ease-in-out -19s infinite;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-manrope), "Inter", sans-serif;
 }
 
 ::selection {
@@ -64,7 +159,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Material Symbols - Proper styling */
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
+  font-family: "Material Symbols Outlined";
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -75,13 +170,13 @@ h1, h2, h3, h4, h5, h6 {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: 'liga';
+  -webkit-font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
   font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24;
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
 }
 
 /* Custom scrollbar */
@@ -145,7 +240,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .prose code {
-  background: color-mix(in srgb, var(--primary-theme) 10%, var(--surface-muted));
+  background: color-mix(
+    in srgb,
+    var(--primary-theme) 10%,
+    var(--surface-muted)
+  );
   color: var(--text-main-theme);
   @apply rounded px-1.5 py-0.5 text-sm font-mono;
 }
@@ -232,7 +331,7 @@ h1, h2, h3, h4, h5, h6 {
 .rich-editor h3,
 .rich-editor h4 {
   color: var(--text-main-theme);
-  font-family: var(--font-manrope), 'Inter', sans-serif;
+  font-family: var(--font-manrope), "Inter", sans-serif;
   font-weight: 800;
   line-height: 1.2;
 }
@@ -271,14 +370,22 @@ h1, h2, h3, h4, h5, h6 {
 .rich-editor a {
   color: var(--primary-theme);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--primary-theme) 40%, transparent);
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--primary-theme) 40%,
+    transparent
+  );
 }
 
 .rich-editor code {
-  background: color-mix(in srgb, var(--primary-theme) 10%, var(--surface-muted));
+  background: color-mix(
+    in srgb,
+    var(--primary-theme) 10%,
+    var(--surface-muted)
+  );
   border-radius: 0.5rem;
   color: var(--text-main-theme);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 0.9em;
   padding: 0.15rem 0.35rem;
 }
@@ -332,13 +439,16 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
   max-width: 100%;
   border-radius: 1rem;
-  transition: box-shadow 0.2s ease, outline-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    outline-color 0.2s ease;
 }
 
 .rich-editor .rich-image-shell.is-selected {
   outline: 2px solid color-mix(in srgb, var(--primary-theme) 58%, transparent);
   outline-offset: 6px;
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary-theme) 12%, transparent);
+  box-shadow: 0 0 0 6px
+    color-mix(in srgb, var(--primary-theme) 12%, transparent);
 }
 
 .rich-editor .rich-image-element {
@@ -372,12 +482,18 @@ h1, h2, h3, h4, h5, h6 {
   height: 2rem;
   border-radius: 9999px;
   color: var(--text-muted-theme);
-  transition: background-color 0.18s ease, color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
 .rich-editor .rich-image-toolbar button:hover,
 .rich-editor .rich-image-toolbar button.is-active {
-  background: color-mix(in srgb, var(--primary-theme) 14%, var(--surface-muted));
+  background: color-mix(
+    in srgb,
+    var(--primary-theme) 14%,
+    var(--surface-muted)
+  );
   color: var(--primary-theme);
 }
 
@@ -538,7 +654,7 @@ h1, h2, h3, h4, h5, h6 {
 
   /* Specular highlight — top-right glossy spot */
   .theme-glow-button::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 8px;
     right: 12%;
@@ -555,12 +671,14 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 9999px;
     pointer-events: none;
     filter: blur(1px);
-    transition: opacity 0.35s ease, transform 0.35s ease;
+    transition:
+      opacity 0.35s ease,
+      transform 0.35s ease;
   }
 
   /* Liquid blob — hidden below, rises on hover */
   .theme-glow-button::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: -25%;
     background: radial-gradient(
@@ -573,9 +691,10 @@ h1, h2, h3, h4, h5, h6 {
     transform: translateY(130%) scale(0.7);
     z-index: -1;
     pointer-events: none;
-    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-                border-radius 0.55s ease,
-                opacity 0.35s ease;
+    transition:
+      transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 0.55s ease,
+      opacity 0.35s ease;
     opacity: 0;
   }
 
@@ -628,12 +747,14 @@ h1, h2, h3, h4, h5, h6 {
   .theme-input:focus {
     outline: none;
     border-color: color-mix(in srgb, var(--primary-theme) 35%, transparent);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-theme) 14%, transparent);
+    box-shadow: 0 0 0 4px
+      color-mix(in srgb, var(--primary-theme) 14%, transparent);
   }
 }
 
 @keyframes bubbleDriftNarrow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate3d(0, 0, 0);
   }
   25% {
@@ -648,7 +769,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes bubbleDriftWide {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate3d(0, 0, 0);
   }
   25% {
@@ -663,7 +785,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes liquidMorph {
-  0%, 100% {
+  0%,
+  100% {
     border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
     transform: translateY(0%) rotate(0deg);
   }
@@ -678,5 +801,75 @@ h1, h2, h3, h4, h5, h6 {
   75% {
     border-radius: 50% 50% 45% 55% / 55% 45% 55% 45%;
     transform: translateY(-5%) rotate(1.5deg);
+  }
+}
+
+@keyframes liquidBlobFloatOne {
+  0%,
+  100% {
+    border-radius: 44% 56% 62% 38% / 54% 42% 58% 46%;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  33% {
+    border-radius: 59% 41% 48% 52% / 42% 58% 41% 59%;
+    transform: translate3d(11vw, 8rem, 0) rotate(14deg) scale(1.08);
+  }
+  67% {
+    border-radius: 39% 61% 57% 43% / 62% 40% 60% 38%;
+    transform: translate3d(5vw, 18rem, 0) rotate(-9deg) scale(0.95);
+  }
+}
+
+@keyframes liquidBlobFloatTwo {
+  0%,
+  100% {
+    border-radius: 58% 42% 50% 50% / 46% 62% 38% 54%;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  28% {
+    border-radius: 42% 58% 64% 36% / 58% 36% 64% 42%;
+    transform: translate3d(-13vw, 5rem, 0) rotate(-16deg) scale(0.94);
+  }
+  72% {
+    border-radius: 62% 38% 43% 57% / 42% 55% 45% 58%;
+    transform: translate3d(-7vw, 20rem, 0) rotate(11deg) scale(1.06);
+  }
+}
+
+@keyframes liquidBlobFloatThree {
+  0%,
+  100% {
+    border-radius: 46% 54% 39% 61% / 54% 43% 57% 46%;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  38% {
+    border-radius: 64% 36% 58% 42% / 39% 61% 43% 57%;
+    transform: translate3d(23vw, -7rem, 0) rotate(17deg) scale(1.04);
+  }
+  76% {
+    border-radius: 41% 59% 45% 55% / 62% 38% 60% 40%;
+    transform: translate3d(12vw, 14rem, 0) rotate(-12deg) scale(0.92);
+  }
+}
+
+@keyframes liquidBlobFloatFour {
+  0%,
+  100% {
+    border-radius: 52% 48% 61% 39% / 43% 57% 46% 54%;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  31% {
+    border-radius: 38% 62% 46% 54% / 59% 41% 63% 37%;
+    transform: translate3d(-17vw, -11rem, 0) rotate(13deg) scale(0.96);
+  }
+  69% {
+    border-radius: 63% 37% 56% 44% / 41% 59% 39% 61%;
+    transform: translate3d(-4vw, -24rem, 0) rotate(-10deg) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-liquid-blob {
+    animation: none;
   }
 }
