@@ -45,8 +45,19 @@ const SPLIT_CHILDREN = 3;
 
 let blobUid = 0;
 
+function randomUnit() {
+  const cryptoApi = globalThis.crypto;
+  if (!cryptoApi?.getRandomValues) {
+    return 0.5;
+  }
+
+  const randomValues = new Uint32Array(1);
+  cryptoApi.getRandomValues(randomValues);
+  return randomValues[0] / 2 ** 32;
+}
+
 function randomBetween(min: number, max: number) {
-  return min + Math.random() * (max - min);
+  return min + randomUnit() * (max - min);
 }
 
 function nextBlobId() {
@@ -457,9 +468,7 @@ export function LiquidBlobBackground({
 
   useEffect(() => {
     const tick = (timestamp: number) => {
-      if (lastFrameRef.current === null) {
-        lastFrameRef.current = timestamp;
-      }
+      lastFrameRef.current ??= timestamp;
 
       const dt = Math.min((timestamp - lastFrameRef.current) / 1000, 0.05);
       lastFrameRef.current = timestamp;
