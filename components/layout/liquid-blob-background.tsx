@@ -28,8 +28,8 @@ const BLOB_COLOR = new THREE.Color("#9bdcff");
 const BLOB_OPACITY = 1;
 const TURN_AXIS = new THREE.Vector3(0, 0, 1);
 const VIEW_HEIGHT = 10;
-const MIN_BLOBS = 6;
-const MAX_BLOBS = 10;
+const MIN_BLOBS = 4;
+const MAX_BLOBS = 7;
 const VERTEX_SHADER = `
 uniform float u_intensity;
 uniform float u_time;
@@ -173,10 +173,10 @@ function getBounds(aspect: number) {
   const halfWidth = halfHeight * aspect;
 
   return {
-    minX: -halfWidth - 0.8,
-    maxX: halfWidth + 0.8,
-    minY: -halfHeight - 0.8,
-    maxY: halfHeight + 0.8,
+    minX: -halfWidth - 1.6,
+    maxX: halfWidth + 1.6,
+    minY: -halfHeight - 1.6,
+    maxY: halfHeight + 1.6,
   };
 }
 
@@ -305,7 +305,7 @@ function updateBlob(
 }
 
 export function LiquidBlobBackground({
-  count = 8,
+  count = 5,
   className = "",
 }: Readonly<LiquidBlobBackgroundProps>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
