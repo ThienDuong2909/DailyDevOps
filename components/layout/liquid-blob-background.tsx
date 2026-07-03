@@ -24,7 +24,7 @@ type LiquidBlobBackgroundProps = {
   className?: string;
 };
 
-const BLOB_COLOR = new THREE.Color("#5bb8ff");
+const BLOB_COLOR = new THREE.Color("#9bdcff");
 const BLOB_OPACITY = 1;
 const TURN_AXIS = new THREE.Vector3(0, 0, 1);
 const VIEW_HEIGHT = 10;
