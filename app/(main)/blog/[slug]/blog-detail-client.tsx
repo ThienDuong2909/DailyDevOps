@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useDictionary, useLocale } from "@/components/i18n/locale-provider";
@@ -19,15 +19,55 @@ import { PostComments } from "@/components/blog/detail/post-comments";
 import { PostSidebar } from "@/components/blog/detail/post-sidebar";
 import { useAuthStore } from "@/hooks/use-auth";
 import { useFetchPostData } from "@/hooks/use-fetch-post";
-import { useScrollSpy } from "@/hooks/use-scroll-spy";
 import { useCommentForm } from "@/hooks/use-comment-form";
-import { useReadingProgress, usePostActions } from "@/hooks/use-post-actions";
+import { usePostActions } from "@/hooks/use-post-actions";
 import { formatDate, getImageUrl } from "@/lib/utils";
 import type { Post, PostWithComments } from "@/types";
 
 const NON_AUTHOR_SLUG_CHARACTERS_REGEX = /[^a-z0-9\s-]/g;
 const AUTHOR_WHITESPACE_REGEX = /\s+/g;
 const AUTHOR_REPEATED_HYPHENS_REGEX = /-+/g;
+
+function ReadingProgressBar() {
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let rafId = 0;
+
+    const updateProgress = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = Math.min(
+        100,
+        max > 0 ? (window.scrollY / max) * 100 : 0,
+      );
+      if (progressRef.current) {
+        progressRef.current.style.transform = `scaleX(${progress / 100})`;
+      }
+    };
+
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateProgress);
+    };
+
+    updateProgress();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  return (
+    <div className="fixed left-0 right-0 top-0 z-50 h-1 bg-transparent">
+      <div
+        ref={progressRef}
+        className="h-full origin-left scale-x-0 bg-gradient-to-r from-primary to-cyan-400 transition-transform duration-150 ease-out"
+      />
+    </div>
+  );
+}
 
 function buildAuthorUsername(firstName: string, lastName: string) {
   let slug = `${firstName || ""} ${lastName || ""}`
@@ -79,9 +119,6 @@ export default function BlogDetailClient({
     relatedPosts: initialRelatedPosts,
     popularPosts: initialPopularPosts,
   });
-  const progress = useReadingProgress();
-  const [activeTocId, setActiveTocId] = useState("");
-
   const contentRef = useRef<HTMLDivElement>(null);
   const siteUrl = "https://dailydevops.blog";
   const localizedPostPath = withLocale(`/${slug}`, locale);
@@ -116,8 +153,6 @@ export default function BlogDetailClient({
         behavior: "smooth",
         block: "start",
       });
-
-      setActiveTocId(headingId);
     },
     [],
   );
@@ -139,7 +174,6 @@ export default function BlogDetailClient({
   );
   const formattedContent = normalizedContent.html;
   const derivedTocItems = normalizedContent.toc;
-  const effectiveActiveTocId = activeTocId || derivedTocItems[0]?.id || "";
 
   useEffect(() => {
     const contentNode = contentRef.current;
@@ -158,19 +192,6 @@ export default function BlogDetailClient({
       contentNode.removeEventListener("click", onContentClick);
     };
   }, [formattedContent, handleContentClick]);
-
-  useEffect(() => {
-    if (!activeTocId && derivedTocItems[0]?.id) {
-      setActiveTocId(derivedTocItems[0].id);
-    }
-  }, [activeTocId, derivedTocItems]);
-
-  useScrollSpy({
-    contentRef,
-    derivedTocItems,
-    setActiveTocId,
-    scrollToHeading,
-  });
 
   if (loading) return <PostDetailSkeleton />;
 
@@ -225,12 +246,7 @@ export default function BlogDetailClient({
       <BlogPostJsonLd post={post} postUrl={postUrl} />
       <BreadcrumbJsonLd post={post} siteUrl={siteUrl} locale={locale} />
 
-      <div className="fixed left-0 right-0 top-0 z-50 h-1 bg-transparent">
-        <div
-          className="h-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-150 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <ReadingProgressBar />
 
       <section className="mx-auto max-w-[1280px] overflow-x-clip px-4 pt-6 sm:pt-8 lg:px-8 lg:pt-10">
         <nav className="theme-muted mb-6 flex flex-wrap items-center gap-2 pb-1 text-sm">
@@ -360,9 +376,9 @@ export default function BlogDetailClient({
           </div>
 
           <PostSidebar
+            contentRef={contentRef}
             derivedTocItems={derivedTocItems}
             scrollToHeading={scrollToHeading}
-            effectiveActiveTocId={effectiveActiveTocId}
             popularPosts={popularPosts}
           />
         </div>
