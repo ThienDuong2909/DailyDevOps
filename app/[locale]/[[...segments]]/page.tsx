@@ -165,11 +165,11 @@ function getLocaleAlternates(
   currentPath: string,
   querySuffix: string,
 ): Record<"vi" | "en", string> {
-  const cleanPath = buildCleanPath(currentPath);
-  return {
-    vi: `${siteUrl}${cleanPath}${querySuffix}`,
-    en: `${siteUrl}${cleanPath}${querySuffix}`,
-  };
+  // Phase 2: Both locales share the same clean URL, so emitting hreflang
+  // alternates that point to the same URL sends confusing signals to Google.
+  // Return an empty record — hreflang will only be set on article pages
+  // where localeAlternates from the API provide genuinely different slugs.
+  return {} as Record<"vi" | "en", string>;
 }
 
 /**
@@ -291,7 +291,8 @@ function getStaticPageMetadata(locale: string, slug: string): Metadata | null {
       slug === "privacy-policy" ||
       slug === "terms-of-service" ||
       slug === "cookie-policy" ||
-      slug === "dmca-policy"
+      slug === "dmca-policy" ||
+      slug === "search"
         ? {
             index: false,
             follow: true,
@@ -404,11 +405,11 @@ function getHomeMetadata(locale: SiteLocale): Metadata {
 
 function getBlogIndexMetadata(locale: SiteLocale): Metadata {
   return {
-    title: locale === "en" ? "Articles" : "BÃ i viáº¿t",
+    title: locale === "en" ? "Articles" : "Bài viết",
     description:
       locale === "en"
-        ? "Browse the latest DevOps Daily articles."
-        : "KhÃ¡m phÃ¡ nhá»¯ng bÃ i viáº¿t má»›i nháº¥t vá» DevOps, cloud vÃ  automation.",
+        ? "Browse the latest DevOps Daily articles on Kubernetes, CI/CD, Docker, monitoring, and cloud infrastructure."
+        : "Khám phá những bài viết mới nhất về DevOps, Kubernetes, CI/CD, Docker, monitoring và hạ tầng cloud.",
     alternates: {
       canonical: `${siteUrl}/blog`,
     },
