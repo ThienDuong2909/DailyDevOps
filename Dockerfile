@@ -5,6 +5,11 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 
+ARG NEXT_PUBLIC_API_URL=https://api.dailydevops.blog
+ARG NEXT_PUBLIC_SITE_URL=https://dailydevops.blog
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+
 COPY package*.json ./
 RUN npm ci && npm cache clean --force
 
@@ -30,7 +35,6 @@ RUN apk upgrade --no-cache \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/.env.production ./.env.production
 
 USER nextjs
 
