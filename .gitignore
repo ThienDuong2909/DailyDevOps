@@ -37,4 +37,7 @@ next-env.d.ts
 jenkin_log.txt
 text.txt
 skills-lock.json
+.agents/
+.claude/
+.kilocode/
 

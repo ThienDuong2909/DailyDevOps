@@ -126,6 +126,25 @@ const nextConfig = {
     // not a content move.
     async redirects() {
         return [
+            // Canonical redirects for legacy markdown slugs to current post slugs
+            { source: '/00-gioi-thieu-tong-quan', destination: '/devops-journey-tong-quan', permanent: true },
+            { source: '/01-local-to-github', destination: '/tu-local-len-github', permanent: true },
+            { source: '/02-dockerize-application', destination: '/dockerize-application', permanent: true },
+            { source: '/03-jenkins-ci-pipeline', destination: '/jenkins-ci-pipeline', permanent: true },
+            { source: '/04-sonarqube-quality-gate', destination: '/sonarqube-quality-gate', permanent: true },
+            { source: '/05-deploy-k3s', destination: '/deploy-k3s-kubernetes', permanent: true },
+            { source: '/06-argocd-gitops', destination: '/argocd-gitops', permanent: true },
+            { source: '/07-prometheus-grafana', destination: '/prometheus-grafana-monitoring', permanent: true },
+            { source: '/08-application-metrics', destination: '/application-metrics-prom-client', permanent: true },
+            { source: '/09-loki-log-aggregation', destination: '/loki-log-aggregation', permanent: true },
+            { source: '/10-alertmanager-notifications', destination: '/alertmanager-notifications', permanent: true },
+            { source: '/11-tong-ket-huong-phat-trien', destination: '/tong-ket-huong-phat-trien', permanent: true },
+
+            // Casing normalization
+            { source: '/Blog/:path*', destination: '/blog/:path*', permanent: true },
+            { source: '/Category/:path*', destination: '/category/:path*', permanent: true },
+
+            // Block direct /vi/* and /en/* access — redirect to clean URL.
             { source: '/vi', destination: '/', permanent: false },
             { source: '/vi/:path*', destination: '/:path*', permanent: false },
             { source: '/en', destination: '/', permanent: false },

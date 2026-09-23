@@ -22,6 +22,7 @@ import {
   fetchPostBySlug,
   fetchRelatedPosts,
   fetchPopularPosts,
+  fetchCategoryBySlug,
 } from "@/lib/api/server";
 
 // C1: ISR — regenerate pages every hour
@@ -287,17 +288,10 @@ function getStaticPageMetadata(locale: string, slug: string): Metadata | null {
     alternates: {
       canonical: `${siteUrl}${canonicalPath}`,
     },
-    robots:
-      slug === "privacy-policy" ||
-      slug === "terms-of-service" ||
-      slug === "cookie-policy" ||
-      slug === "dmca-policy" ||
-      slug === "search"
-        ? {
-            index: false,
-            follow: true,
-          }
-        : undefined,
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 
@@ -396,7 +390,14 @@ async function buildArticleMetadata(
 
 function getHomeMetadata(locale: SiteLocale): Metadata {
   return {
-    title: locale === "en" ? "DevOps Blog" : "Daily DevOps",
+    title:
+      locale === "en"
+        ? "DevOps Blog - Automate Everything, Deploy Anywhere"
+        : "Daily DevOps — Automate Everything, Deploy Anywhere",
+    description:
+      locale === "en"
+        ? "The leading platform for DevOps insights, Kubernetes guides, CI/CD pipelines, and cloud automation practices."
+        : "Nguồn tài liệu thực chiến dành cho kỹ sư DevOps, SRE và Platform Engineer: Kubernetes, Docker, CI/CD, ArgoCD và Monitoring.",
     alternates: {
       canonical: siteUrl,
     },
@@ -404,14 +405,94 @@ function getHomeMetadata(locale: SiteLocale): Metadata {
 }
 
 function getBlogIndexMetadata(locale: SiteLocale): Metadata {
+  const title =
+    locale === "en"
+      ? "All DevOps Articles | DevOps Blog"
+      : "Tất cả bài viết DevOps, CI/CD, Kubernetes | Daily DevOps";
+  const description =
+    locale === "en"
+      ? "Browse all practical DevOps, Kubernetes, CI/CD, Docker, and Cloud infrastructure guides on DevOps Daily."
+      : "Tổng hợp tất cả các bài viết thực chiến về DevOps, Kubernetes, CI/CD, Docker, Cloud và Monitoring trên Daily DevOps.";
+
   return {
-    title: locale === "en" ? "Articles" : "Bài viết",
-    description:
-      locale === "en"
-        ? "Browse the latest DevOps Daily articles on Kubernetes, CI/CD, Docker, monitoring, and cloud infrastructure."
-        : "Khám phá những bài viết mới nhất về DevOps, Kubernetes, CI/CD, Docker, monitoring và hạ tầng cloud.",
+    title,
+    description,
     alternates: {
       canonical: `${siteUrl}/blog`,
+    },
+    openGraph: {
+      type: "website",
+      locale: locale === "vi" ? "vi_VN" : "en_US",
+      title,
+      description,
+      url: `${siteUrl}/blog`,
+      siteName: "DevOps Blog",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
+
+async function buildCategoryMetadata(
+  slug: string,
+  locale: SiteLocale,
+): Promise<Metadata> {
+  const category = await fetchCategoryBySlug(slug);
+
+  if (!category) {
+    return {
+      title:
+        locale === "en"
+          ? "Category Not Found | DevOps Blog"
+          : "Không tìm thấy chuyên mục | Daily DevOps",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const title =
+    locale === "en"
+      ? `${category.name} Articles | DevOps Blog`
+      : `Chuyên mục ${category.name} | Daily DevOps`;
+  const description =
+    category.description ||
+    (locale === "en"
+      ? `Explore expert DevOps and platform engineering articles in the ${category.name} category.`
+      : `Tổng hợp các bài viết chuyên sâu về ${category.name} trên Daily DevOps: hướng dẫn cài đặt, kiến trúc, best practices và xử lý sự cố.`);
+
+  const canonicalUrl = `${siteUrl}/category/${category.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      type: "website",
+      locale: locale === "vi" ? "vi_VN" : "en_US",
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "DevOps Blog",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+    robots: {
+      index: true,
+      follow: true,
     },
   };
 }
@@ -426,6 +507,19 @@ async function resolveSegmentMetadata(
 
   if (segments[0] === "blog" && segments.length === 1) {
     return getBlogIndexMetadata(locale);
+  }
+
+  if (segments[0] === "category" && segments.length === 2 && segments[1]) {
+    return buildCategoryMetadata(segments[1], locale);
+  }
+
+  if (segments[0] === "tag") {
+    return {
+      robots: {
+        index: false,
+        follow: true,
+      },
+    };
   }
 
   const isDirectArticleRoute =
@@ -472,6 +566,10 @@ async function renderBlogDetailPage(
     slug,
     locale,
   );
+
+  if (!ssrPost) {
+    notFound();
+  }
 
   return wrapWithLocaleSync(
     alternates,

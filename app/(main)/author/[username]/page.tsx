@@ -91,6 +91,10 @@ export async function generateMetadata({
           ? `/author/${username}`
           : `/${resolvedLocale}/author/${username}`,
     },
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 

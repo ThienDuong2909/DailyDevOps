@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PostCard } from "@/components/blog/post-card";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { SITE_URL } from "@/lib/constants/site";
 import type { Category, PaginatedResponse, Post } from "@/types";
 
 const apiBaseUrl =
@@ -113,21 +114,40 @@ export async function generateMetadata({
     };
   }
 
+  const title =
+    resolvedLocale === "en"
+      ? `${category.name} Articles | DevOps Blog`
+      : `Chuyên mục ${category.name} | Daily DevOps`;
+  const description =
+    category.description ||
+    (resolvedLocale === "en"
+      ? `Explore expert DevOps and platform engineering articles in the ${category.name} category.`
+      : `Tổng hợp các bài viết chuyên sâu về ${category.name} trên Daily DevOps: hướng dẫn cài đặt, kiến trúc, best practices và xử lý sự cố.`);
+
+  const canonicalUrl = `${SITE_URL}/category/${category.slug}`;
+
   return {
-    title:
-      resolvedLocale === "en"
-        ? `${category.name} Articles`
-        : `Bài viết về ${category.name}`,
-    description:
-      category.description ||
-      (resolvedLocale === "en"
-        ? `Browse published DevOps Daily articles in the ${category.name} category.`
-        : `Khám phá các bài viết Daily DevOps thuộc chuyên mục ${category.name}.`),
+    title,
+    description,
     alternates: {
-      canonical:
-        resolvedLocale === "vi"
-          ? `/category/${category.slug}`
-          : `/${resolvedLocale}/category/${category.slug}`,
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      type: "website",
+      locale: resolvedLocale === "vi" ? "vi_VN" : "en_US",
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "DevOps Blog",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+    robots: {
+      index: true,
+      follow: true,
     },
   };
 }

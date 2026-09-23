@@ -8,11 +8,8 @@ export async function GET() {
   // Excluded: privacy-policy, terms-of-service, cookie-policy, dmca-policy (noindex),
   //           search (dynamic content, should not be indexed).
   const pages = [
-    { url: siteUrl, changeFrequency: "daily", priority: 1 },
+    { url: siteUrl, changeFrequency: "daily", priority: 1.0 },
     { url: `${siteUrl}/blog`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${siteUrl}/newsletter`, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${siteUrl}/about`, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${siteUrl}/contact`, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   const items = pages.map((page) => ({

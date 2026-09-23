@@ -72,3 +72,37 @@ export async function fetchPopularPosts(locale: string, limit = 5) {
     return [];
   }
 }
+
+/**
+ * Fetch all categories with 1-hour ISR revalidation.
+ */
+export async function fetchCategories() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/categories`, {
+      next: { revalidate: 3600 },
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const json = await res.json();
+    return Array.isArray(json.data) ? json.data : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch a single category by slug.
+ */
+export async function fetchCategoryBySlug(slug: string) {
+  try {
+    const categories = await fetchCategories();
+    return (
+      categories.find((cat: { slug: string }) => cat.slug === slug) || null
+    );
+  } catch {
+    return null;
+  }
+}

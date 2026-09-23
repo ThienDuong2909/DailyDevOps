@@ -125,6 +125,10 @@ export async function generateMetadata({
           ? `/tag/${tag.slug}`
           : `/${resolvedLocale}/tag/${tag.slug}`,
     },
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 
