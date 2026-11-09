@@ -654,7 +654,7 @@ async function renderTwoSegmentPage(
     case "category":
       return wrapWithLocaleSync(
         alternates,
-        await CategoryPage({ params: Promise.resolve({ slug, locale }) }),
+        <CategoryPage params={Promise.resolve({ slug, locale })} />,
       );
     case "tag":
       return wrapWithLocaleSync(
