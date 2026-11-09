@@ -52,11 +52,11 @@ const nextConfig = {
     async headers() {
         const isDev = process.env.NODE_ENV === 'development';
         const scriptSrc = isDev
-            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://www.googletagmanager.com"
-            : "script-src 'self' 'unsafe-inline' https://*.sentry.io https://www.googletagmanager.com";
+            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://www.googletagmanager.com https://static.cloudflareinsights.com"
+            : "script-src 'self' 'unsafe-inline' https://*.sentry.io https://www.googletagmanager.com https://static.cloudflareinsights.com";
         const connectSrc = isDev
-            ? "connect-src 'self' http://localhost:3001 https://api.dailydevops.blog https://devopsdaily-api.devopsdaily.workers.dev https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com ws://localhost:3000"
-            : "connect-src 'self' https://api.dailydevops.blog https://devopsdaily-api.devopsdaily.workers.dev https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com";
+            ? "connect-src 'self' http://localhost:3001 https://api.dailydevops.blog https://devopsdaily-api.devopsdaily.workers.dev https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com https://cloudflareinsights.com https://static.cloudflareinsights.com ws://localhost:3000"
+            : "connect-src 'self' https://api.dailydevops.blog https://devopsdaily-api.devopsdaily.workers.dev https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com https://cloudflareinsights.com https://static.cloudflareinsights.com";
         return [{
             source: '/(.*)',
             headers: [
