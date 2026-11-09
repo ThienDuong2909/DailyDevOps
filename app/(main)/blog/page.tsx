@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { permanentRedirect } from "next/navigation";
 import { BlogListingContent } from "@/components/blog/blog-listing-content";
 import { SITE_URL } from "@/lib/constants/site";
 
@@ -75,7 +76,21 @@ function BlogListingFallback() {
   );
 }
 
-export default function BlogPage() {
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    category?: string;
+    page?: string;
+    q?: string;
+    sort?: string;
+  }>;
+} = {}) {
+  const resolved = await searchParams;
+  if (resolved?.category && resolved.category !== "all") {
+    permanentRedirect(`/category/${encodeURIComponent(resolved.category)}`);
+  }
+
   return (
     <Suspense fallback={<BlogListingFallback />}>
       <BlogListingContent />

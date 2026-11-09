@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import MainHomePage from "@/app/(main)/page";
 import BlogPage from "@/app/(main)/blog/page";
 import BlogDetailClient from "@/app/(main)/blog/[slug]/blog-detail-client";
@@ -626,8 +626,16 @@ async function renderSingleSegmentPage(
         alternates,
         <DmcaPolicyPageContent locale={locale} />,
       );
-    case "blog":
-      return wrapWithLocaleSync(alternates, <BlogPage />);
+    case "blog": {
+      const sp = (await searchParams) as { category?: string } | undefined;
+      if (sp?.category && sp.category !== "all") {
+        permanentRedirect(`/category/${encodeURIComponent(sp.category)}`);
+      }
+      return wrapWithLocaleSync(
+        alternates,
+        <BlogPage searchParams={searchParams} />,
+      );
+    }
     default:
       return renderBlogDetailPage(slug, locale, alternates);
   }

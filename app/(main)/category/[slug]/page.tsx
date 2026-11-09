@@ -4,90 +4,7 @@ import { PostCard } from "@/components/blog/post-card";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { SITE_URL } from "@/lib/constants/site";
-import type { Category, PaginatedResponse, Post } from "@/types";
-
-const apiBaseUrl =
-  process.env.INTERNAL_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
-type CategoriesPayload = { data?: Category[] } | Category[];
-type PostsPayload =
-  | PaginatedResponse<Post>
-  | { data?: PaginatedResponse<Post> | Post[] }
-  | Post[];
-
-function resolveCategories(payload: CategoriesPayload): Category[] {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
-  if (payload && typeof payload === "object" && "data" in payload) {
-    return Array.isArray(payload.data) ? payload.data : [];
-  }
-
-  return [];
-}
-
-function resolvePosts(payload: PostsPayload): Post[] {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
-  if (payload && typeof payload === "object" && "data" in payload) {
-    const nested = payload.data;
-
-    if (Array.isArray(nested)) {
-      return nested;
-    }
-
-    if (nested && typeof nested === "object" && "data" in nested) {
-      return (nested.data as Post[]) || [];
-    }
-  }
-
-  return (payload as PaginatedResponse<Post>)?.data || [];
-}
-
-async function fetchCategories(): Promise<Category[]> {
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/categories`, {
-      next: { revalidate: 3600 },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const json = await response.json();
-    return resolveCategories(json);
-  } catch {
-    return [];
-  }
-}
-
-async function fetchPostsByCategory(
-  categoryId: string,
-  locale = "vi",
-): Promise<Post[]> {
-  try {
-    const response = await fetch(
-      `${apiBaseUrl}/api/v1/posts/published?categoryId=${encodeURIComponent(categoryId)}&limit=20&sortBy=publishedAt&sortOrder=desc&locale=${locale}`,
-      {
-        next: { revalidate: 300 },
-      },
-    );
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const json = await response.json();
-    return resolvePosts(json);
-  } catch {
-    return [];
-  }
-}
+import { fetchCategoryBySlug, fetchPostsByCategory } from "@/lib/api/server";
 
 export async function generateMetadata({
   params,
@@ -98,8 +15,7 @@ export async function generateMetadata({
   const resolvedLocale = locale
     ? normalizeLocale(locale)
     : await getRequestLocale();
-  const categories = await fetchCategories();
-  const category = categories.find((item) => item.slug === slug);
+  const category = await fetchCategoryBySlug(slug);
 
   if (!category) {
     return {
@@ -161,14 +77,16 @@ export default async function CategoryPage({
   const resolvedLocale = locale
     ? normalizeLocale(locale)
     : await getRequestLocale();
-  const categories = await fetchCategories();
-  const category = categories.find((item) => item.slug === slug);
+  const category = await fetchCategoryBySlug(slug);
 
   if (!category) {
     notFound();
   }
 
-  const posts = await fetchPostsByCategory(category.id, resolvedLocale);
+  const posts = await fetchPostsByCategory(
+    category.slug || category.id,
+    resolvedLocale,
+  );
   const copy =
     resolvedLocale === "en"
       ? {

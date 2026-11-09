@@ -17,6 +17,15 @@ export default function robots(): MetadataRoute.Robots {
     "/account",
     "/account/",
     "/search",
+    "/tag",
+    "/tag/",
+    "/about",
+    "/contact",
+    "/newsletter",
+    "/privacy-policy",
+    "/terms-of-service",
+    "/cookie-policy",
+    "/dmca-policy",
   ];
 
   return {

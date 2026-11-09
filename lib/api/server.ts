@@ -128,3 +128,34 @@ export async function fetchCategoryBySlug(slug: string) {
     return null;
   }
 }
+
+/**
+ * Fetch published posts for a specific category by slug or ID.
+ */
+export async function fetchPostsByCategory(
+  categorySlugOrId: string,
+  locale = "vi",
+  limit = 20,
+) {
+  try {
+    const isId = /^[0-9a-fA-F-]{36}$/.test(categorySlugOrId);
+    const param = isId
+      ? `categoryId=${encodeURIComponent(categorySlugOrId)}`
+      : `categorySlug=${encodeURIComponent(categorySlugOrId)}`;
+
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/posts/published?${param}&limit=${limit}&sortBy=publishedAt&sortOrder=desc&locale=${locale}`,
+      { next: { revalidate: 300 } },
+    );
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const json = await res.json();
+    const posts = json.data?.data || json.data || [];
+    return Array.isArray(posts) ? posts : [];
+  } catch {
+    return [];
+  }
+}

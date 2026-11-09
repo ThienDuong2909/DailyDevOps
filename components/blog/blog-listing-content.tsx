@@ -420,29 +420,27 @@ export function BlogListingContent() {
           </>
         ) : (
           <>
-            <button
-              onClick={() => updateUrl({ category: "all", page: "1" })}
+            <Link
+              href={withLocale("/blog", locale)}
               className={cn(
                 "flex h-9 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-medium transition-all active:scale-95",
                 currentCategory === "all"
                   ? "border-primary bg-primary text-white shadow-sm"
                   : "border-[var(--border-soft-theme)] bg-[var(--surface-elevated)] text-[var(--text-main-theme)] hover:border-primary hover:text-primary",
               )}
-              type="button"
             >
               {dictionary.blog.allCategories}
-            </button>
+            </Link>
             {categories.map((cat) => (
-              <button
+              <Link
                 key={cat.id}
-                onClick={() => updateUrl({ category: cat.slug, page: "1" })}
+                href={withLocale(`/category/${cat.slug}`, locale)}
                 className={cn(
                   "flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-all active:scale-95",
                   currentCategory === cat.slug
                     ? "border-primary bg-primary text-white shadow-sm"
                     : "border-[var(--border-soft-theme)] bg-[var(--surface-elevated)] text-[var(--text-main-theme)] hover:border-primary hover:text-primary",
                 )}
-                type="button"
               >
                 {cat.name}
                 {cat._count?.posts ? (
@@ -457,7 +455,7 @@ export function BlogListingContent() {
                     {cat._count.posts}
                   </span>
                 ) : null}
-              </button>
+              </Link>
             ))}
           </>
         )}

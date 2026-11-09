@@ -4,7 +4,7 @@ import { siteUrl, fetchSitemapData, buildSitemapIndexXml } from "@/lib/sitemap";
 export const revalidate = 3600;
 
 export async function GET() {
-  const { posts, categories, tags } = await fetchSitemapData();
+  const { posts, categories } = await fetchSitemapData();
 
   const latestPostDate =
     posts.length > 0
@@ -24,16 +24,7 @@ export async function GET() {
         )
       : new Date();
 
-  const latestTagDate =
-    tags.length > 0
-      ? new Date(Math.max(...tags.map((t) => new Date(t.updatedAt).getTime())))
-      : new Date();
-
   const items = [
-    {
-      url: `${siteUrl}/page-sitemap.xml`,
-      lastModified: new Date().toISOString(),
-    },
     {
       url: `${siteUrl}/post-sitemap.xml`,
       lastModified: latestPostDate.toISOString(),
