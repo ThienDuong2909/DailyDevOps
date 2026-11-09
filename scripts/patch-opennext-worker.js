@@ -12,6 +12,8 @@ const path = require('path');
 
 const rootDir = path.join(__dirname, '..');
 const workerPath = path.join(rootDir, '.open-next', 'worker.js');
+const buildIdFile = path.join(rootDir, '.next', 'BUILD_ID');
+const buildId = fs.existsSync(buildIdFile) ? fs.readFileSync(buildIdFile, 'utf8').trim() : Date.now().toString(36);
 
 function collectFiles(targetPath, acc = []) {
     const fullPath = path.join(rootDir, targetPath);
@@ -44,6 +46,10 @@ const baseLayoutPaths = [
     'app/layout.tsx',
     'app/globals.css',
     'app/(main)/layout.tsx',
+    'app/[locale]',
+    'lib',
+    'stores',
+    'hooks',
     'components/layout',
     'components/ui',
     'components/shared',
@@ -97,6 +103,7 @@ export { BucketCachePurge } from "./.build/durable-objects/bucket-cache-purge.js
 const nativeFetch = globalThis.fetch.bind(globalThis);
 let webCacheVersion = "v1";
 let webCacheVersionFetchedAt = 0;
+const BUILD_ID = "${buildId}";
 
 const ROUTE_CODE_HASHES = ${JSON.stringify(routeCodeHashes, null, 4)};
 
@@ -242,7 +249,7 @@ export default {
                 const isRsc = request.headers.get("rsc") === "1" ? "1" : "0";
                 const cacheUrl = new URL(url.toString());
                 cacheUrl.hostname = "webcache.dailydevops.blog";
-                cacheUrl.searchParams.set("__cv", \`\${currentVersion}_\${routeHash}\`);
+                cacheUrl.searchParams.set("__cv", \`\${BUILD_ID}_\${currentVersion}_\${routeHash}\`);
                 cacheUrl.searchParams.set("__loc", locale);
                 cacheUrl.searchParams.set("__rsc", isRsc);
 
@@ -251,7 +258,7 @@ export default {
                 if (cachedPage) {
                     const hitHeaders = new Headers(cachedPage.headers);
                     hitHeaders.set("X-Edge-Cache", "HIT");
-                    hitHeaders.set("X-Cache-Version", currentVersion);
+                    hitHeaders.set("X-Cache-Version", \`\${BUILD_ID}_\${currentVersion}\`);
                     hitHeaders.set("X-Route-Hash", routeHash);
                     return new Response(cachedPage.body, {
                         status: cachedPage.status,
@@ -274,7 +281,7 @@ export default {
                 missHeaders.set("Cache-Control", "public, max-age=60, s-maxage=86400, stale-while-revalidate=604800");
                 missHeaders.set("CDN-Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
                 missHeaders.set("X-Edge-Cache", "MISS");
-                missHeaders.set("X-Cache-Version", currentVersion);
+                missHeaders.set("X-Cache-Version", \`\${BUILD_ID}_\${currentVersion}\`);
                 missHeaders.set("X-Route-Hash", routeHash);
                 missHeaders.delete("set-cookie");
 
