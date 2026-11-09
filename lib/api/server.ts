@@ -74,6 +74,28 @@ export async function fetchPopularPosts(locale: string, limit = 5) {
 }
 
 /**
+ * Fetch latest published posts for homepage display.
+ */
+export async function fetchPublishedPosts(locale: string, limit = 12) {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/posts/published?limit=${limit}&sortBy=publishedAt&sortOrder=desc&locale=${locale}`,
+      { next: { revalidate: 3600 } },
+    );
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const json = await res.json();
+    const posts = json.data?.data || json.data || [];
+    return Array.isArray(posts) ? posts : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Fetch all categories with 1-hour ISR revalidation.
  */
 export async function fetchCategories() {

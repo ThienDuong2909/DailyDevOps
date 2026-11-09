@@ -23,6 +23,8 @@ import {
   fetchRelatedPosts,
   fetchPopularPosts,
   fetchCategoryBySlug,
+  fetchPublishedPosts,
+  fetchCategories,
 } from "@/lib/api/server";
 
 // C1: ISR — regenerate pages every hour
@@ -712,7 +714,17 @@ export default async function LocalizedPage({
   const alternates = getLocaleAlternates(currentPath, querySuffix);
 
   if (segments.length === 0) {
-    return wrapWithLocaleSync(alternates, <MainHomePage />);
+    const [initialPosts, initialCategories] = await Promise.all([
+      fetchPublishedPosts(activeLocale, 12),
+      fetchCategories(),
+    ]);
+    return wrapWithLocaleSync(
+      alternates,
+      <MainHomePage
+        initialPosts={initialPosts}
+        initialCategories={initialCategories}
+      />,
+    );
   }
 
   if (segments.length === 1) {

@@ -23,14 +23,6 @@ function unwrapApiData<T>(payload: unknown): T | null {
   return payload as T;
 }
 
-function resolveStoredAccessToken() {
-  if (globalThis.window === undefined) {
-    return null;
-  }
-
-  return globalThis.window.localStorage.getItem("accessToken");
-}
-
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -60,10 +52,29 @@ export const authStore = create<AuthState>()(
           return;
         }
 
-        const token = getAccessToken() || resolveStoredAccessToken();
+        let token = getAccessToken();
 
-        if (token) {
-          setAccessToken(token);
+        // If no token in memory, attempt silent refresh via HttpOnly refresh cookie
+        if (!token) {
+          try {
+            const refreshRes = await apiClient.post<unknown>(
+              "/api/v1/auth/refresh",
+            );
+            const refreshData = unwrapApiData<{ accessToken?: string }>(
+              refreshRes,
+            );
+            const resolvedToken =
+              typeof refreshData === "string"
+                ? refreshData
+                : refreshData?.accessToken;
+
+            if (resolvedToken) {
+              setAccessToken(resolvedToken);
+              token = resolvedToken;
+            }
+          } catch {
+            // Guest mode / no refresh cookie present
+          }
         }
 
         if (!token) {
@@ -71,14 +82,24 @@ export const authStore = create<AuthState>()(
             user: null,
             isAuthenticated: false,
             isInitialized: true,
+            isLoading: false,
           });
           return;
         }
 
         try {
           await get().fetchProfile();
+          set({
+            isAuthenticated: true,
+          });
+        } catch {
+          setAccessToken(null);
+          set({
+            user: null,
+            isAuthenticated: false,
+          });
         } finally {
-          set({ isInitialized: true });
+          set({ isInitialized: true, isLoading: false });
         }
       },
 

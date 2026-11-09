@@ -35,17 +35,6 @@ let accessToken: string | null = null;
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
-
-  if (globalThis.window === undefined) {
-    return;
-  }
-
-  if (token) {
-    globalThis.window.localStorage.setItem("accessToken", token);
-    return;
-  }
-
-  globalThis.window.localStorage.removeItem("accessToken");
 };
 
 export const getAccessToken = (): string | null => {

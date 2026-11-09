@@ -21,6 +21,7 @@ import { useAuthStore } from "@/hooks/use-auth";
 import { useFetchPostData } from "@/hooks/use-fetch-post";
 import { useCommentForm } from "@/hooks/use-comment-form";
 import { usePostActions } from "@/hooks/use-post-actions";
+import { apiClient } from "@/lib/api";
 import { formatDate, getImageUrl } from "@/lib/utils";
 import type { Post, PostWithComments } from "@/types";
 
@@ -160,6 +161,12 @@ export default function BlogDetailClient({
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  useEffect(() => {
+    if (post?.slug) {
+      apiClient.post(`/api/v1/posts/${post.slug}/view`).catch(() => {});
+    }
+  }, [post?.slug]);
 
   const primaryContent = post?.contentHtml || post?.content || "";
 

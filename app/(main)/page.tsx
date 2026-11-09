@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { BlogHomeContent } from "@/components/blog/home/blog-home-content";
+import { fetchCategories, fetchPublishedPosts } from "@/lib/api/server";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { SITE_URL } from "@/lib/constants/site";
+import type { Category, Post } from "@/types";
 
 export const metadata: Metadata = {
   title: "Daily DevOps — Automate Everything, Deploy Anywhere",
@@ -20,6 +23,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function MainHomePage() {
-  return <BlogHomeContent />;
+export default async function MainHomePage({
+  initialPosts,
+  initialCategories,
+}: {
+  initialPosts?: Post[];
+  initialCategories?: Category[];
+} = {}) {
+  const locale = await getRequestLocale();
+  const posts = initialPosts || (await fetchPublishedPosts(locale, 12));
+  const categories = initialCategories || (await fetchCategories());
+
+  return (
+    <BlogHomeContent initialPosts={posts} initialCategories={categories} />
+  );
 }
