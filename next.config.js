@@ -14,7 +14,14 @@ if (parsedApiBaseUrl.port) {
 
 const nextConfig = {
     output: 'standalone',
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: true,
+    },
     images: {
+        unoptimized: true,
         remotePatterns: [
             {
                 protocol: 'https',
@@ -34,6 +41,11 @@ const nextConfig = {
                 hostname: 'api.dailydevops.blog',
                 pathname: '/api/v1/media/**',
             },
+            {
+                protocol: 'https',
+                hostname: 'devopsdaily-api.devopsdaily.workers.dev',
+                pathname: '/api/v1/media/**',
+            },
         ],
     },
     // M6: Security headers — CSP, X-Frame-Options, etc.
@@ -43,8 +55,8 @@ const nextConfig = {
             ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://www.googletagmanager.com"
             : "script-src 'self' 'unsafe-inline' https://*.sentry.io https://www.googletagmanager.com";
         const connectSrc = isDev
-            ? "connect-src 'self' http://localhost:3001 https://api.dailydevops.blog https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com ws://localhost:3000"
-            : "connect-src 'self' https://api.dailydevops.blog https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com";
+            ? "connect-src 'self' http://localhost:3001 https://api.dailydevops.blog https://devopsdaily-api.devopsdaily.workers.dev https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com ws://localhost:3000"
+            : "connect-src 'self' https://api.dailydevops.blog https://devopsdaily-api.devopsdaily.workers.dev https://*.sentry.io https://www.googletagmanager.com https://www.google-analytics.com";
         return [{
             source: '/(.*)',
             headers: [

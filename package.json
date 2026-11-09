@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cf": "opennextjs-cloudflare build && node scripts/patch-opennext-worker.js",
+    "deploy:cf": "npm run build:cf && wrangler deploy",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "test:e2e": "playwright test",
@@ -52,6 +54,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.16",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/forms": "^0.5.7",
@@ -68,7 +71,8 @@
     "postcss": "^8.5.6",
     "prettier": "^3.8.3",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.158.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

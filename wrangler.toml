@@ -1,0 +1,24 @@
+name = "devopsdaily-web"
+main = ".open-next/worker.js"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [
+  { pattern = "dailydevops.blog", custom_domain = true },
+  { pattern = "www.dailydevops.blog", custom_domain = true }
+]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[[services]]
+binding = "API_SERVICE"
+service = "devopsdaily-api"
+
+[vars]
+NEXT_PUBLIC_API_URL = "https://api.dailydevops.blog"
+INTERNAL_API_URL = "https://api.dailydevops.blog"
+NEXT_PUBLIC_APP_NAME = "DevOps Blog"
+NEXT_PUBLIC_APP_URL = "https://dailydevops.blog"
+NEXT_PUBLIC_SITE_URL = "https://dailydevops.blog"

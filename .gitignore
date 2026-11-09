@@ -41,3 +41,7 @@ skills-lock.json
 .claude/
 .kilocode/
 
+
+# cloudflare open-next & wrangler
+/.open-next/
+/.wrangler/
