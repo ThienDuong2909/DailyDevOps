@@ -3,87 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 
 import { HeaderAuthButton } from "@/components/auth/header-auth-button";
 import { useDictionary, useLocale } from "@/components/i18n/locale-provider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { apiClient } from "@/lib/api";
 import type { SiteLocale } from "@/lib/i18n/config";
 import { withLocale } from "@/lib/i18n/config";
 import { useSiteSettings } from "@/hooks/use-site-settings";
-import { getImageUrl } from "@/lib/utils";
-
-type SearchSuggestion = {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt?: string;
-  featuredImage?: string | null;
-  category?: {
-    id: string;
-    name: string;
-    slug: string;
-  } | null;
-};
+import { CommandPaletteModal } from "@/components/search/command-palette-modal";
+import { loadSearchIndex } from "@/lib/search/search-engine";
 
 type HeaderDictionary = ReturnType<typeof useDictionary>;
-
-function createSearchDestination(query: string, locale: SiteLocale) {
-  const trimmed = query.trim();
-  return trimmed
-    ? `${withLocale("/blog", locale)}?q=${encodeURIComponent(trimmed)}`
-    : withLocale("/blog", locale);
-}
-
-function useHeaderSuggestions(locale: SiteLocale, searchQuery: string) {
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-
-  useEffect(() => {
-    const trimmed = searchQuery.trim();
-
-    if (!trimmed) {
-      setSuggestions([]);
-      setIsLoadingSuggestions(false);
-      return;
-    }
-
-    let isMounted = true;
-    const timer = setTimeout(async () => {
-      try {
-        setIsLoadingSuggestions(true);
-        const response = await apiClient.get<{ data?: SearchSuggestion[] }>(
-          `/api/v1/posts/autocomplete?q=${encodeURIComponent(trimmed)}&limit=5&locale=${locale}`,
-        );
-
-        if (!isMounted) {
-          return;
-        }
-
-        setSuggestions(response?.data || []);
-      } catch {
-        if (isMounted) {
-          setSuggestions([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingSuggestions(false);
-        }
-      }
-    }, 220);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [locale, searchQuery]);
-
-  return {
-    suggestions,
-    isLoadingSuggestions,
-  };
-}
 
 function LocaleSwitch({
   locale,
@@ -123,7 +54,9 @@ function LocaleSwitch({
             key={l.code}
             type="button"
             onClick={() => switchLocale(l.code)}
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${locale === l.code ? "bg-primary text-white" : "text-text-sub"}`}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${
+              locale === l.code ? "bg-primary text-white" : "text-text-sub"
+            }`}
             aria-label={`Switch to ${l.label}`}
           >
             {l.flag} {l.label}
@@ -164,104 +97,16 @@ function LocaleSwitch({
   );
 }
 
-function SearchSuggestionsPanel({
-  showSuggestions,
-  searchQuery,
-  isLoadingSuggestions,
-  suggestions,
-  dictionary,
-  handleSuggestionSelect,
-}: Readonly<{
-  showSuggestions: boolean;
-  searchQuery: string;
-  isLoadingSuggestions: boolean;
-  suggestions: SearchSuggestion[];
-  dictionary: HeaderDictionary;
-  handleSuggestionSelect: (slug: string) => void;
-}>) {
-  if (!showSuggestions || !searchQuery.trim()) {
-    return null;
-  }
-
-  return (
-    <div className="theme-panel theme-border absolute top-12 z-50 w-full overflow-hidden rounded-2xl border shadow-2xl">
-      {isLoadingSuggestions ? (
-        <div className="px-4 py-3 text-sm theme-muted">
-          {dictionary.blog.suggestionsLoading}
-        </div>
-      ) : suggestions.length === 0 ? (
-        <button
-          type="submit"
-          className="block w-full px-4 py-3 text-left text-sm theme-muted transition-colors hover:bg-primary/5 hover:text-primary"
-        >
-          {dictionary.blog.searchLibraryFor} &quot;
-          {searchQuery.trim()}&quot;
-        </button>
-      ) : (
-        <>
-          {suggestions.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleSuggestionSelect(item.slug)}
-              className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/5"
-            >
-              <div className="theme-panel-muted theme-border flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border">
-                {item.featuredImage ? (
-                  <img
-                    src={getImageUrl(item.featuredImage)}
-                    alt={item.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="material-symbols-outlined text-primary">
-                    article
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[color:var(--text-main-theme)]">
-                  {item.title}
-                </p>
-                {item.category ? (
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                    {item.category.name}
-                  </p>
-                ) : null}
-                {item.excerpt ? (
-                  <p className="theme-muted mt-1 line-clamp-2 text-xs">
-                    {item.excerpt}
-                  </p>
-                ) : null}
-              </div>
-            </button>
-          ))}
-          <button
-            type="submit"
-            className="theme-border block w-full border-t px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/5"
-          >
-            {dictionary.blog.viewAllResults}
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
 function MobileHeaderMenu({
   mobileMenuOpen,
-  handleSearchSubmit,
-  searchQuery,
-  setSearchQuery,
+  onOpenSearch,
   dictionary,
   locale,
   switchLocale,
   navigation,
 }: Readonly<{
   mobileMenuOpen: boolean;
-  handleSearchSubmit: (event: React.SyntheticEvent<HTMLFormElement>) => void;
-  searchQuery: string;
-  setSearchQuery: (value: string) => void;
+  onOpenSearch: () => void;
   dictionary: HeaderDictionary;
   locale: SiteLocale;
   switchLocale: (nextLocale: SiteLocale) => void;
@@ -273,23 +118,19 @@ function MobileHeaderMenu({
 
   return (
     <div className="absolute left-0 right-0 top-full animate-in slide-in-from-top-2 border-b border-gray-200 bg-surface-light/95 px-4 py-4 shadow-lg backdrop-blur-md dark:border-gray-800 dark:bg-surface-dark/95 md:hidden">
-      <form
-        onSubmit={handleSearchSubmit}
-        className="mb-4 flex items-center gap-2"
+      <button
+        type="button"
+        onClick={onOpenSearch}
+        className="mb-4 flex h-11 w-full items-center gap-2.5 rounded-xl border border-[var(--border-soft-theme)] bg-[var(--surface-muted)] px-3 text-left text-sm text-[var(--text-soft-theme)]"
       >
-        <input
-          className="theme-input h-11 flex-1 rounded-xl px-4 text-sm"
-          placeholder={dictionary.blog.searchPlaceholder}
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-        />
-        <button
-          type="submit"
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white"
-        >
-          {dictionary.common.search}
-        </button>
-      </form>
+        <Search className="size-4 shrink-0 text-[var(--primary-theme)]" />
+        <span className="flex-1 truncate">
+          {dictionary.blog.searchPlaceholder || "Tìm kiếm bài viết..."}
+        </span>
+        <kbd className="rounded border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-muted-theme)]">
+          Ctrl K
+        </kbd>
+      </button>
 
       <nav className="flex flex-col gap-2">
         <LocaleSwitch locale={locale} switchLocale={switchLocale} mobile />
@@ -313,154 +154,52 @@ function MobileHeaderMenu({
   );
 }
 
-function DesktopSearchForm({
-  containerRef,
-  desktopSearchInputRef,
-  handleSearchSubmit,
-  dictionary,
-  searchQuery,
-  setSearchQuery,
-  setShowSuggestions,
-  showSuggestions,
-  isLoadingSuggestions,
-  suggestions,
-  handleSuggestionSelect,
-  collapsed,
-}: Readonly<{
-  containerRef: React.RefObject<HTMLFormElement | null>;
-  desktopSearchInputRef: React.RefObject<HTMLInputElement | null>;
-  handleSearchSubmit: (event: React.SyntheticEvent<HTMLFormElement>) => void;
-  dictionary: HeaderDictionary;
-  searchQuery: string;
-  setSearchQuery: (value: string) => void;
-  setShowSuggestions: (value: boolean) => void;
-  showSuggestions: boolean;
-  isLoadingSuggestions: boolean;
-  suggestions: SearchSuggestion[];
-  handleSuggestionSelect: (slug: string) => void;
-  collapsed: boolean;
-}>) {
-  return (
-    <form
-      ref={containerRef}
-      onSubmit={handleSearchSubmit}
-      className={`group relative hidden h-10 flex-col transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:flex ${
-        collapsed
-          ? "w-10 hover:w-44 focus-within:!w-64"
-          : "w-44 focus-within:w-64"
-      }`}
-    >
-      <div className="flex h-full w-full items-center overflow-hidden rounded-lg border border-transparent bg-background-light transition-[border-color,box-shadow,background-color] duration-300 group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 dark:bg-background-dark">
-        <button
-          type="submit"
-          className="flex h-full w-10 shrink-0 items-center justify-center text-text-sub transition-colors hover:text-primary"
-          aria-label={dictionary.header.searchAria}
-        >
-          <span className="material-symbols-outlined !text-[20px]">search</span>
-        </button>
-        <input
-          ref={desktopSearchInputRef}
-          className={`h-full min-w-0 flex-1 border-none bg-transparent py-2 pr-3 text-sm font-normal text-text-main transition-all duration-500 placeholder:text-text-sub focus:ring-0 dark:text-white ${
-            collapsed
-              ? "pl-0 opacity-0 group-hover:pl-1 group-hover:opacity-100 group-focus-within:!pl-1 group-focus-within:!opacity-100"
-              : "pl-1 opacity-100"
-          }`}
-          placeholder={dictionary.blog.searchPlaceholder}
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          onFocus={() => setShowSuggestions(true)}
-          tabIndex={collapsed ? -1 : 0}
-        />
-      </div>
-      <SearchSuggestionsPanel
-        showSuggestions={showSuggestions}
-        searchQuery={searchQuery}
-        isLoadingSuggestions={isLoadingSuggestions}
-        suggestions={suggestions}
-        dictionary={dictionary}
-        handleSuggestionSelect={handleSuggestionSelect}
-      />
-    </form>
-  );
-}
-
 export function BlogHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
   const dictionary = useDictionary();
   const { settings } = useSiteSettings();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchCollapsed, setSearchCollapsed] = useState(false);
-  const containerRef = useRef<HTMLFormElement | null>(null);
-  const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const { suggestions, isLoadingSuggestions } = useHeaderSuggestions(
-    locale,
-    searchQuery,
-  );
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
-  // Collapse search bar when on /blog or /search pages, expand on others
-  const isSearchOrBlogPage = !!(
-    pathname?.includes("/blog") || pathname?.includes("/search")
-  );
-
-  // Effective collapsed state: forced on search/blog pages, or after manual submit
-  const isCollapsed = isSearchOrBlogPage || searchCollapsed;
-
-  const handleSearchSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setShowSuggestions(false);
-    setSearchCollapsed(true); // collapse after submitting search
-    router.push(createSearchDestination(searchQuery, locale));
-  };
-
+  // Global Ctrl+K / Cmd+K keyboard listener
   useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setShowSuggestions(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsPaletteOpen((prev) => !prev);
       }
     };
 
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Reset collapse state and close menus when navigating away from search pages
+  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
-    setShowSuggestions(false);
-    if (!isSearchOrBlogPage) {
-      setSearchCollapsed(false);
-    }
-  }, [pathname, isSearchOrBlogPage]);
+  }, [pathname]);
 
-  const switchLocale = async (nextLocale: SiteLocale) => {
-    // Set locale preference via API route (server-side cookie, validated).
-    // This avoids manual document.cookie manipulation and ensures consistent
-    // security attributes across all environments.
-    await fetch("/api/set-locale", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale: nextLocale }),
-    });
-
-    // router.refresh() re-fetches Server Components with the new cookie
-    // without navigating — URL stays the same, client state is preserved.
-    router.refresh();
+  const switchLocale = (nextLocale: SiteLocale) => {
+    if (nextLocale === locale) return;
+    const currentSegments = (pathname || "")
+      .replace(/^\/(vi|en)(?=\/|$)/, "")
+      .replace(/^\/+/, "");
+    const targetUrl = withLocale(`/${currentSegments}`, nextLocale);
+    router.push(targetUrl);
   };
 
-  const handleSuggestionSelect = (slug: string) => {
-    setShowSuggestions(false);
-    setSearchCollapsed(true);
-    router.push(withLocale(`/${slug}`, locale));
+  const handleOpenPalette = () => {
+    setMobileMenuOpen(false);
+    setIsPaletteOpen(true);
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-surface-light shadow-sm dark:border-gray-800 dark:bg-surface-dark">
-      <div className="mx-auto flex w-full max-w-[1280px] min-w-0 items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-10">
-        <div className="flex min-w-0 items-center gap-3 md:gap-8">
+    <header className="sticky top-0 z-40 w-full border-b border-gray-200/80 bg-surface-light/80 backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-8">
           <Link
             href={withLocale("/", locale)}
             className="group flex min-w-0 items-center gap-3 text-text-main transition-opacity hover:opacity-90 dark:text-white"
@@ -468,9 +207,9 @@ export function BlogHeader() {
             <img
               src="/logo.png"
               alt="Daily DevOps Logo"
-              className="h-10 w-10 shrink-0 object-contain drop-shadow-sm md:h-12 md:w-12"
+              className="h-9 w-9 shrink-0 object-contain drop-shadow-sm md:h-10 md:w-10"
             />
-            <h2 className="truncate text-lg font-extrabold tracking-tight sm:text-xl md:text-2xl">
+            <h2 className="truncate text-lg font-extrabold tracking-tight sm:text-xl">
               <span className="text-slate-800 dark:text-slate-100 transition-colors">
                 Daily
               </span>{" "}
@@ -494,20 +233,24 @@ export function BlogHeader() {
         </div>
 
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-2 sm:gap-3 md:gap-4">
-          <DesktopSearchForm
-            containerRef={containerRef}
-            desktopSearchInputRef={desktopSearchInputRef}
-            handleSearchSubmit={handleSearchSubmit}
-            dictionary={dictionary}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            setShowSuggestions={setShowSuggestions}
-            showSuggestions={showSuggestions}
-            isLoadingSuggestions={isLoadingSuggestions}
-            suggestions={suggestions}
-            handleSuggestionSelect={handleSuggestionSelect}
-            collapsed={isCollapsed}
-          />
+          {/* Command Palette Trigger Button (Desktop & Tablet) */}
+          <button
+            type="button"
+            onClick={handleOpenPalette}
+            onMouseEnter={() => loadSearchIndex(locale)}
+            className="group relative flex h-10 items-center gap-2 rounded-xl border border-[var(--border-soft-theme)] bg-[var(--surface-muted)] px-3 text-left transition-all hover:border-[var(--primary-theme)] hover:bg-[var(--surface-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-theme)]/20 sm:w-44 md:w-56"
+            aria-label="Tìm kiếm (Ctrl + K)"
+          >
+            <Search className="size-4 shrink-0 text-[var(--text-soft-theme)] transition-colors group-hover:text-[var(--primary-theme)]" />
+            <span className="flex-1 truncate text-xs font-normal text-[var(--text-soft-theme)] group-hover:text-[var(--text-main-theme)]">
+              {locale === "vi" ? "Tìm kiếm..." : "Search..."}
+            </span>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-muted-theme)] shadow-xs">
+              <span className="text-[10px]">⌘</span>K
+            </kbd>
+          </button>
+
+          {/* Mobile Menu Button */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen((value) => !value)}
@@ -524,20 +267,27 @@ export function BlogHeader() {
               <Menu className="size-5" />
             )}
           </button>
+
           <LocaleSwitch locale={locale} switchLocale={switchLocale} />
           <ThemeToggle />
           <HeaderAuthButton />
         </div>
       </div>
+
       <MobileHeaderMenu
         mobileMenuOpen={mobileMenuOpen}
-        handleSearchSubmit={handleSearchSubmit}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        onOpenSearch={handleOpenPalette}
         dictionary={dictionary}
         locale={locale}
         switchLocale={switchLocale}
         navigation={settings.content.headerNavigation}
+      />
+
+      {/* Global Command Palette Modal */}
+      <CommandPaletteModal
+        isOpen={isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+        locale={locale}
       />
     </header>
   );

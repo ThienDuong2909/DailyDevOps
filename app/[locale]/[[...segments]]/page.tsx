@@ -7,7 +7,7 @@ import CategoryPage from "@/app/(main)/category/[slug]/page";
 import TagPage from "@/app/(main)/tag/[slug]/page";
 import AuthorPage from "@/app/(main)/author/[username]/page";
 import ContactPage from "@/app/(main)/contact/page";
-import { resolveSearchRedirect } from "@/app/(main)/search/search-redirect";
+import SearchPage from "@/app/(main)/search/page";
 import NewsletterConfirmPage from "@/app/(main)/newsletter/confirm/page";
 import { AboutPageContent } from "@/app/(main)/about/about-page-content";
 import { NewsletterPageContent } from "@/app/(main)/newsletter/newsletter-page-content";
@@ -599,8 +599,7 @@ async function renderSingleSegmentPage(
     case "contact":
       return wrapWithLocaleSync(alternates, <ContactPage />);
     case "search":
-      await resolveSearchRedirect(searchParams, locale);
-      return null;
+      return wrapWithLocaleSync(alternates, <SearchPage />);
     case "newsletter":
       return wrapWithLocaleSync(
         alternates,

@@ -1,21 +1,24 @@
 import type { Metadata } from "next";
-import { getRequestLocale } from "@/lib/i18n/server";
-import { resolveSearchRedirect } from "./search-redirect";
+import { SearchPageClient } from "./search-page-client";
+import { SITE_URL } from "@/lib/constants/site";
 
 export const metadata: Metadata = {
-  title: "Search Articles",
+  title: "Tìm kiếm bài viết | Daily DevOps",
   description:
-    "Search DevOps Daily articles by Kubernetes, CI/CD, monitoring, platform engineering, and production infrastructure topics.",
+    "Tìm kiếm các bài viết, cẩm nang và hướng dẫn thực chiến về DevOps, Kubernetes, CI/CD, Docker, Cloud, Monitoring và Infrastructure as Code trên Daily DevOps.",
   alternates: {
-    canonical: "/search",
+    canonical: `${SITE_URL}/search`,
+  },
+  robots: {
+    index: false,
+    follow: true,
   },
 };
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ q?: string; page?: string }>;
-}) {
-  const locale = await getRequestLocale();
-  await resolveSearchRedirect(searchParams, locale);
+export default function SearchPage() {
+  return (
+    <div className="w-full max-w-[1280px]">
+      <SearchPageClient />
+    </div>
+  );
 }

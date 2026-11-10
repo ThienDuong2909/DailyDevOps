@@ -1,429 +1,864 @@
-'use client';
+"use client";
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { apiClient } from '@/lib/api';
-import { trackSearch } from '@/lib/analytics';
-import { PostCard } from '@/components/blog/post-card';
-import { useDictionary, useLocale } from '@/components/i18n/locale-provider';
-import { withLocale } from '@/lib/i18n/config';
-import type { Category, PaginatedResponse, Post } from '@/types';
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Search,
+  X,
+  SlidersHorizontal,
+  RotateCcw,
+  Sparkles,
+  Tag as TagIcon,
+  Folder,
+  Clock,
+  ArrowUpDown,
+  Check,
+} from "lucide-react";
+import { PostCard } from "@/components/blog/post-card";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { withLocale } from "@/lib/i18n/config";
+import {
+  getSearchEngine,
+  loadSearchIndex,
+  SearchPostItem,
+  SearchCategoryItem,
+  SearchTagItem,
+} from "@/lib/search/search-engine";
+import { trackSearch } from "@/lib/analytics";
+import type { Post } from "@/types";
 
-const SEARCH_POSTS_PER_PAGE = 20;
+const POSTS_PER_PAGE = 12;
 
-type SearchPayload =
-    | PaginatedResponse<Post>
-    | { data?: PaginatedResponse<Post> | Post[] }
-    | Post[];
+const TRENDING_TOPICS = [
+  "Docker",
+  "Kubernetes",
+  "CI/CD",
+  "Terraform",
+  "Prometheus",
+  "Linux",
+  "Monitoring",
+  "Microservices",
+];
 
-function resolvePostsPayload(payload: SearchPayload) {
-    if (Array.isArray(payload)) {
-        return {
-            data: payload,
-            meta: {
-                total: payload.length,
-                page: 1,
-                limit: payload.length || 10,
-                totalPages: 1,
-            },
-        };
-    }
+type SortMode = "relevance" | "latest" | "oldest";
 
-    if (payload && typeof payload === 'object' && 'data' in payload) {
-        const nestedData = payload.data;
-
-        if (Array.isArray(nestedData)) {
-            return {
-                data: nestedData,
-                meta: {
-                    total: nestedData.length,
-                    page: 1,
-                    limit: nestedData.length || 10,
-                    totalPages: 1,
-                },
-            };
+function searchItemToPost(item: SearchPostItem): Post {
+  return {
+    id: item.id,
+    title: item.title,
+    slug: item.slug,
+    excerpt: item.excerpt,
+    featuredImage: item.featuredImage || undefined,
+    category: item.category
+      ? {
+          id: item.category.slug,
+          name: item.category.name,
+          slug: item.category.slug,
+          color: item.category.color || "#137fec",
         }
-
-        if (nestedData && typeof nestedData === 'object' && 'meta' in nestedData) {
-            return nestedData as PaginatedResponse<Post>;
-        }
-    }
-
-    return payload as PaginatedResponse<Post>;
+      : undefined,
+    tags: (item.tags || []).map((t) => ({ id: t, name: t, slug: t })),
+    publishedAt: item.publishedAt || undefined,
+    author: {
+      id: "devops-daily",
+      firstName: "DevOps",
+      lastName: "Daily",
+    },
+    viewCount: 0,
+    readingTime: 5,
+    status: "PUBLISHED" as const,
+    content: "",
+  } as unknown as Post;
 }
 
 function SearchPageContent() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const locale = useLocale();
-    const dictionary = useDictionary();
-    const query = searchParams.get('q')?.trim() || '';
-    const page = Number(searchParams.get('page') || '1');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const locale = useLocale();
 
-    const [searchInput, setSearchInput] = useState(query);
-    const [posts, setPosts] = useState<Post[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
-    const [totalResults, setTotalResults] = useState(0);
-    const [totalPages, setTotalPages] = useState(1);
-    const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
-    const fallbackTopics = ['Kubernetes', 'CI/CD', 'Prometheus', 'Terraform', 'Monitoring'];
-    const copy =
-        locale === 'en'
-            ? {
-                  loadingError: 'Unable to load search results right now.',
-                  intro: 'Search by technology, workflow, or incident theme to jump into the right articles faster.',
-                  loading: (term: string) => `Searching for "${term}"...`,
-                  results: (total: number, term: string) => `Found ${total} result${total === 1 ? '' : 's'} for "${term}"`,
-                  label: 'Search',
-                  title: 'Search the DevOps Daily library',
-                  placeholder: 'Kubernetes, CI/CD, monitoring...',
-                  tipsTitle: 'Search Tips',
-                  startTitle: 'Start with a proven topic',
-                  startBody: 'Use one of these entry points to quickly find articles that match your current task.',
-                  emptyTitle: 'No matching articles yet',
-                  emptyBody: 'Try a shorter query, switch to a related keyword, or jump into one of the suggested topics below.',
-                  tips: [
-                      'Search by a specific technology like `Terraform`, `Kubernetes`, or `Prometheus`.',
-                      'Try workflow keywords like `CI/CD`, `incident`, `release`, or `monitoring`.',
-                      'If results are too broad, shorten the query to the 1-2 most important terms.',
-                  ],
-              }
-            : {
-                  loadingError: 'Không thể tải kết quả tìm kiếm lúc này.',
-                  intro: 'Tìm theo công nghệ, workflow hoặc chủ đề sự cố để đến đúng bài viết nhanh hơn.',
-                  loading: (term: string) => `Đang tìm "${term}"...`,
-                  results: (total: number, term: string) => `Tìm thấy ${total} kết quả cho "${term}"`,
-                  label: dictionary.common.search,
-                  title: 'Tìm trong thư viện Daily DevOps',
-                  placeholder: 'Kubernetes, CI/CD, monitoring...',
-                  tipsTitle: 'Mẹo tìm kiếm',
-                  startTitle: 'Bắt đầu với một chủ đề phổ biến',
-                  startBody: 'Dùng một trong các gợi ý dưới đây để tìm nhanh các bài viết phù hợp với nhu cầu hiện tại.',
-                  emptyTitle: 'Chưa có bài viết phù hợp',
-                  emptyBody: 'Hãy thử từ khóa ngắn hơn, đổi sang một chủ đề gần nghĩa, hoặc bắt đầu bằng các gợi ý bên dưới.',
-                  tips: [
-                      'Tìm theo công nghệ cụ thể như `Terraform`, `Kubernetes` hoặc `Prometheus`.',
-                      'Thử các từ khóa theo workflow như `CI/CD`, `incident`, `release` hoặc `monitoring`.',
-                      'Nếu kết quả quá rộng, hãy rút gọn truy vấn còn 1-2 từ khóa quan trọng nhất.',
-                  ],
-              };
+  // Query params
+  const qParam = searchParams.get("q")?.trim() || "";
+  const categoryParam = searchParams.get("category")?.trim() || "";
+  const tagParam = searchParams.get("tag")?.trim() || "";
+  const sortParam = (searchParams.get("sort")?.trim() ||
+    (qParam ? "relevance" : "latest")) as SortMode;
+  const pageParam = Math.max(
+    1,
+    parseInt(searchParams.get("page") || "1", 10) || 1,
+  );
 
-    useEffect(() => {
-        setSearchInput(query);
-    }, [query]);
+  // Local input state for smooth typing
+  const [inputValue, setInputValue] = useState(qParam);
+  const [isLoading, setIsLoading] = useState(true);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-    useEffect(() => {
-        let isMounted = true;
+  // Micro-index loaded data
+  const [allPosts, setAllPosts] = useState<SearchPostItem[]>([]);
+  const [allCategories, setAllCategories] = useState<SearchCategoryItem[]>([]);
+  const [allTags, setAllTags] = useState<SearchTagItem[]>([]);
 
-        const fetchSuggestedTopics = async () => {
-            try {
-                const response = await apiClient.get<{ data?: Category[] } | Category[]>('/api/v1/categories');
-                const categories = Array.isArray(response)
-                    ? response
-                    : Array.isArray(response?.data)
-                      ? response.data
-                      : [];
+  // Translations
+  const isEn = locale === "en";
+  const text = isEn
+    ? {
+        label: "Smart Search",
+        heading: "DevOps Knowledge Base",
+        subtitle:
+          "Search through guides, architectures, production incidents, and platform tooling.",
+        placeholder: "Search Kubernetes, Docker, CI/CD, Terraform...",
+        searchBtn: "Search",
+        filtersTitle: "Filters",
+        resetFilters: "Reset filters",
+        allCategories: "All Categories",
+        categories: "Categories",
+        popularTags: "Tags",
+        sortBy: "Sort by",
+        sortRelevance: "Relevance",
+        sortLatest: "Newest First",
+        sortOldest: "Oldest First",
+        resultsFound: (n: number, q: string) =>
+          q
+            ? `Found ${n} article${n === 1 ? "" : "s"} for "${q}"`
+            : `Showing ${n} article${n === 1 ? "" : "s"}`,
+        noResultsTitle: "No articles found",
+        noResultsDesc:
+          "Try checking your spelling, removing filters, or searching for a broader DevOps topic.",
+        trendingLabel: "Popular Topics:",
+        trendingPillsTitle: "Explore popular topics",
+        filterByTag: "Tag",
+        filterByCategory: "Category",
+        clearTag: "Remove tag",
+        clearCategory: "Remove category",
+        page: "Page",
+        prev: "Previous",
+        next: "Next",
+      }
+    : {
+        label: "Tìm kiếm thông minh",
+        heading: "Kho tri thức DevOps & Cloud",
+        subtitle:
+          "Tra cứu cẩm nang thực chiến, kiến trúc hệ thống, CI/CD và giải quyết sự cố production.",
+        placeholder: "Tìm kiếm Docker, Kubernetes, CI/CD, Terraform...",
+        searchBtn: "Tìm kiếm",
+        filtersTitle: "Bộ lọc bài viết",
+        resetFilters: "Đặt lại bộ lọc",
+        allCategories: "Tất cả chuyên mục",
+        categories: "Chuyên mục",
+        popularTags: "Thẻ bài viết (Tags)",
+        sortBy: "Sắp xếp theo",
+        sortRelevance: "Độ liên quan",
+        sortLatest: "Mới nhất",
+        sortOldest: "Cũ nhất",
+        resultsFound: (n: number, q: string) =>
+          q ? `Tìm thấy ${n} bài viết cho "${q}"` : `Tổng cộng ${n} bài viết`,
+        noResultsTitle: "Không tìm thấy bài viết phù hợp",
+        noResultsDesc:
+          "Hãy thử kiểm tra lại từ khóa, xóa bớt bộ lọc, hoặc khám phá các chủ đề phổ biến bên dưới.",
+        trendingLabel: "Chủ đề thịnh hành:",
+        trendingPillsTitle: "Khám phá các chủ đề phổ biến",
+        filterByTag: "Thẻ",
+        filterByCategory: "Chuyên mục",
+        clearTag: "Bỏ chọn thẻ",
+        clearCategory: "Bỏ chọn chuyên mục",
+        page: "Trang",
+        prev: "Trang trước",
+        next: "Trang sau",
+      };
 
-                if (!isMounted) {
-                    return;
-                }
+  // Keep local input in sync when URL changes externally
+  useEffect(() => {
+    setInputValue(qParam);
+  }, [qParam]);
 
-                setSuggestedTopics(categories.slice(0, 8).map((category) => category.name));
-            } catch {
-                if (!isMounted) {
-                    return;
-                }
+  // Load search index on mount / locale change
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
 
-                setSuggestedTopics([]);
-            }
-        };
+    loadSearchIndex(locale)
+      .then((engine) => {
+        if (!isMounted) return;
+        setAllPosts(engine.getAllPosts());
+        setAllCategories(engine.getAllCategories());
+        setAllTags(engine.getAllTags());
+      })
+      .catch((err) => {
+        console.error("[SearchPage] Failed to load index:", err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
-        void fetchSuggestedTopics();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const fetchResults = async () => {
-            if (!query) {
-                setPosts([]);
-                setTotalResults(0);
-                setTotalPages(1);
-                setErrorMessage('');
-                return;
-            }
-
-            try {
-                setLoading(true);
-                setErrorMessage('');
-
-                const response = await apiClient.get<SearchPayload>(
-                    `/api/v1/posts/search?search=${encodeURIComponent(query)}&page=${page}&limit=${SEARCH_POSTS_PER_PAGE}&sortBy=publishedAt&sortOrder=desc&locale=${locale}`
-                );
-
-                if (!isMounted) {
-                    return;
-                }
-
-                const resolved = resolvePostsPayload(response);
-                setPosts(resolved.data || []);
-                setTotalResults(resolved.meta?.total || 0);
-                setTotalPages(resolved.meta?.totalPages || 1);
-            } catch {
-                if (!isMounted) {
-                    return;
-                }
-
-                setPosts([]);
-                setTotalResults(0);
-                setTotalPages(1);
-                setErrorMessage(copy.loadingError);
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        void fetchResults();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [copy.loadingError, locale, page, query]);
-
-    useEffect(() => {
-        if (!query || loading || errorMessage) {
-            return;
-        }
-
-        trackSearch(query, totalResults);
-    }, [errorMessage, loading, query, totalResults]);
-
-    const summaryText = useMemo(() => {
-        if (!query) {
-            return copy.intro;
-        }
-
-        if (loading) {
-            return copy.loading(query);
-        }
-
-        if (errorMessage) {
-            return errorMessage;
-        }
-
-        return copy.results(totalResults, query);
-    }, [copy, errorMessage, loading, query, totalResults]);
-    const pageNumbers = useMemo(
-        () =>
-            Array.from({ length: totalPages }, (_, index) => index + 1).filter(
-                (pageNumber) =>
-                    Math.abs(pageNumber - page) <= 2 || pageNumber === 1 || pageNumber === totalPages
-            ),
-        [page, totalPages]
-    );
-
-    const handleSearchSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const trimmed = searchInput.trim();
-
-        if (!trimmed) {
-            router.push(withLocale('/search', locale));
-            return;
-        }
-
-        router.push(`${withLocale('/search', locale)}?q=${encodeURIComponent(trimmed)}`);
+    return () => {
+      isMounted = false;
     };
+  }, [locale]);
 
-    const handlePageChange = (nextPage: number) => {
-        if (!query) {
-            return;
+  // Push URL changes
+  const updateSearch = useCallback(
+    (updates: {
+      q?: string | null;
+      category?: string | null;
+      tag?: string | null;
+      sort?: string | null;
+      page?: number | null;
+    }) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      // Handle q
+      if (updates.q !== undefined) {
+        if (updates.q && updates.q.trim()) {
+          params.set("q", updates.q.trim());
+        } else {
+          params.delete("q");
         }
+      }
 
-        router.push(`${withLocale('/search', locale)}?q=${encodeURIComponent(query)}&page=${nextPage}`);
-    };
+      // Handle category
+      if (updates.category !== undefined) {
+        if (updates.category) {
+          params.set("category", updates.category);
+        } else {
+          params.delete("category");
+        }
+      }
 
-    const handleSuggestedTopic = (topic: string) => {
-        setSearchInput(topic);
-        router.push(`${withLocale('/search', locale)}?q=${encodeURIComponent(topic)}`);
-    };
+      // Handle tag
+      if (updates.tag !== undefined) {
+        if (updates.tag) {
+          params.set("tag", updates.tag);
+        } else {
+          params.delete("tag");
+        }
+      }
 
-    return (
-        <div className="flex w-full max-w-[1280px] flex-col gap-8">
-            <section className="theme-surface rounded-[28px] px-6 py-8 md:px-8">
-                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                            {copy.label}
-                        </p>
-                        <h1 className="mt-2 text-3xl font-bold tracking-tight text-[color:var(--text-main-theme)]">
-                            {copy.title}
-                        </h1>
-                        <p className="theme-muted mt-2 text-sm">
-                            {summaryText}
-                        </p>
-                    </div>
+      // Handle sort
+      if (updates.sort !== undefined) {
+        if (
+          updates.sort &&
+          updates.sort !== "latest" &&
+          updates.sort !== "relevance"
+        ) {
+          params.set("sort", updates.sort);
+        } else if (updates.sort) {
+          params.set("sort", updates.sort);
+        } else {
+          params.delete("sort");
+        }
+      }
 
-                    <form onSubmit={handleSearchSubmit} className="flex w-full max-w-xl gap-3">
-                        <input
-                            value={searchInput}
-                            onChange={(event) => setSearchInput(event.target.value)}
-                            placeholder={copy.placeholder}
-                            className="theme-input h-12 flex-1 rounded-xl px-4 text-sm outline-none"
-                        />
-                        <button
-                            type="submit"
-                            className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-blue-600"
-                        >
-                            {copy.label}
-                        </button>
-                    </form>
-                </div>
-            </section>
+      // Handle page (reset to 1 on filter/query changes unless explicitly set)
+      if (updates.page !== undefined) {
+        if (updates.page && updates.page > 1) {
+          params.set("page", String(updates.page));
+        } else {
+          params.delete("page");
+        }
+      } else if (
+        updates.q !== undefined ||
+        updates.category !== undefined ||
+        updates.tag !== undefined ||
+        updates.sort !== undefined
+      ) {
+        params.delete("page");
+      }
 
-            {!query ? (
-                <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                    <section className="theme-surface rounded-2xl border border-dashed px-6 py-12">
-                        <h2 className="text-xl font-bold text-[color:var(--text-main-theme)]">
-                            {copy.startTitle}
-                        </h2>
-                        <p className="theme-muted mt-2 text-sm">
-                            {copy.startBody}
-                        </p>
-                        <div className="mt-5 flex flex-wrap gap-3">
-                            {(suggestedTopics.length ? suggestedTopics : fallbackTopics).map((topic) => (
-                                <button
-                                    key={topic}
-                                    type="button"
-                                    onClick={() => handleSuggestedTopic(topic)}
-                                    className="theme-panel-muted theme-border rounded-full border px-4 py-2 text-sm font-medium text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
-                                >
-                                    {topic}
-                                </button>
-                            ))}
-                        </div>
-                    </section>
+      const queryString = params.toString();
+      const targetUrl = queryString
+        ? `${withLocale("/search", locale)}?${queryString}`
+        : withLocale("/search", locale);
 
-                    <section className="theme-surface rounded-2xl p-6">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                            {copy.tipsTitle}
-                        </p>
-                        <ul className="theme-muted mt-4 space-y-3 text-sm leading-7">
-                            {copy.tips.map((tip) => (
-                                <li key={tip}>{tip}</li>
-                            ))}
-                        </ul>
-                    </section>
-                </div>
-            ) : loading ? (
-                <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
-                    {Array.from({ length: 6 }, (_, index) => (
-                        <div
-                            key={index}
-                            className="theme-surface h-[360px] animate-pulse rounded-xl"
-                        />
-                    ))}
-                </div>
-            ) : posts.length === 0 ? (
-                <div className="theme-surface rounded-2xl border border-dashed px-6 py-12 text-center">
-                    <h2 className="text-lg font-semibold text-[color:var(--text-main-theme)]">
-                        {copy.emptyTitle}
-                    </h2>
-                    <p className="theme-muted mt-2 text-sm">
-                        {copy.emptyBody}
-                    </p>
-                    <div className="mt-5 flex flex-wrap justify-center gap-3">
-                        {(suggestedTopics.length ? suggestedTopics : fallbackTopics).slice(0, 5).map((topic) => (
-                            <button
-                                key={`empty-${topic}`}
-                                type="button"
-                                onClick={() => handleSuggestedTopic(topic)}
-                                className="theme-panel-muted theme-border rounded-full border px-4 py-2 text-sm font-medium text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
-                            >
-                                {topic}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
-                        {posts.map((post) => (
-                            <PostCard key={post.id} post={post} />
-                        ))}
-                    </div>
+      router.push(targetUrl, { scroll: false });
+    },
+    [locale, router, searchParams],
+  );
 
-                    {totalPages > 1 ? (
-                        <div className="theme-surface flex flex-col gap-4 rounded-2xl px-5 py-4 md:flex-row md:items-center md:justify-between">
-                            <p className="theme-muted text-sm">
-                                Trang {page}/{totalPages}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    onClick={() => handlePageChange(Math.max(1, page - 1))}
-                                    disabled={page === 1}
-                                    className="theme-panel-muted theme-border rounded-lg border px-3 py-2 text-sm text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    Previous
-                                </button>
-                                {pageNumbers.map((pageNumber, index) => {
-                                    const previous = pageNumbers[index - 1];
-                                    const showGap = previous && pageNumber - previous > 1;
+  // Form submit
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateSearch({ q: inputValue });
+  };
 
-                                    return (
-                                        <span key={pageNumber} className="contents">
-                                            {showGap ? (
-                                                <span className="theme-muted inline-flex items-center px-1 text-sm">
-                                                    ...
-                                                </span>
-                                            ) : null}
-                                            <button
-                                                onClick={() => handlePageChange(pageNumber)}
-                                                className={`theme-border inline-flex min-w-10 items-center justify-center rounded-lg border px-3 py-2 text-sm transition-colors ${
-                                                    pageNumber === page
-                                                        ? 'border-primary bg-primary text-white'
-                                                        : 'theme-panel-muted text-[color:var(--text-main-theme)] hover:border-primary hover:text-primary'
-                                                }`}
-                                            >
-                                                {pageNumber}
-                                            </button>
-                                        </span>
-                                    );
-                                })}
-                                <button
-                                    onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
-                                    disabled={page === totalPages}
-                                    className="theme-panel-muted theme-border rounded-lg border px-3 py-2 text-sm text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        </div>
-                    ) : null}
-                </>
-            )}
+  // Perform Smart In-Memory Search
+  const matchedPosts = useMemo(() => {
+    if (!qParam) {
+      return allPosts;
+    }
+    const engine = getSearchEngine();
+    if (!engine.isReady()) {
+      return allPosts;
+    }
+    const res = engine.search(qParam, { limit: 1000 });
+    return res.posts;
+  }, [allPosts, qParam]);
+
+  // Calculate dynamic facet counts based on matchedPosts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const post of matchedPosts) {
+      if (post.category?.slug) {
+        counts[post.category.slug] = (counts[post.category.slug] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [matchedPosts]);
+
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const post of matchedPosts) {
+      if (post.tags) {
+        for (const t of post.tags) {
+          counts[t.toLowerCase()] = (counts[t.toLowerCase()] || 0) + 1;
+        }
+      }
+    }
+    return counts;
+  }, [matchedPosts]);
+
+  // Filter by category & tag
+  const filteredPosts = useMemo(() => {
+    let result = matchedPosts;
+
+    if (categoryParam) {
+      result = result.filter((post) => post.category?.slug === categoryParam);
+    }
+
+    if (tagParam) {
+      const targetTag = tagParam.toLowerCase();
+      result = result.filter((post) =>
+        post.tags?.some((t) => t.toLowerCase() === targetTag),
+      );
+    }
+
+    // Sort
+    if (sortParam === "latest") {
+      result = [...result].sort((a, b) => {
+        const timeA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+        const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    } else if (sortParam === "oldest") {
+      result = [...result].sort((a, b) => {
+        const timeA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+        const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+        return timeA - timeB;
+      });
+    } else if (sortParam === "relevance" && !qParam) {
+      // Default when no query is newest
+      result = [...result].sort((a, b) => {
+        const timeA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+        const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    }
+
+    return result;
+  }, [categoryParam, matchedPosts, qParam, sortParam, tagParam]);
+
+  // Track search analytics
+  useEffect(() => {
+    if (qParam && !isLoading) {
+      trackSearch(qParam, filteredPosts.length);
+    }
+  }, [filteredPosts.length, isLoading, qParam]);
+
+  // Pagination
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredPosts.length / POSTS_PER_PAGE),
+  );
+  const currentPage = Math.min(pageParam, totalPages);
+  const paginatedPosts = useMemo(() => {
+    const start = (currentPage - 1) * POSTS_PER_PAGE;
+    return filteredPosts.slice(start, start + POSTS_PER_PAGE);
+  }, [currentPage, filteredPosts]);
+
+  const hasActiveFilters = Boolean(
+    categoryParam ||
+    tagParam ||
+    (sortParam !== "relevance" && sortParam !== "latest"),
+  );
+
+  return (
+    <div className="flex w-full flex-col gap-8 pb-16">
+      {/* ── Search Hero Section ── */}
+      <div className="relative overflow-hidden rounded-3xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] p-6 shadow-sm md:p-10">
+        <div className="absolute -right-16 -top-16 size-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col gap-6">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+              <Sparkles className="size-3.5" />
+              {text.label}
+            </div>
+            <h1 className="mt-3 text-2xl font-black tracking-tight text-[var(--text-main-theme)] sm:text-4xl">
+              {text.heading}
+            </h1>
+            <p className="mt-2 text-sm text-[var(--text-muted-theme)] sm:text-base">
+              {text.subtitle}
+            </p>
+          </div>
+
+          {/* Search Input Bar */}
+          <form
+            onSubmit={handleSubmit}
+            className="flex w-full flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            <div className="relative flex flex-1 items-center">
+              <Search className="absolute left-4 size-5 text-[var(--text-muted-theme)]" />
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={text.placeholder}
+                className="w-full rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-main)] py-3.5 pl-12 pr-12 text-sm text-[var(--text-main-theme)] placeholder-[var(--text-muted-theme)] transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 sm:text-base"
+              />
+              {inputValue && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInputValue("");
+                    updateSearch({ q: "" });
+                  }}
+                  className="absolute right-4 rounded-lg p-1 text-[var(--text-muted-theme)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-main-theme)]"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="inline-flex h-[52px] items-center justify-center rounded-2xl bg-primary px-8 text-sm font-bold text-white shadow-md shadow-primary/25 transition-all hover:bg-blue-600 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98]"
+            >
+              {text.searchBtn}
+            </button>
+          </form>
+
+          {/* Trending keywords quick pills */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[var(--text-muted-theme)]">
+            <span className="font-semibold text-[var(--text-main-theme)]">
+              {text.trendingLabel}
+            </span>
+            {TRENDING_TOPICS.map((topic) => (
+              <button
+                key={topic}
+                type="button"
+                onClick={() => {
+                  setInputValue(topic);
+                  updateSearch({ q: topic });
+                }}
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--border-theme)] bg-[var(--surface-main)] px-3 py-1 font-medium text-[var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
+              >
+                {topic}
+              </button>
+            ))}
+          </div>
         </div>
-    );
+      </div>
+
+      {/* ── Active Filters & Mobile Filter Toggle ── */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-[var(--text-main-theme)]">
+            {text.resultsFound(filteredPosts.length, qParam)}
+          </p>
+
+          {/* Active Category Chip */}
+          {categoryParam && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+              <Folder className="size-3" />
+              {allCategories.find((c) => c.slug === categoryParam)?.name ||
+                categoryParam}
+              <button
+                type="button"
+                onClick={() => updateSearch({ category: null })}
+                className="rounded-full p-0.5 hover:bg-primary/20"
+                aria-label={text.clearCategory}
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          )}
+
+          {/* Active Tag Chip */}
+          {tagParam && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <TagIcon className="size-3" />#{tagParam}
+              <button
+                type="button"
+                onClick={() => updateSearch({ tag: null })}
+                className="rounded-full p-0.5 hover:bg-emerald-500/20"
+                aria-label={text.clearTag}
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          )}
+
+          {/* Reset Button */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() =>
+                updateSearch({
+                  category: null,
+                  tag: null,
+                  sort: qParam ? "relevance" : "latest",
+                })
+              }
+              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--text-muted-theme)] hover:text-rose-500"
+            >
+              <RotateCcw className="size-3" />
+              {text.resetFilters}
+            </button>
+          )}
+        </div>
+
+        {/* Mobile Filter Drawer Button */}
+        <button
+          type="button"
+          onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+          className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] px-4 py-2 text-xs font-bold text-[var(--text-main-theme)] lg:hidden"
+        >
+          <SlidersHorizontal className="size-3.5" />
+          {text.filtersTitle}
+          {hasActiveFilters && (
+            <span className="size-2 rounded-full bg-primary" />
+          )}
+        </button>
+      </div>
+
+      {/* ── Main 2-Column Section ── */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
+        {/* ── Left Sidebar (Filters) ── */}
+        <aside
+          className={`flex-col gap-6 lg:flex ${
+            mobileFiltersOpen ? "flex" : "hidden"
+          }`}
+        >
+          <div className="sticky top-24 flex flex-col gap-6 rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+            {/* Sort selector */}
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                <ArrowUpDown className="size-3.5" />
+                {text.sortBy}
+              </div>
+              <div className="mt-3 flex flex-col gap-1.5">
+                {[
+                  {
+                    mode: "relevance" as const,
+                    label: text.sortRelevance,
+                    show: Boolean(qParam),
+                  },
+                  {
+                    mode: "latest" as const,
+                    label: text.sortLatest,
+                    show: true,
+                  },
+                  {
+                    mode: "oldest" as const,
+                    label: text.sortOldest,
+                    show: true,
+                  },
+                ]
+                  .filter((item) => item.show)
+                  .map((item) => {
+                    const isSelected = sortParam === item.mode;
+                    return (
+                      <button
+                        key={item.mode}
+                        type="button"
+                        onClick={() => updateSearch({ sort: item.mode })}
+                        className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                          isSelected
+                            ? "bg-primary text-white font-semibold"
+                            : "text-[var(--text-main-theme)] hover:bg-[var(--surface-muted)]"
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        {isSelected && <Check className="size-3.5" />}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+
+            <hr className="border-[var(--border-theme)]" />
+
+            {/* Categories Filter */}
+            <div>
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                <span className="flex items-center gap-2">
+                  <Folder className="size-3.5" />
+                  {text.categories}
+                </span>
+                {categoryParam && (
+                  <button
+                    type="button"
+                    onClick={() => updateSearch({ category: null })}
+                    className="text-[11px] font-semibold text-primary hover:underline lowercase"
+                  >
+                    {text.resetFilters}
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 flex max-h-60 flex-col gap-1 overflow-y-auto pr-1">
+                <button
+                  type="button"
+                  onClick={() => updateSearch({ category: null })}
+                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                    !categoryParam
+                      ? "bg-primary/10 text-primary font-bold"
+                      : "text-[var(--text-main-theme)] hover:bg-[var(--surface-muted)]"
+                  }`}
+                >
+                  <span>{text.allCategories}</span>
+                  <span className="rounded-md bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] text-[var(--text-muted-theme)]">
+                    {matchedPosts.length}
+                  </span>
+                </button>
+                {allCategories.map((category) => {
+                  const isSelected = categoryParam === category.slug;
+                  const count = categoryCounts[category.slug] || 0;
+                  return (
+                    <button
+                      key={category.slug}
+                      type="button"
+                      onClick={() =>
+                        updateSearch({
+                          category: isSelected ? null : category.slug,
+                        })
+                      }
+                      className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                        isSelected
+                          ? "bg-primary text-white font-semibold"
+                          : count === 0
+                            ? "text-[var(--text-muted-theme)] opacity-50 hover:bg-[var(--surface-muted)]"
+                            : "text-[var(--text-main-theme)] hover:bg-[var(--surface-muted)]"
+                      }`}
+                    >
+                      <span className="truncate pr-2">{category.name}</span>
+                      <span
+                        className={`rounded-md px-2 py-0.5 text-[10px] ${
+                          isSelected
+                            ? "bg-white/20 text-white font-bold"
+                            : "bg-[var(--surface-muted)] text-[var(--text-muted-theme)]"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <hr className="border-[var(--border-theme)]" />
+
+            {/* Tags Filter */}
+            <div>
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                <span className="flex items-center gap-2">
+                  <TagIcon className="size-3.5" />
+                  {text.popularTags}
+                </span>
+                {tagParam && (
+                  <button
+                    type="button"
+                    onClick={() => updateSearch({ tag: null })}
+                    className="text-[11px] font-semibold text-primary hover:underline lowercase"
+                  >
+                    {text.resetFilters}
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5 max-h-56 overflow-y-auto pr-1">
+                {allTags.slice(0, 20).map((tag) => {
+                  const isSelected =
+                    tagParam.toLowerCase() === tag.name.toLowerCase();
+                  const count = tagCounts[tag.name.toLowerCase()] || 0;
+                  return (
+                    <button
+                      key={tag.slug || tag.name}
+                      type="button"
+                      onClick={() =>
+                        updateSearch({ tag: isSelected ? null : tag.name })
+                      }
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary text-white"
+                          : count === 0
+                            ? "border-[var(--border-theme)] bg-[var(--surface-muted)] text-[var(--text-muted-theme)] opacity-40"
+                            : "border-[var(--border-theme)] bg-[var(--surface-main)] text-[var(--text-main-theme)] hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      <span>#{tag.name}</span>
+                      {count > 0 && (
+                        <span className="text-[10px] opacity-75">
+                          ({count})
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Right Content: Results Grid & Empty State ── */}
+        <main className="flex flex-col gap-8">
+          {isLoading ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-80 animate-pulse rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)]"
+                />
+              ))}
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            /* Empty State */
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--border-theme)] bg-[var(--surface-elevated)] p-12 text-center">
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Search className="size-8" />
+              </div>
+              <h3 className="mt-4 text-xl font-bold text-[var(--text-main-theme)]">
+                {text.noResultsTitle}
+              </h3>
+              <p className="mt-2 max-w-md text-sm text-[var(--text-muted-theme)]">
+                {text.noResultsDesc}
+              </p>
+
+              <div className="mt-6 flex flex-col items-center gap-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                  {text.trendingPillsTitle}
+                </span>
+                <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+                  {TRENDING_TOPICS.map((topic) => (
+                    <button
+                      key={`empty-${topic}`}
+                      type="button"
+                      onClick={() => {
+                        setInputValue(topic);
+                        updateSearch({
+                          q: topic,
+                          category: null,
+                          tag: null,
+                        });
+                      }}
+                      className="rounded-full border border-[var(--border-theme)] bg-[var(--surface-main)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-main-theme)] shadow-sm transition-colors hover:border-primary hover:text-primary"
+                    >
+                      {topic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Results Grid */
+            <>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {paginatedPosts.map((post) => (
+                  <PostCard key={post.id} post={searchItemToPost(post)} />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] p-4 sm:flex-row">
+                  <p className="text-xs text-[var(--text-muted-theme)]">
+                    {text.page}{" "}
+                    <span className="font-bold text-[var(--text-main-theme)]">
+                      {currentPage}
+                    </span>{" "}
+                    / {totalPages}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateSearch({ page: currentPage - 1 })}
+                      disabled={currentPage <= 1}
+                      className="rounded-xl border border-[var(--border-theme)] bg-[var(--surface-main)] px-3.5 py-2 text-xs font-semibold text-[var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-[var(--border-theme)] disabled:hover:text-[var(--text-main-theme)]"
+                    >
+                      {text.prev}
+                    </button>
+
+                    {Array.from({ length: totalPages }).map((_, idx) => {
+                      const p = idx + 1;
+                      // Show only pages near current page
+                      if (
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - currentPage) <= 1
+                      ) {
+                        const isActive = p === currentPage;
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => updateSearch({ page: p })}
+                            className={`size-8 rounded-xl text-xs font-bold transition-colors ${
+                              isActive
+                                ? "bg-primary text-white shadow-sm"
+                                : "border border-[var(--border-theme)] bg-[var(--surface-main)] text-[var(--text-main-theme)] hover:border-primary hover:text-primary"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        );
+                      } else if (
+                        (p === 2 && currentPage > 3) ||
+                        (p === totalPages - 1 && currentPage < totalPages - 2)
+                      ) {
+                        return (
+                          <span
+                            key={`gap-${p}`}
+                            className="px-1 text-xs text-[var(--text-muted-theme)]"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => updateSearch({ page: currentPage + 1 })}
+                      disabled={currentPage >= totalPages}
+                      className="rounded-xl border border-[var(--border-theme)] bg-[var(--surface-main)] px-3.5 py-2 text-xs font-semibold text-[var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-[var(--border-theme)] disabled:hover:text-[var(--text-main-theme)]"
+                    >
+                      {text.next}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
+    </div>
+  );
 }
 
 export function SearchPageClient() {
-    return (
-        <Suspense
-            fallback={
-                <div className="flex w-full max-w-[1280px] flex-col gap-8">
-                    <section className="theme-surface rounded-[28px] px-6 py-8 md:px-8">
-                        <div className="h-24 animate-pulse rounded-2xl bg-gray-100 dark:bg-gray-800" />
-                    </section>
-                </div>
-            }
-        >
-            <SearchPageContent />
-        </Suspense>
-    );
+  return (
+    <Suspense
+      fallback={
+        <div className="flex w-full flex-col gap-8 pb-16">
+          <div className="h-64 animate-pulse rounded-3xl border border-[var(--border-theme)] bg-[var(--surface-elevated)]" />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-80 animate-pulse rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)]"
+              />
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <SearchPageContent />
+    </Suspense>
+  );
 }
