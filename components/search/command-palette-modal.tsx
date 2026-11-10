@@ -296,156 +296,226 @@ export function CommandPaletteModal({
   if (!isMounted) return null;
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-50 pointer-events-none flex justify-center px-3 pt-14 sm:px-6 sm:pt-20"
-      role="dialog"
-      aria-modal="false"
-    >
-      {/* 
-        Floating Modal Box with macOS Spring Motion & Morph Animation:
-        - Originates from header position (-translate-y-6 scale-95 opacity-0 blur-sm)
-        - Morphs smoothly into floating window (translate-y-0 scale-100 opacity-100 blur-0)
-        - Page underneath remains 100% visible, hoverable, and scrollable
-      */}
+    <>
+      {/* Soft dimmed & gently blurred backdrop (layer xám blur nhẹ) */}
       <div
-        ref={modalRef}
-        style={{
-          backgroundColor:
-            "color-mix(in srgb, var(--surface-elevated) 80%, transparent)",
-        }}
-        className={`pointer-events-auto relative flex max-h-[82vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-500/20 dark:border-cyan-400/25 bg-white/80 dark:bg-[#0c1527]/80 backdrop-blur-2xl shadow-[0_24px_70px_-10px_rgba(15,23,42,0.18),0_0_0_1px_rgba(6,182,212,0.08),0_0_35px_rgba(6,182,212,0.12)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed inset-0 z-40 bg-slate-900/20 dark:bg-black/45 backdrop-blur-[2px] transition-opacity duration-200 ${
           isAnimating
-            ? "translate-y-0 scale-100 opacity-100 blur-0"
-            : "-translate-y-6 scale-95 opacity-0 blur-sm pointer-events-none"
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
-        onKeyDown={handleKeyDown}
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+
+      <div
+        className="fixed inset-x-0 top-0 z-50 pointer-events-none flex justify-center px-3 pt-14 sm:px-6 sm:pt-20"
+        role="dialog"
+        aria-modal="true"
       >
-        {/* Search Input Bar */}
-        <div className="relative flex items-center border-b border-cyan-500/15 dark:border-cyan-500/20 px-4 py-3.5 sm:px-5">
-          <Search className="size-5 shrink-0 text-cyan-500" />
-          <input
-            ref={inputRef}
-            type="text"
-            className="flex-1 border-none bg-transparent px-3 text-base font-medium text-[var(--text-main-theme)] placeholder:text-[var(--text-soft-theme)] focus:outline-none focus:ring-0 sm:text-lg"
-            placeholder={
-              locale === "vi"
-                ? "Tìm kiếm bài viết, chuyên mục, công nghệ..."
-                : "Search articles, categories, tools..."
-            }
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-
-          {isLoading && (
-            <Loader2 className="size-4 animate-spin text-cyan-500 mr-2" />
-          )}
-
-          {query && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                inputRef.current?.focus();
-              }}
-              className="mr-2 rounded-lg p-1 text-[var(--text-soft-theme)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-main-theme)]"
-              aria-label="Xóa tìm kiếm"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-
-          <kbd
-            onClick={handleClose}
-            className="hidden sm:inline-flex cursor-pointer items-center rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-700 dark:text-cyan-300 transition-colors hover:bg-cyan-500/20"
-            title="Đóng tìm kiếm (Escape)"
-          >
-            ESC
-          </kbd>
-        </div>
-
-        {/* Scrollable Results Area */}
+        {/* 
+          Modal Box with 100% Solid Background (Opacity 1.0) & macOS Spring Morph Motion:
+          - Originates from header position (-translate-y-6 scale-95 opacity-0 blur-sm)
+          - Morphs smoothly into center window (translate-y-0 scale-100 opacity-100 blur-0)
+          - Background is 100% solid, fully opaque (Opacity 1.0)
+        */}
         <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto p-2 sm:p-3 scrollbar-thin scrollbar-thumb-[var(--border-soft-theme)]"
+          ref={modalRef}
+          className={`pointer-events-auto relative z-50 flex max-h-[82vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-500/20 dark:border-cyan-400/25 bg-[var(--surface-elevated)] shadow-[0_24px_70px_-10px_rgba(15,23,42,0.22),0_0_0_1px_rgba(6,182,212,0.08),0_0_40px_rgba(6,182,212,0.12)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isAnimating
+              ? "translate-y-0 scale-100 opacity-100 blur-0"
+              : "-translate-y-6 scale-95 opacity-0 blur-sm pointer-events-none"
+          }`}
+          onKeyDown={handleKeyDown}
         >
-          {/* Default State: Popular Keywords */}
-          {!query.trim() && (
-            <div className="p-3">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
-                <Sparkles className="size-3.5 text-cyan-500" />
-                <span>
-                  {locale === "vi" ? "Chủ đề phổ biến" : "Popular Topics"}
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {popularKeywords.map((keyword) => (
-                  <button
-                    key={keyword}
-                    type="button"
-                    onClick={() => {
-                      setQuery(keyword);
-                      inputRef.current?.focus();
-                    }}
-                    className="inline-flex items-center gap-1 rounded-full border border-cyan-500/15 bg-cyan-500/5 px-3 py-1.5 text-xs font-medium text-[var(--text-main-theme)] transition-all hover:border-cyan-500/40 hover:bg-cyan-500/15 hover:text-cyan-600 dark:hover:text-cyan-400"
-                  >
-                    <span className="text-cyan-500">#</span>
-                    <span>{keyword}</span>
-                  </button>
-                ))}
-              </div>
+          {/* Search Input Bar */}
+          <div className="relative flex items-center border-b border-cyan-500/15 dark:border-cyan-500/20 px-4 py-3.5 sm:px-5">
+            <Search className="size-5 shrink-0 text-cyan-500" />
+            <input
+              ref={inputRef}
+              type="text"
+              className="flex-1 border-none bg-transparent px-3 text-base font-medium text-[var(--text-main-theme)] placeholder:text-[var(--text-soft-theme)] focus:outline-none focus:ring-0 sm:text-lg"
+              placeholder={
+                locale === "vi"
+                  ? "Tìm kiếm bài viết, chuyên mục, công nghệ..."
+                  : "Search articles, categories, tools..."
+              }
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
 
-              <div className="mt-6 text-center text-xs text-[var(--text-soft-theme)]">
-                {locale === "vi"
-                  ? "Gõ từ khóa bất kỳ để tìm kiếm tức thì với độ trễ 0ms"
-                  : "Type any term to search technical posts with 0ms latency"}
-              </div>
-            </div>
-          )}
+            {isLoading && (
+              <Loader2 className="size-4 animate-spin text-cyan-500 mr-2" />
+            )}
 
-          {/* Group 1: Categories */}
-          {results.categories.length > 0 && (
-            <div className="mb-3">
-              <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
-                <Folder className="size-3 text-cyan-500" />
-                <span>{locale === "vi" ? "Chuyên mục" : "Categories"}</span>
-              </div>
-              <div className="mt-1 flex flex-col gap-1">
-                {results.categories.map((category) => {
-                  const itemIndex = selectableItems.findIndex(
-                    (i) => i.id === `cat-${category.slug}`,
-                  );
-                  const isSelected = itemIndex === selectedIndex;
-                  const nameParts = highlightText(category.name, query);
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  inputRef.current?.focus();
+                }}
+                className="mr-2 rounded-lg p-1 text-[var(--text-soft-theme)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-main-theme)]"
+                aria-label="Xóa tìm kiếm"
+              >
+                <X className="size-4" />
+              </button>
+            )}
 
-                  return (
+            <kbd
+              onClick={handleClose}
+              className="hidden sm:inline-flex cursor-pointer items-center rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-700 dark:text-cyan-300 transition-colors hover:bg-cyan-500/20"
+              title="Đóng tìm kiếm (Escape)"
+            >
+              ESC
+            </kbd>
+          </div>
+
+          {/* Scrollable Results Area */}
+          <div
+            ref={listRef}
+            className="flex-1 overflow-y-auto p-2 sm:p-3 scrollbar-thin scrollbar-thumb-[var(--border-soft-theme)]"
+          >
+            {/* Default State: Popular Keywords */}
+            {!query.trim() && (
+              <div className="p-3">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                  <Sparkles className="size-3.5 text-cyan-500" />
+                  <span>
+                    {locale === "vi" ? "Chủ đề phổ biến" : "Popular Topics"}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {popularKeywords.map((keyword) => (
                     <button
-                      key={category.slug}
+                      key={keyword}
                       type="button"
-                      onClick={() =>
-                        handleSelectItem({
-                          id: `cat-${category.slug}`,
-                          type: "category",
-                          title: category.name,
-                          href: withLocale(
-                            `/category/${category.slug}`,
-                            locale,
-                          ),
-                        })
-                      }
-                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all ${
-                        isSelected
-                          ? "bg-gradient-to-r from-primary/10 via-cyan-500/10 to-transparent border-l-2 border-primary text-primary font-medium"
-                          : "text-[var(--text-main-theme)] hover:bg-cyan-500/5"
-                      }`}
+                      onClick={() => {
+                        setQuery(keyword);
+                        inputRef.current?.focus();
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-cyan-500/15 bg-cyan-500/5 px-3 py-1.5 text-xs font-medium text-[var(--text-main-theme)] transition-all hover:border-cyan-500/40 hover:bg-cyan-500/15 hover:text-cyan-600 dark:hover:text-cyan-400"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Folder className="size-4 shrink-0 text-cyan-500" />
-                        <span className="truncate">
+                      <span className="text-cyan-500">#</span>
+                      <span>{keyword}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-6 text-center text-xs text-[var(--text-soft-theme)]">
+                  {locale === "vi"
+                    ? "Gõ từ khóa bất kỳ để tìm kiếm tức thì với độ trễ 0ms"
+                    : "Type any term to search technical posts with 0ms latency"}
+                </div>
+              </div>
+            )}
+
+            {/* Group 1: Categories */}
+            {results.categories.length > 0 && (
+              <div className="mb-3">
+                <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                  <Folder className="size-3 text-cyan-500" />
+                  <span>{locale === "vi" ? "Chuyên mục" : "Categories"}</span>
+                </div>
+                <div className="mt-1 flex flex-col gap-1">
+                  {results.categories.map((category) => {
+                    const itemIndex = selectableItems.findIndex(
+                      (i) => i.id === `cat-${category.slug}`,
+                    );
+                    const isSelected = itemIndex === selectedIndex;
+                    const nameParts = highlightText(category.name, query);
+
+                    return (
+                      <button
+                        key={category.slug}
+                        type="button"
+                        onClick={() =>
+                          handleSelectItem({
+                            id: `cat-${category.slug}`,
+                            type: "category",
+                            title: category.name,
+                            href: withLocale(
+                              `/category/${category.slug}`,
+                              locale,
+                            ),
+                          })
+                        }
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-all ${
+                          isSelected
+                            ? "bg-gradient-to-r from-primary/10 via-cyan-500/10 to-transparent border-l-2 border-primary text-primary font-medium"
+                            : "text-[var(--text-main-theme)] hover:bg-cyan-500/5"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Folder className="size-4 shrink-0 text-cyan-500" />
+                          <span className="truncate">
+                            {nameParts.map((part, idx) =>
+                              part.match ? (
+                                <mark
+                                  key={idx}
+                                  className="rounded bg-cyan-500/20 px-0.5 text-cyan-600 dark:text-cyan-400 font-semibold"
+                                >
+                                  {part.text}
+                                </mark>
+                              ) : (
+                                <span key={idx}>{part.text}</span>
+                              ),
+                            )}
+                          </span>
+                        </div>
+                        <span className="text-xs text-[var(--text-soft-theme)] shrink-0">
+                          {locale === "vi" ? "Xem chuyên mục" : "View category"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Group 2: Tags */}
+            {results.tags.length > 0 && (
+              <div className="mb-3">
+                <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                  <Hash className="size-3 text-cyan-500" />
+                  <span>{locale === "vi" ? "Thẻ bài viết" : "Tags"}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-1.5 px-2">
+                  {results.tags.map((tag) => {
+                    const itemIndex = selectableItems.findIndex(
+                      (i) => i.id === `tag-${tag.slug}`,
+                    );
+                    const isSelected = itemIndex === selectedIndex;
+                    const nameParts = highlightText(tag.name, query);
+
+                    return (
+                      <button
+                        key={tag.slug}
+                        type="button"
+                        onClick={() =>
+                          handleSelectItem({
+                            id: `tag-${tag.slug}`,
+                            type: "tag",
+                            title: `#${tag.name}`,
+                            href: withLocale(
+                              `/search?tag=${encodeURIComponent(tag.name)}`,
+                              locale,
+                            ),
+                          })
+                        }
+                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+                          isSelected
+                            ? "border-cyan-500 bg-cyan-500 text-white font-semibold shadow-xs"
+                            : "border-cyan-500/15 bg-cyan-500/5 text-[var(--text-main-theme)] hover:border-cyan-500/40 hover:bg-cyan-500/10"
+                        }`}
+                      >
+                        <span>#</span>
+                        <span>
                           {nameParts.map((part, idx) =>
                             part.match ? (
                               <mark
                                 key={idx}
-                                className="rounded bg-cyan-500/20 px-0.5 text-cyan-600 dark:text-cyan-400 font-semibold"
+                                className="rounded bg-cyan-500/25 px-0.5 text-cyan-700 dark:text-cyan-300 font-bold"
                               >
                                 {part.text}
                               </mark>
@@ -454,228 +524,170 @@ export function CommandPaletteModal({
                             ),
                           )}
                         </span>
-                      </div>
-                      <span className="text-xs text-[var(--text-soft-theme)] shrink-0">
-                        {locale === "vi" ? "Xem chuyên mục" : "View category"}
-                      </span>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Group 2: Tags */}
-          {results.tags.length > 0 && (
-            <div className="mb-3">
-              <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
-                <Hash className="size-3 text-cyan-500" />
-                <span>{locale === "vi" ? "Thẻ bài viết" : "Tags"}</span>
-              </div>
-              <div className="mt-1 flex flex-wrap gap-1.5 px-2">
-                {results.tags.map((tag) => {
-                  const itemIndex = selectableItems.findIndex(
-                    (i) => i.id === `tag-${tag.slug}`,
-                  );
-                  const isSelected = itemIndex === selectedIndex;
-                  const nameParts = highlightText(tag.name, query);
+            {/* Group 3: Posts */}
+            {results.posts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
+                  <FileText className="size-3 text-cyan-500" />
+                  <span>
+                    {locale === "vi" ? "Bài viết liên quan" : "Articles"}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-col gap-1">
+                  {results.posts.map((post) => {
+                    const itemIndex = selectableItems.findIndex(
+                      (i) => i.id === `post-${post.id}`,
+                    );
+                    const isSelected = itemIndex === selectedIndex;
+                    const titleParts = highlightText(post.title, query);
+                    const excerptParts = highlightText(
+                      post.excerpt || "",
+                      query,
+                    );
 
-                  return (
-                    <button
-                      key={tag.slug}
-                      type="button"
-                      onClick={() =>
-                        handleSelectItem({
-                          id: `tag-${tag.slug}`,
-                          type: "tag",
-                          title: `#${tag.name}`,
-                          href: withLocale(
-                            `/search?tag=${encodeURIComponent(tag.name)}`,
-                            locale,
-                          ),
-                        })
-                      }
-                      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all ${
-                        isSelected
-                          ? "border-cyan-500 bg-cyan-500 text-white font-semibold shadow-xs"
-                          : "border-cyan-500/15 bg-cyan-500/5 text-[var(--text-main-theme)] hover:border-cyan-500/40 hover:bg-cyan-500/10"
-                      }`}
-                    >
-                      <span>#</span>
-                      <span>
-                        {nameParts.map((part, idx) =>
-                          part.match ? (
-                            <mark
-                              key={idx}
-                              className="rounded bg-cyan-500/25 px-0.5 text-cyan-700 dark:text-cyan-300 font-bold"
-                            >
-                              {part.text}
-                            </mark>
-                          ) : (
-                            <span key={idx}>{part.text}</span>
-                          ),
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                    return (
+                      <button
+                        key={post.id}
+                        type="button"
+                        onClick={() =>
+                          handleSelectItem({
+                            id: `post-${post.id}`,
+                            type: "post",
+                            title: post.title,
+                            href: withLocale(`/${post.slug}`, locale),
+                          })
+                        }
+                        className={`flex w-full flex-col rounded-xl px-3 py-2.5 text-left transition-all ${
+                          isSelected
+                            ? "bg-gradient-to-r from-primary/10 via-cyan-500/10 to-transparent border-l-2 border-primary"
+                            : "hover:bg-cyan-500/5"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="size-4 shrink-0 text-cyan-500" />
+                            <span className="truncate text-sm font-semibold text-[var(--text-main-theme)]">
+                              {titleParts.map((part, idx) =>
+                                part.match ? (
+                                  <mark
+                                    key={`t-${idx}`}
+                                    className="rounded bg-cyan-500/20 px-0.5 text-cyan-600 dark:text-cyan-400 font-bold"
+                                  >
+                                    {part.text}
+                                  </mark>
+                                ) : (
+                                  <span key={`t-${idx}`}>{part.text}</span>
+                                ),
+                              )}
+                            </span>
+                          </div>
 
-          {/* Group 3: Posts */}
-          {results.posts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
-                <FileText className="size-3 text-cyan-500" />
-                <span>
-                  {locale === "vi" ? "Bài viết liên quan" : "Articles"}
-                </span>
-              </div>
-              <div className="mt-1 flex flex-col gap-1">
-                {results.posts.map((post) => {
-                  const itemIndex = selectableItems.findIndex(
-                    (i) => i.id === `post-${post.id}`,
-                  );
-                  const isSelected = itemIndex === selectedIndex;
-                  const titleParts = highlightText(post.title, query);
-                  const excerptParts = highlightText(post.excerpt || "", query);
+                          {post.category && (
+                            <span className="shrink-0 rounded-md bg-cyan-500/10 border border-cyan-500/15 px-1.5 py-0.5 text-[10px] font-medium text-cyan-700 dark:text-cyan-300">
+                              {post.category.name}
+                            </span>
+                          )}
+                        </div>
 
-                  return (
-                    <button
-                      key={post.id}
-                      type="button"
-                      onClick={() =>
-                        handleSelectItem({
-                          id: `post-${post.id}`,
-                          type: "post",
-                          title: post.title,
-                          href: withLocale(`/${post.slug}`, locale),
-                        })
-                      }
-                      className={`flex w-full flex-col rounded-xl px-3 py-2.5 text-left transition-all ${
-                        isSelected
-                          ? "bg-gradient-to-r from-primary/10 via-cyan-500/10 to-transparent border-l-2 border-primary"
-                          : "hover:bg-cyan-500/5"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText className="size-4 shrink-0 text-cyan-500" />
-                          <span className="truncate text-sm font-semibold text-[var(--text-main-theme)]">
-                            {titleParts.map((part, idx) =>
+                        {post.excerpt && (
+                          <p className="mt-1 pl-6 text-xs text-[var(--text-muted-theme)] line-clamp-1">
+                            {excerptParts.map((part, idx) =>
                               part.match ? (
                                 <mark
-                                  key={`t-${idx}`}
-                                  className="rounded bg-cyan-500/20 px-0.5 text-cyan-600 dark:text-cyan-400 font-bold"
+                                  key={`e-${idx}`}
+                                  className="rounded bg-cyan-500/20 px-0.5 text-cyan-600 dark:text-cyan-400 font-medium"
                                 >
                                   {part.text}
                                 </mark>
                               ) : (
-                                <span key={`t-${idx}`}>{part.text}</span>
+                                <span key={`e-${idx}`}>{part.text}</span>
                               ),
                             )}
-                          </span>
-                        </div>
-
-                        {post.category && (
-                          <span className="shrink-0 rounded-md bg-cyan-500/10 border border-cyan-500/15 px-1.5 py-0.5 text-[10px] font-medium text-cyan-700 dark:text-cyan-300">
-                            {post.category.name}
-                          </span>
+                          </p>
                         )}
-                      </div>
-
-                      {post.excerpt && (
-                        <p className="mt-1 pl-6 text-xs text-[var(--text-muted-theme)] line-clamp-1">
-                          {excerptParts.map((part, idx) =>
-                            part.match ? (
-                              <mark
-                                key={`e-${idx}`}
-                                className="rounded bg-cyan-500/20 px-0.5 text-cyan-600 dark:text-cyan-400 font-medium"
-                              >
-                                {part.text}
-                              </mark>
-                            ) : (
-                              <span key={`e-${idx}`}>{part.text}</span>
-                            ),
-                          )}
-                        </p>
-                      )}
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Empty Search Results */}
-          {query.trim() && results.totalMatches === 0 && !isLoading && (
-            <div className="py-10 text-center">
-              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-                <Search className="size-6" />
+            {/* Empty Search Results */}
+            {query.trim() && results.totalMatches === 0 && !isLoading && (
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                  <Search className="size-6" />
+                </div>
+                <p className="text-sm font-semibold text-[var(--text-main-theme)]">
+                  {locale === "vi"
+                    ? `Không tìm thấy kết quả nào cho "${query}"`
+                    : `No results found for "${query}"`}
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-soft-theme)]">
+                  {locale === "vi"
+                    ? "Hãy thử tìm bằng từ khóa ngắn hơn, tên công cụ hoặc thuật ngữ DevOps khác"
+                    : "Try searching with broader terms or common DevOps keywords"}
+                </p>
               </div>
-              <p className="text-sm font-semibold text-[var(--text-main-theme)]">
-                {locale === "vi"
-                  ? `Không tìm thấy kết quả nào cho "${query}"`
-                  : `No results found for "${query}"`}
-              </p>
-              <p className="mt-1 text-xs text-[var(--text-soft-theme)]">
-                {locale === "vi"
-                  ? "Hãy thử tìm bằng từ khóa ngắn hơn, tên công cụ hoặc thuật ngữ DevOps khác"
-                  : "Try searching with broader terms or common DevOps keywords"}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-cyan-500/15 dark:border-cyan-500/20 bg-black/[0.03] dark:bg-white/[0.04] px-4 py-2.5 text-xs text-[var(--text-muted-theme)]">
-          <div className="hidden sm:flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <kbd className="rounded border border-cyan-500/20 bg-[var(--surface-elevated)] px-1 py-0.5 text-[10px]">
-                ↑
-              </kbd>
-              <kbd className="rounded border border-cyan-500/20 bg-[var(--surface-elevated)] px-1 py-0.5 text-[10px]">
-                ↓
-              </kbd>
-              <span>{locale === "vi" ? "Di chuyển" : "Navigate"}</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <kbd className="rounded border border-cyan-500/20 bg-[var(--surface-elevated)] px-1.5 py-0.5 text-[10px]">
-                ↵
-              </kbd>
-              <span>{locale === "vi" ? "Mở" : "Select"}</span>
-            </span>
+            )}
           </div>
 
-          {query.trim() ? (
-            <button
-              type="button"
-              onClick={() => {
-                handleClose();
-                router.push(
-                  withLocale(
-                    `/search?q=${encodeURIComponent(query.trim())}`,
-                    locale,
-                  ),
-                );
-              }}
-              className="ml-auto inline-flex items-center gap-1.5 font-semibold text-cyan-600 dark:text-cyan-400 hover:underline"
-            >
-              <span>
-                {locale === "vi"
-                  ? "Xem tất cả kết quả chi tiết"
-                  : "View all detailed results"}
+          {/* Modal Footer */}
+          <div className="flex items-center justify-between border-t border-cyan-500/15 dark:border-cyan-500/20 bg-[var(--surface-muted)] px-4 py-2.5 text-xs text-[var(--text-muted-theme)]">
+            <div className="hidden sm:flex items-center gap-4">
+              <span className="flex items-center gap-1">
+                <kbd className="rounded border border-cyan-500/20 bg-[var(--surface-elevated)] px-1 py-0.5 text-[10px]">
+                  ↑
+                </kbd>
+                <kbd className="rounded border border-cyan-500/20 bg-[var(--surface-elevated)] px-1 py-0.5 text-[10px]">
+                  ↓
+                </kbd>
+                <span>{locale === "vi" ? "Di chuyển" : "Navigate"}</span>
               </span>
-              <ArrowRight className="size-3.5" />
-            </button>
-          ) : (
-            <div className="ml-auto flex items-center gap-1 text-[11px] text-[var(--text-soft-theme)]">
-              <span>DevOps Daily Smart Search</span>
+              <span className="flex items-center gap-1">
+                <kbd className="rounded border border-cyan-500/20 bg-[var(--surface-elevated)] px-1.5 py-0.5 text-[10px]">
+                  ↵
+                </kbd>
+                <span>{locale === "vi" ? "Mở" : "Select"}</span>
+              </span>
             </div>
-          )}
+
+            {query.trim() ? (
+              <button
+                type="button"
+                onClick={() => {
+                  handleClose();
+                  router.push(
+                    withLocale(
+                      `/search?q=${encodeURIComponent(query.trim())}`,
+                      locale,
+                    ),
+                  );
+                }}
+                className="ml-auto inline-flex items-center gap-1.5 font-semibold text-cyan-600 dark:text-cyan-400 hover:underline"
+              >
+                <span>
+                  {locale === "vi"
+                    ? "Xem tất cả kết quả chi tiết"
+                    : "View all detailed results"}
+                </span>
+                <ArrowRight className="size-3.5" />
+              </button>
+            ) : (
+              <div className="ml-auto flex items-center gap-1 text-[11px] text-[var(--text-soft-theme)]">
+                <span>DevOps Daily Smart Search</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
