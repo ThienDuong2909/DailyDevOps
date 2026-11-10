@@ -382,12 +382,12 @@ function SearchPageContent() {
   return (
     <div className="flex w-full flex-col gap-8 pb-16">
       {/* ── Search Hero Section ── */}
-      <div className="relative overflow-hidden rounded-3xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] p-6 shadow-sm md:p-10">
-        <div className="absolute -right-16 -top-16 size-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl border border-cyan-500/15 bg-[var(--surface-elevated)] p-6 shadow-[0_4px_24px_rgba(6,182,212,0.03)] md:p-10">
+        <div className="absolute -right-16 -top-16 size-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col gap-6">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-              <Sparkles className="size-3.5" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+              <Sparkles className="size-3.5 text-cyan-500" />
               {text.label}
             </div>
             <h1 className="mt-3 text-2xl font-black tracking-tight text-[var(--text-main-theme)] sm:text-4xl">
@@ -404,13 +404,13 @@ function SearchPageContent() {
             className="flex w-full flex-col gap-3 sm:flex-row sm:items-center"
           >
             <div className="relative flex flex-1 items-center">
-              <Search className="absolute left-4 size-5 text-[var(--text-muted-theme)]" />
+              <Search className="absolute left-4 size-5 text-cyan-500" />
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={text.placeholder}
-                className="w-full rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-main)] py-3.5 pl-12 pr-12 text-sm text-[var(--text-main-theme)] placeholder-[var(--text-muted-theme)] transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 sm:text-base"
+                className="w-full rounded-2xl border border-cyan-500/20 bg-[var(--surface-main)] py-3.5 pl-12 pr-12 text-sm text-[var(--text-main-theme)] placeholder-[var(--text-muted-theme)] transition-all focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10 sm:text-base"
               />
               {inputValue && (
                 <button
@@ -427,7 +427,7 @@ function SearchPageContent() {
             </div>
             <button
               type="submit"
-              className="inline-flex h-[52px] items-center justify-center rounded-2xl bg-primary px-8 text-sm font-bold text-white shadow-md shadow-primary/25 transition-all hover:bg-blue-600 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98]"
+              className="inline-flex h-[52px] items-center justify-center rounded-2xl bg-gradient-to-r from-primary to-cyan-600 px-8 text-sm font-bold text-white shadow-md shadow-primary/20 transition-all hover:from-primary/90 hover:to-cyan-600/90 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-[0.98]"
             >
               {text.searchBtn}
             </button>
@@ -446,7 +446,7 @@ function SearchPageContent() {
                   setInputValue(topic);
                   updateSearch({ q: topic });
                 }}
-                className="inline-flex items-center gap-1 rounded-full border border-[var(--border-theme)] bg-[var(--surface-main)] px-3 py-1 font-medium text-[var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
+                className="inline-flex items-center gap-1 rounded-full border border-cyan-500/15 bg-[var(--surface-main)] px-3 py-1 font-medium text-[var(--text-main-theme)] transition-all hover:border-cyan-500/40 hover:bg-cyan-500/5 hover:text-cyan-600 dark:hover:text-cyan-400"
               >
                 {topic}
               </button>
@@ -464,7 +464,7 @@ function SearchPageContent() {
 
           {/* Active Category Chip */}
           {categoryParam && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               <Folder className="size-3" />
               {allCategories.find((c) => c.slug === categoryParam)?.name ||
                 categoryParam}
@@ -481,12 +481,12 @@ function SearchPageContent() {
 
           {/* Active Tag Chip */}
           {tagParam && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-700 dark:text-cyan-300">
               <TagIcon className="size-3" />#{tagParam}
               <button
                 type="button"
                 onClick={() => updateSearch({ tag: null })}
-                className="rounded-full p-0.5 hover:bg-emerald-500/20"
+                className="rounded-full p-0.5 hover:bg-cyan-500/20"
                 aria-label={text.clearTag}
               >
                 <X className="size-3" />
@@ -517,7 +517,7 @@ function SearchPageContent() {
         <button
           type="button"
           onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-          className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] px-4 py-2 text-xs font-bold text-[var(--text-main-theme)] lg:hidden"
+          className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-[var(--surface-elevated)] px-4 py-2 text-xs font-bold text-[var(--text-main-theme)] lg:hidden"
         >
           <SlidersHorizontal className="size-3.5" />
           {text.filtersTitle}
@@ -527,19 +527,19 @@ function SearchPageContent() {
         </button>
       </div>
 
-      {/* ── Main 2-Column Section ── */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
+      {/* ── Main 2-Column Section (Balanced Full-Height Layout) ── */}
+      <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-[280px_1fr]">
         {/* ── Left Sidebar (Filters) ── */}
         <aside
           className={`flex-col gap-6 lg:flex ${
             mobileFiltersOpen ? "flex" : "hidden"
           }`}
         >
-          <div className="sticky top-24 flex flex-col gap-6 rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] p-6 shadow-sm">
+          <div className="sticky top-24 flex flex-col gap-6 rounded-2xl border border-cyan-500/15 bg-[var(--surface-elevated)] p-6 shadow-[0_4px_20px_rgba(6,182,212,0.03)]">
             {/* Sort selector */}
             <div>
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
-                <ArrowUpDown className="size-3.5" />
+                <ArrowUpDown className="size-3.5 text-cyan-500" />
                 {text.sortBy}
               </div>
               <div className="mt-3 flex flex-col gap-1.5">
@@ -568,10 +568,10 @@ function SearchPageContent() {
                         key={item.mode}
                         type="button"
                         onClick={() => updateSearch({ sort: item.mode })}
-                        className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                        className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all ${
                           isSelected
-                            ? "bg-primary text-white font-semibold"
-                            : "text-[var(--text-main-theme)] hover:bg-[var(--surface-muted)]"
+                            ? "bg-gradient-to-r from-primary to-cyan-600 text-white font-semibold shadow-xs"
+                            : "text-[var(--text-main-theme)] hover:bg-cyan-500/5 hover:text-cyan-600 dark:hover:text-cyan-400"
                         }`}
                       >
                         <span>{item.label}</span>
@@ -582,20 +582,20 @@ function SearchPageContent() {
               </div>
             </div>
 
-            <hr className="border-[var(--border-theme)]" />
+            <hr className="border-cyan-500/10 dark:border-white/5" />
 
             {/* Categories Filter */}
             <div>
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
                 <span className="flex items-center gap-2">
-                  <Folder className="size-3.5" />
+                  <Folder className="size-3.5 text-cyan-500" />
                   {text.categories}
                 </span>
                 {categoryParam && (
                   <button
                     type="button"
                     onClick={() => updateSearch({ category: null })}
-                    className="text-[11px] font-semibold text-primary hover:underline lowercase"
+                    className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 hover:underline lowercase"
                   >
                     {text.resetFilters}
                   </button>
@@ -605,14 +605,20 @@ function SearchPageContent() {
                 <button
                   type="button"
                   onClick={() => updateSearch({ category: null })}
-                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all ${
                     !categoryParam
-                      ? "bg-primary/10 text-primary font-bold"
-                      : "text-[var(--text-main-theme)] hover:bg-[var(--surface-muted)]"
+                      ? "bg-gradient-to-r from-primary to-cyan-600 text-white font-semibold shadow-xs"
+                      : "text-[var(--text-main-theme)] hover:bg-cyan-500/5 hover:text-cyan-600 dark:hover:text-cyan-400"
                   }`}
                 >
                   <span>{text.allCategories}</span>
-                  <span className="rounded-md bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] text-[var(--text-muted-theme)]">
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[10px] ${
+                      !categoryParam
+                        ? "bg-white/20 text-white font-bold"
+                        : "bg-[var(--surface-muted)] text-[var(--text-muted-theme)]"
+                    }`}
+                  >
                     {matchedPosts.length}
                   </span>
                 </button>
@@ -628,12 +634,12 @@ function SearchPageContent() {
                           category: isSelected ? null : category.slug,
                         })
                       }
-                      className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                      className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all ${
                         isSelected
-                          ? "bg-primary text-white font-semibold"
+                          ? "bg-gradient-to-r from-primary to-cyan-600 text-white font-semibold shadow-xs"
                           : count === 0
-                            ? "text-[var(--text-muted-theme)] opacity-50 hover:bg-[var(--surface-muted)]"
-                            : "text-[var(--text-main-theme)] hover:bg-[var(--surface-muted)]"
+                            ? "text-[var(--text-muted-theme)] opacity-40 hover:bg-cyan-500/5"
+                            : "text-[var(--text-main-theme)] hover:bg-cyan-500/5 hover:text-cyan-600 dark:hover:text-cyan-400"
                       }`}
                     >
                       <span className="truncate pr-2">{category.name}</span>
@@ -652,20 +658,20 @@ function SearchPageContent() {
               </div>
             </div>
 
-            <hr className="border-[var(--border-theme)]" />
+            <hr className="border-cyan-500/10 dark:border-white/5" />
 
             {/* Tags Filter */}
             <div>
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[var(--text-muted-theme)]">
                 <span className="flex items-center gap-2">
-                  <TagIcon className="size-3.5" />
+                  <TagIcon className="size-3.5 text-cyan-500" />
                   {text.popularTags}
                 </span>
                 {tagParam && (
                   <button
                     type="button"
                     onClick={() => updateSearch({ tag: null })}
-                    className="text-[11px] font-semibold text-primary hover:underline lowercase"
+                    className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 hover:underline lowercase"
                   >
                     {text.resetFilters}
                   </button>
@@ -683,12 +689,12 @@ function SearchPageContent() {
                       onClick={() =>
                         updateSearch({ tag: isSelected ? null : tag.name })
                       }
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${
                         isSelected
-                          ? "border-primary bg-primary text-white"
+                          ? "border-transparent bg-gradient-to-r from-primary to-cyan-600 text-white font-semibold shadow-xs"
                           : count === 0
-                            ? "border-[var(--border-theme)] bg-[var(--surface-muted)] text-[var(--text-muted-theme)] opacity-40"
-                            : "border-[var(--border-theme)] bg-[var(--surface-main)] text-[var(--text-main-theme)] hover:border-primary hover:text-primary"
+                            ? "border-cyan-500/10 bg-[var(--surface-muted)] text-[var(--text-muted-theme)] opacity-40"
+                            : "border-cyan-500/15 bg-[var(--surface-main)] text-[var(--text-main-theme)] hover:border-cyan-500/35 hover:bg-cyan-500/5 hover:text-cyan-600 dark:hover:text-cyan-400"
                       }`}
                     >
                       <span>#{tag.name}</span>
@@ -705,21 +711,25 @@ function SearchPageContent() {
           </div>
         </aside>
 
-        {/* ── Right Content: Results Grid & Empty State ── */}
-        <main className="flex flex-col gap-8">
+        {/* ── Right Content: Results Grid & Full-Height Balanced Empty State ── */}
+        <main className="flex flex-col h-full gap-8">
           {isLoading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-80 animate-pulse rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)]"
+                  className="h-80 animate-pulse rounded-2xl border border-cyan-500/15 bg-[var(--surface-elevated)]"
                 />
               ))}
             </div>
           ) : filteredPosts.length === 0 ? (
-            /* Empty State */
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--border-theme)] bg-[var(--surface-elevated)] p-12 text-center">
-              <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            /* 
+              Empty State:
+              - Equal height with sidebar via flex-1 h-full min-h-[580px]
+              - Solid border with signature cyan tint (.border-cyan-500/15) instead of harsh outline
+            */
+            <div className="flex flex-1 min-h-[580px] h-full flex-col items-center justify-center rounded-3xl border border-cyan-500/15 bg-[var(--surface-elevated)] p-8 sm:p-12 text-center shadow-[0_4px_24px_rgba(6,182,212,0.03)]">
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 shadow-xs">
                 <Search className="size-8" />
               </div>
               <h3 className="mt-4 text-xl font-bold text-[var(--text-main-theme)]">
@@ -746,7 +756,7 @@ function SearchPageContent() {
                           tag: null,
                         });
                       }}
-                      className="rounded-full border border-[var(--border-theme)] bg-[var(--surface-main)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-main-theme)] shadow-sm transition-colors hover:border-primary hover:text-primary"
+                      className="rounded-full border border-cyan-500/15 bg-[var(--surface-main)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-main-theme)] shadow-xs transition-all hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-600 dark:hover:text-cyan-400"
                     >
                       {topic}
                     </button>
@@ -765,7 +775,7 @@ function SearchPageContent() {
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)] p-4 sm:flex-row">
+                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-cyan-500/15 bg-[var(--surface-elevated)] p-4 sm:flex-row shadow-[0_4px_20px_rgba(6,182,212,0.03)]">
                   <p className="text-xs text-[var(--text-muted-theme)]">
                     {text.page}{" "}
                     <span className="font-bold text-[var(--text-main-theme)]">
@@ -778,7 +788,7 @@ function SearchPageContent() {
                       type="button"
                       onClick={() => updateSearch({ page: currentPage - 1 })}
                       disabled={currentPage <= 1}
-                      className="rounded-xl border border-[var(--border-theme)] bg-[var(--surface-main)] px-3.5 py-2 text-xs font-semibold text-[var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-[var(--border-theme)] disabled:hover:text-[var(--text-main-theme)]"
+                      className="rounded-xl border border-cyan-500/15 bg-[var(--surface-main)] px-3.5 py-2 text-xs font-semibold text-[var(--text-main-theme)] transition-colors hover:border-cyan-500/35 hover:text-cyan-600 disabled:opacity-40 disabled:hover:border-cyan-500/15 disabled:hover:text-[var(--text-main-theme)]"
                     >
                       {text.prev}
                     </button>
@@ -797,10 +807,10 @@ function SearchPageContent() {
                             key={p}
                             type="button"
                             onClick={() => updateSearch({ page: p })}
-                            className={`size-8 rounded-xl text-xs font-bold transition-colors ${
+                            className={`size-8 rounded-xl text-xs font-bold transition-all ${
                               isActive
-                                ? "bg-primary text-white shadow-sm"
-                                : "border border-[var(--border-theme)] bg-[var(--surface-main)] text-[var(--text-main-theme)] hover:border-primary hover:text-primary"
+                                ? "bg-gradient-to-r from-primary to-cyan-600 text-white shadow-xs"
+                                : "border border-cyan-500/15 bg-[var(--surface-main)] text-[var(--text-main-theme)] hover:border-cyan-500/35 hover:text-cyan-600"
                             }`}
                           >
                             {p}
@@ -826,7 +836,7 @@ function SearchPageContent() {
                       type="button"
                       onClick={() => updateSearch({ page: currentPage + 1 })}
                       disabled={currentPage >= totalPages}
-                      className="rounded-xl border border-[var(--border-theme)] bg-[var(--surface-main)] px-3.5 py-2 text-xs font-semibold text-[var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary disabled:opacity-40 disabled:hover:border-[var(--border-theme)] disabled:hover:text-[var(--text-main-theme)]"
+                      className="rounded-xl border border-cyan-500/15 bg-[var(--surface-main)] px-3.5 py-2 text-xs font-semibold text-[var(--text-main-theme)] transition-colors hover:border-cyan-500/35 hover:text-cyan-600 disabled:opacity-40 disabled:hover:border-cyan-500/15 disabled:hover:text-[var(--text-main-theme)]"
                     >
                       {text.next}
                     </button>
@@ -846,12 +856,12 @@ export function SearchPageClient() {
     <Suspense
       fallback={
         <div className="flex w-full flex-col gap-8 pb-16">
-          <div className="h-64 animate-pulse rounded-3xl border border-[var(--border-theme)] bg-[var(--surface-elevated)]" />
+          <div className="h-64 animate-pulse rounded-3xl border border-cyan-500/15 bg-[var(--surface-elevated)]" />
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="h-80 animate-pulse rounded-2xl border border-[var(--border-theme)] bg-[var(--surface-elevated)]"
+                className="h-80 animate-pulse rounded-2xl border border-cyan-500/15 bg-[var(--surface-elevated)]"
               />
             ))}
           </div>
