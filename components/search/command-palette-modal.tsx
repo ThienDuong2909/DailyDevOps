@@ -309,7 +309,11 @@ export function CommandPaletteModal({
       */}
       <div
         ref={modalRef}
-        className={`pointer-events-auto relative flex max-h-[82vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-500/20 dark:border-cyan-400/25 bg-[var(--surface-elevated)]/98 backdrop-blur-2xl shadow-[0_24px_70px_-10px_rgba(15,23,42,0.18),0_0_0_1px_rgba(6,182,212,0.08),0_0_35px_rgba(6,182,212,0.12)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        style={{
+          backgroundColor:
+            "color-mix(in srgb, var(--surface-elevated) 80%, transparent)",
+        }}
+        className={`pointer-events-auto relative flex max-h-[82vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-cyan-500/20 dark:border-cyan-400/25 bg-white/80 dark:bg-[#0c1527]/80 backdrop-blur-2xl shadow-[0_24px_70px_-10px_rgba(15,23,42,0.18),0_0_0_1px_rgba(6,182,212,0.08),0_0_35px_rgba(6,182,212,0.12)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isAnimating
             ? "translate-y-0 scale-100 opacity-100 blur-0"
             : "-translate-y-6 scale-95 opacity-0 blur-sm pointer-events-none"
@@ -625,7 +629,7 @@ export function CommandPaletteModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-cyan-500/15 dark:border-cyan-500/20 bg-[var(--surface-muted)]/70 px-4 py-2.5 text-xs text-[var(--text-muted-theme)]">
+        <div className="flex items-center justify-between border-t border-cyan-500/15 dark:border-cyan-500/20 bg-black/[0.03] dark:bg-white/[0.04] px-4 py-2.5 text-xs text-[var(--text-muted-theme)]">
           <div className="hidden sm:flex items-center gap-4">
             <span className="flex items-center gap-1">
               <kbd className="rounded border border-cyan-500/20 bg-[var(--surface-elevated)] px-1 py-0.5 text-[10px]">
