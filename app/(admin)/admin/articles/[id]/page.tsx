@@ -19,6 +19,18 @@ import type {
 import { formatDate, formatRelativeTime, getImageUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/hooks/use-auth";
+import {
+  saveRescueSnapshot,
+  getRescueSnapshot,
+  clearRescueSnapshot,
+  isRescueNewerThanServer,
+  type ArticleRescueSnapshot,
+} from "@/lib/rescue/offline-rescue";
+import { OfflineRescueBanner } from "@/components/admin/article-editor/offline-rescue-banner";
+import {
+  AutosaveStatusBadge,
+  type AutosaveStatus,
+} from "@/components/admin/article-editor/autosave-status-badge";
 
 type PostPayload = { data?: Post } | Post;
 type TaxonomyPayload<T> = { data?: T[] } | T[];
@@ -335,9 +347,10 @@ export default function ArticleEditPage() {
     "featured-images" | "post-media" | "avatars"
   >("featured-images");
   const [errorMessage, setErrorMessage] = useState("");
-  const [autosaveState, setAutosaveState] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [autosaveState, setAutosaveState] = useState<AutosaveStatus>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [rescueSnapshot, setRescueSnapshot] =
+    useState<ArticleRescueSnapshot | null>(null);
   const [showCategoryCreator, setShowCategoryCreator] = useState(false);
   const [showTagCreator, setShowTagCreator] = useState(false);
   const [categoryDraft, setCategoryDraft] =
@@ -523,6 +536,37 @@ export default function ArticleEditPage() {
     fetchMediaLibrary,
     isNewArticle,
   ]);
+
+  useEffect(() => {
+    if (loading) return;
+    const rescue = getRescueSnapshot(articleId, selectedLocale);
+    if (rescue && isRescueNewerThanServer(rescue, article?.updatedAt)) {
+      setRescueSnapshot(rescue);
+    }
+  }, [article?.updatedAt, articleId, loading, selectedLocale]);
+
+  const handleRestoreRescue = (snapshot: ArticleRescueSnapshot) => {
+    setFormState({
+      title: snapshot.title,
+      subtitle: snapshot.subtitle,
+      slug: snapshot.slug,
+      content: snapshot.content,
+      contentJson: snapshot.contentJson,
+      featuredImage: snapshot.featuredImage,
+      status: snapshot.status,
+      categoryId: snapshot.categoryId,
+      tagIds: snapshot.tagIds,
+      scheduledAt: snapshot.scheduledAt,
+    });
+    setRescueSnapshot(null);
+    toast.success("Da khoi phuc ban thao tam tu trinh duyet");
+  };
+
+  const handleDismissRescue = () => {
+    clearRescueSnapshot(articleId, selectedLocale);
+    setRescueSnapshot(null);
+    toast.success("Da bo qua ban thao tam");
+  };
 
   const stats = useMemo(() => {
     const words = countWords(formState.content);
@@ -734,20 +778,34 @@ export default function ArticleEditPage() {
     field: K,
     value: ArticleFormState[K],
   ) => {
-    setFormState((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setFormState((previous) => {
+      const nextState = {
+        ...previous,
+        [field]: value,
+      };
+      saveRescueSnapshot(articleId, {
+        ...nextState,
+        locale: selectedLocale,
+      });
+      return nextState;
+    });
   };
 
   const handleTitleChange = (value: string) => {
-    setFormState((previous) => ({
-      ...previous,
-      title: value,
-      slug: shouldAutoGenerateSlugRef.current
-        ? createSlug(value)
-        : previous.slug,
-    }));
+    setFormState((previous) => {
+      const nextState = {
+        ...previous,
+        title: value,
+        slug: shouldAutoGenerateSlugRef.current
+          ? createSlug(value)
+          : previous.slug,
+      };
+      saveRescueSnapshot(articleId, {
+        ...nextState,
+        locale: selectedLocale,
+      });
+      return nextState;
+    });
   };
 
   const handleSlugChange = (value: string) => {
@@ -1186,6 +1244,9 @@ export default function ArticleEditPage() {
         if (createdPost?.id) {
           lastSavedSnapshotRef.current = buildAutosaveSnapshot();
           setAutosaveState("saved");
+          setLastSavedAt(new Date());
+          clearRescueSnapshot(articleId, selectedLocale);
+          setRescueSnapshot(null);
           router.replace(`/admin/articles/${createdPost.id}`);
         }
 
@@ -1206,6 +1267,9 @@ export default function ArticleEditPage() {
         }
         lastSavedSnapshotRef.current = buildAutosaveSnapshot();
         setAutosaveState("saved");
+        setLastSavedAt(new Date());
+        clearRescueSnapshot(articleId, selectedLocale);
+        setRescueSnapshot(null);
         toast.success("Da luu ban dich bai viet");
         await fetchArticle();
         return;
@@ -1221,6 +1285,9 @@ export default function ArticleEditPage() {
       setFormState(buildFormState(updatedPost || undefined));
       lastSavedSnapshotRef.current = buildAutosaveSnapshot();
       setAutosaveState("saved");
+      setLastSavedAt(new Date());
+      clearRescueSnapshot(articleId, selectedLocale);
+      setRescueSnapshot(null);
       await fetchVersions();
       toast.success("Da luu thay doi bai viet");
     } catch {
@@ -1255,6 +1322,7 @@ export default function ArticleEditPage() {
   const finishAutosave = (snapshot: string) => {
     lastSavedSnapshotRef.current = snapshot;
     setAutosaveState("saved");
+    setLastSavedAt(new Date());
   };
 
   const autosaveNewArticleDraft = async (
@@ -1355,7 +1423,11 @@ export default function ArticleEditPage() {
       const payload = buildPayload();
       await autosaveExistingPostDraft(payload, snapshot);
     } catch {
-      setAutosaveState("error");
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setAutosaveState("offline");
+      } else {
+        setAutosaveState("error");
+      }
     } finally {
       isAutosavingRef.current = false;
     }
@@ -1610,13 +1682,12 @@ export default function ArticleEditPage() {
             <h2 className="text-lg font-bold tracking-tight text-[color:var(--text-main-theme)]">
               {isNewArticle ? "Bai viet moi" : "Chinh sua bai viet"}
             </h2>
-            <p className="theme-muted text-xs">
-              Last saved:{" "}
-              <span className="text-[color:var(--text-main-theme)]">
-                {lastSavedLabel}
-              </span>
-            </p>
-            <p className="theme-muted text-[11px]">{autosaveStatusLabel}</p>
+            <div className="mt-1">
+              <AutosaveStatusBadge
+                status={autosaveState}
+                lastSavedAt={lastSavedAt}
+              />
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -1698,6 +1769,13 @@ export default function ArticleEditPage() {
           </button>
         </div>
       </header>
+
+      {/* Offline Rescue Banner when an unsaved local draft is detected */}
+      <OfflineRescueBanner
+        rescueSnapshot={rescueSnapshot}
+        onRestore={handleRestoreRescue}
+        onDismiss={handleDismissRescue}
+      />
 
       <div className="grid max-w-[1600px] grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="flex flex-col gap-6 lg:col-span-8">
