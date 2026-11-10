@@ -31,6 +31,7 @@ import {
   AutosaveStatusBadge,
   type AutosaveStatus,
 } from "@/components/admin/article-editor/autosave-status-badge";
+import { VisualDiffModal } from "@/components/admin/article-editor/visual-diff-modal";
 
 type PostPayload = { data?: Post } | Post;
 type TaxonomyPayload<T> = { data?: T[] } | T[];
@@ -351,6 +352,10 @@ export default function ArticleEditPage() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [rescueSnapshot, setRescueSnapshot] =
     useState<ArticleRescueSnapshot | null>(null);
+  const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
+  const [selectedDiffVersionId, setSelectedDiffVersionId] = useState<
+    string | null
+  >(null);
   const [showCategoryCreator, setShowCategoryCreator] = useState(false);
   const [showTagCreator, setShowTagCreator] = useState(false);
   const [categoryDraft, setCategoryDraft] =
@@ -1519,9 +1524,16 @@ export default function ArticleEditPage() {
     }
   };
 
-  const handleRestoreVersion = async (versionId: string) => {
-    const reason =
-      globalThis.window.prompt("Nhap ghi chu rollback (khong bat buoc)") || "";
+  const handleRestoreVersion = async (
+    versionId: string,
+    providedReason?: string,
+  ) => {
+    let reason = providedReason;
+    if (reason === undefined) {
+      reason =
+        globalThis.window.prompt("Nhap ghi chu rollback (khong bat buoc)") ||
+        "";
+    }
 
     try {
       const response = await apiClient.post<PostPayload>(
@@ -1551,6 +1563,9 @@ export default function ArticleEditPage() {
           : "",
       });
       setAutosaveState("saved");
+      setLastSavedAt(new Date());
+      clearRescueSnapshot(articleId, selectedLocale);
+      setRescueSnapshot(null);
       await fetchVersions();
       toast.success("Da rollback bai viet ve phien ban da chon");
     } catch {
@@ -1936,12 +1951,29 @@ export default function ArticleEditPage() {
 
           <div className="theme-panel rounded-2xl p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[color:var(--text-main-theme)]">
-                Version History
-              </h3>
-              <span className="theme-muted text-[11px] uppercase tracking-wide">
-                {versions.length} versions
-              </span>
+              <div>
+                <h3 className="text-sm font-bold text-[color:var(--text-main-theme)]">
+                  Version History
+                </h3>
+                <span className="theme-muted text-[11px] uppercase tracking-wide">
+                  {versions.length} versions
+                </span>
+              </div>
+              {versions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDiffVersionId(versions[0]?.id || null);
+                    setIsDiffModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-600 transition-colors hover:bg-cyan-500/20 dark:text-cyan-400"
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    difference
+                  </span>
+                  <span>So sánh Diff</span>
+                </button>
+              )}
             </div>
             <div className="space-y-3">
               {versions.length === 0 ? (
@@ -1974,15 +2006,31 @@ export default function ArticleEditPage() {
                           </p>
                         ) : null}
                       </div>
-                      <button
-                        onClick={() => void handleRestoreVersion(version.id)}
-                        className="theme-panel-muted theme-border inline-flex h-8 items-center gap-1 rounded-2xl border px-3 text-xs font-bold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">
-                          history
-                        </span>
-                        <span>Restore</span>
-                      </button>
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDiffVersionId(version.id);
+                            setIsDiffModalOpen(true);
+                          }}
+                          className="theme-panel-muted theme-border inline-flex h-8 items-center gap-1 rounded-xl border px-2.5 text-xs font-bold text-[color:var(--text-main-theme)] transition-colors hover:border-cyan-500 hover:text-cyan-500"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            visibility
+                          </span>
+                          <span>Diff</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleRestoreVersion(version.id)}
+                          className="theme-panel-muted theme-border inline-flex h-8 items-center gap-1 rounded-xl border px-2.5 text-xs font-bold text-[color:var(--text-main-theme)] transition-colors hover:border-primary hover:text-primary"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            history
+                          </span>
+                          <span>Restore</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -2483,6 +2531,26 @@ export default function ArticleEditPage() {
           </div>
         </div>
       </div>
+
+      <VisualDiffModal
+        isOpen={isDiffModalOpen}
+        onClose={() => setIsDiffModalOpen(false)}
+        articleId={articleId}
+        versions={versions}
+        selectedVersionId={selectedDiffVersionId}
+        onSelectVersionId={(id) => setSelectedDiffVersionId(id)}
+        currentArticle={{
+          title: formState.title,
+          subtitle: formState.subtitle,
+          slug: formState.slug,
+          content: formState.content,
+          featuredImage: formState.featuredImage,
+          status: formState.status,
+        }}
+        onRollback={async (versionId, reason) => {
+          await handleRestoreVersion(versionId, reason);
+        }}
+      />
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
