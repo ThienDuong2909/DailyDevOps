@@ -137,10 +137,21 @@ export interface TranslationJob {
 
 export interface PostVersion {
   id: string;
+  postId?: string;
   title: string;
   slug: string;
+  subtitle?: string | null;
+  excerpt?: string | null;
+  content?: string | null;
+  contentHtml?: string | null;
+  contentJson?: Record<string, unknown> | null;
+  featuredImage?: string | null;
   status: PostStatus;
-  reason?: string;
+  scheduledAt?: string | null;
+  rejectionReason?: string | null;
+  categoryId?: string | null;
+  tagIds?: string[];
+  reason?: string | null;
   createdAt: string;
   createdBy?: {
     id: string;
