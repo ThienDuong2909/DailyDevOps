@@ -32,7 +32,7 @@ export function BlogPostFeed({
           {Array.from({ length: 9 }, (_, index) => (
             <div
               key={index}
-              className="overflow-hidden rounded-2xl bg-[var(--surface-elevated)] shadow-[0_2px_12px_rgba(15,23,42,0.06)]"
+              className="overflow-hidden rounded-2xl border border-gray-200/80 bg-surface-light/80 shadow-[0_4px_20px_rgba(15,23,42,0.06)] backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80"
             >
               <Skeleton className="aspect-[16/9] w-full rounded-none" />
               <div className="space-y-3 px-5 pb-5 pt-4">

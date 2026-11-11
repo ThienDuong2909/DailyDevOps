@@ -12,10 +12,8 @@ export function NewsletterSection() {
 
   return (
     <section
-      className="relative mt-12 overflow-hidden rounded-[28px] px-6 py-8 sm:px-8"
+      className="relative mt-12 overflow-hidden rounded-[28px] border border-gray-200/80 bg-surface-light/80 px-6 py-8 shadow-sm backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80 sm:px-8"
       style={{
-        background: "var(--surface-base)",
-        border: "1px solid var(--border-soft-theme)",
         boxShadow: "var(--shadow-theme)",
       }}
     >

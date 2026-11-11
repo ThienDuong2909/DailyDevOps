@@ -181,11 +181,11 @@ export function TrendingToolsPanel({
       <div className="sticky top-24 space-y-6">
         {/* ── Most Popular ── */}
         {isLoadingPopular ? (
-          <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
-            <div className="px-5 pt-5 pb-1">
+          <div className="relative overflow-hidden rounded-2xl border border-gray-200/80 bg-surface-light/80 p-5 shadow-sm backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80">
+            <div className="pb-1">
               <Skeleton className="h-5 w-32" />
             </div>
-            <div className="space-y-0 divide-y divide-[var(--border-ghost-theme)] px-5 pb-4 pt-2">
+            <div className="space-y-0 divide-y divide-[var(--border-ghost-theme)] pb-4 pt-2">
               {Array.from({ length: POPULAR_LIMIT }, (_, i) => (
                 <div key={i} className="flex items-start gap-3 py-3">
                   <Skeleton className="mt-0.5 size-6 shrink-0 rounded-md" />
@@ -199,13 +199,17 @@ export function TrendingToolsPanel({
             </div>
           </div>
         ) : popularPosts.length > 0 ? (
-          <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
-            <div className="px-5 pt-5 pb-1">
+          <div className="relative overflow-hidden rounded-2xl border border-gray-200/80 bg-surface-light/80 shadow-sm backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80">
+            <div
+              className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full opacity-30 blur-3xl"
+              style={{ background: "var(--primary-glow-theme)" }}
+            />
+            <div className="relative z-10 px-5 pt-5 pb-1">
               <h3 className="text-base font-extrabold tracking-tight text-[var(--text-main-theme)]">
                 {dictionary.blog.popularMostRead}
               </h3>
             </div>
-            <ol className="divide-y divide-[var(--border-ghost-theme)] px-5 pb-4 pt-2">
+            <ol className="relative z-10 divide-y divide-[var(--border-ghost-theme)] px-5 pb-4 pt-2">
               {popularPosts.map((post, idx) => (
                 <li key={post.id}>
                   <Link
@@ -261,7 +265,7 @@ export function TrendingToolsPanel({
 
         {/* ── Trending Tools ── */}
         {isLoadingTags ? (
-          <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
+          <div className="relative overflow-hidden rounded-2xl border border-gray-200/80 bg-surface-light/80 shadow-sm backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80">
             <div className="px-5 pt-5 pb-2">
               <Skeleton className="h-5 w-32" />
             </div>
@@ -279,20 +283,24 @@ export function TrendingToolsPanel({
             </div>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)]">
-            <div className="px-5 pt-5 pb-2">
+          <div className="relative overflow-hidden rounded-2xl border border-gray-200/80 bg-surface-light/80 shadow-sm backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80">
+            <div
+              className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full opacity-30 blur-3xl"
+              style={{ background: "var(--primary-glow-theme)" }}
+            />
+            <div className="relative z-10 px-5 pt-5 pb-2">
               <h3 className="text-base font-extrabold tracking-tight text-[var(--text-main-theme)]">
                 {dictionary.blog.trendingTools}
               </h3>
             </div>
 
             {/* Flow-based tag cloud */}
-            <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-5 pt-3">
+            <div className="relative z-10 flex flex-wrap items-center justify-center gap-2 px-4 pb-5 pt-3">
               {bubbles.map((b) => (
                 <Link
                   key={b.name}
                   href={withLocale(b.href, locale)}
-                  className="inline-block whitespace-nowrap rounded-full border border-[var(--border-soft-theme)] bg-[var(--surface-elevated)] font-bold text-[var(--text-main-theme)] shadow-sm transition-all duration-200 hover:z-20 hover:scale-110 hover:border-primary/40 hover:text-primary hover:shadow-md"
+                  className="inline-block whitespace-nowrap rounded-full border border-gray-200/80 bg-surface-light/80 font-bold text-[var(--text-main-theme)] shadow-xs backdrop-blur-sm transition-all duration-200 hover:z-20 hover:scale-110 hover:border-primary/50 hover:bg-white/90 hover:text-primary hover:shadow-md dark:border-gray-800/80 dark:bg-surface-dark/80 dark:hover:bg-surface-dark/95"
                   style={{
                     fontSize: b.fontSize,
                     paddingInline: Math.max(10, b.fontSize * 0.7),

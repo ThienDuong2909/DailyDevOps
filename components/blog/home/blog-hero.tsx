@@ -19,7 +19,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
   if (isLoading) {
     return (
       <section className="@container w-full">
-        <div className="flex flex-col-reverse gap-6 rounded-3xl border border-cyan-500/10 bg-surface-light p-6 shadow-sm dark:border-cyan-400/10 dark:bg-surface-dark md:grid md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
+        <div className="relative flex flex-col-reverse gap-6 overflow-hidden rounded-3xl border border-gray-200/80 bg-surface-light/80 p-6 shadow-sm backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80 md:grid md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
           <div className="flex flex-col justify-center gap-5">
             <Skeleton className="h-7 w-40 rounded-full" />
             <div className="space-y-3">
@@ -50,8 +50,12 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
 
   return (
     <section className="@container w-full">
-      <div className="flex flex-col-reverse gap-6 rounded-3xl border border-cyan-500/10 bg-surface-light p-6 shadow-sm dark:border-cyan-400/10 dark:bg-surface-dark md:grid md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
-        <div className="flex flex-col justify-center gap-5">
+      <div className="relative flex flex-col-reverse gap-6 overflow-hidden rounded-3xl border border-gray-200/80 bg-surface-light/80 p-6 shadow-sm backdrop-blur-md dark:border-gray-800/80 dark:bg-surface-dark/80 md:grid md:grid-cols-[1.1fr_0.9fr] md:p-8 lg:p-10">
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full opacity-30 blur-3xl"
+          style={{ background: "var(--primary-glow-theme)" }}
+        />
+        <div className="relative z-10 flex flex-col justify-center gap-5">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-500">
             <Sparkles className="size-4" />
             {dictionary.blog.featuredArticle}
@@ -104,7 +108,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
             </Link>
           </div>
         </div>
-        <div className="relative h-full overflow-hidden rounded-2xl border border-gray-100 shadow-lg dark:border-gray-800">
+        <div className="relative z-10 h-full overflow-hidden rounded-2xl border border-gray-100/80 shadow-lg dark:border-gray-800/80">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={getImageUrl(post.featuredImage)}

@@ -17,9 +17,9 @@
       rgba(56, 189, 248, 0.1),
       transparent 22%
     );
-  --surface-base: rgba(255, 255, 255, 0.86);
-  --surface-elevated: #ffffff;
-  --surface-muted: #f3f6fa;
+  --surface-base: rgba(255, 255, 255, 0.6);
+  --surface-elevated: rgba(255, 255, 255, 0.6);
+  --surface-muted: rgba(243, 246, 250, 0.6);
   --surface-strong: #e8eef6;
   --text-main-theme: #172033;
   --text-muted-theme: #61738a;
@@ -46,9 +46,9 @@
       rgba(14, 165, 233, 0.14),
       transparent 22%
     );
-  --surface-base: rgba(10, 18, 34, 0.88);
-  --surface-elevated: #0c1527;
-  --surface-muted: #0a1223;
+  --surface-base: rgba(12, 21, 39, 0.72);
+  --surface-elevated: rgba(12, 21, 39, 0.72);
+  --surface-muted: rgba(10, 18, 35, 0.6);
   --surface-strong: #131f35;
   --text-main-theme: #f3f7fb;
   --text-muted-theme: #99abc4;
@@ -76,6 +76,20 @@ body {
 .site-ambient-shell {
   isolation: isolate;
   overflow-x: clip;
+}
+
+/* Glassmorphism card utilities */
+.bg-surface-light\/80 {
+  background-color: rgb(255 255 255 / 0.6);
+}
+.border-gray-200\/80 {
+  border-color: rgb(229 231 235 / 0.8);
+}
+.dark .bg-surface-light\/80 {
+  background-color: rgba(12, 21, 39, 0.72);
+}
+.dark .border-gray-200\/80 {
+  border-color: rgba(40, 48, 57, 0.8);
 }
 
 h1,

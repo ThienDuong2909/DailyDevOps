@@ -44,8 +44,8 @@ export function BlogTopics({
             className={cn(
               "flex h-10 items-center justify-center rounded-xl border px-4 text-sm font-semibold transition-all active:scale-95",
               selectedTopic === topic.value
-                ? "theme-glow-button border-transparent text-white"
-                : "theme-panel-muted theme-border text-[color:var(--text-main-theme)] hover:border-primary/40 hover:text-primary",
+                ? "theme-glow-button border-transparent text-white shadow-md shadow-primary/25 backdrop-blur-md"
+                : "border border-gray-200/80 bg-surface-light/80 text-[color:var(--text-main-theme)] shadow-xs backdrop-blur-md hover:border-primary/50 hover:bg-white/80 dark:border-gray-800/80 dark:bg-surface-dark/80 dark:hover:bg-surface-dark/90",
             )}
             onClick={() => onSelect(topic.value)}
             type="button"

@@ -51,7 +51,11 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
   const categoryColor = post.category?.color || "#f59e0b";
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-[var(--surface-elevated)] shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-surface-light/80 shadow-[0_4px_20px_rgba(15,23,42,0.06)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_12px_32px_rgba(15,23,42,0.12)] dark:border-gray-800/80 dark:bg-surface-dark/80">
+      <div
+        className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full opacity-25 blur-3xl transition-opacity duration-500 group-hover:opacity-40"
+        style={{ background: "var(--primary-glow-theme)" }}
+      />
       <div
         className={`relative aspect-[16/9] w-full overflow-hidden ${imageClassName || ""}`}
       >
@@ -86,7 +90,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
         </Link>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
+      <div className="relative z-10 flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
         <Link href={withLocale(`/${post.slug}`, locale)} className="block">
           <h3 className="line-clamp-2 text-[1.05rem] font-extrabold leading-snug tracking-tight text-[var(--text-main-theme)] transition-colors group-hover:text-primary">
             {post.title}
