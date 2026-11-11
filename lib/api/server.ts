@@ -26,6 +26,16 @@ export async function fetchPostBySlug(slug: string, locale: string) {
   }
 }
 
+function stripSummaryPost<T>(post: T): T {
+  if (!post || typeof post !== "object") return post;
+  return {
+    ...post,
+    content: "",
+    contentHtml: "",
+    contentJson: null,
+  };
+}
+
 /**
  * Fetch related posts for a given post ID.
  */
@@ -45,7 +55,8 @@ export async function fetchRelatedPosts(
     }
 
     const json = await res.json();
-    return json.data || [];
+    const raw = json.data || [];
+    return Array.isArray(raw) ? raw.map(stripSummaryPost) : [];
   } catch {
     return [];
   }
@@ -67,7 +78,7 @@ export async function fetchPopularPosts(locale: string, limit = 5) {
 
     const json = await res.json();
     const posts = json.data?.data || json.data || [];
-    return posts;
+    return Array.isArray(posts) ? posts.map(stripSummaryPost) : [];
   } catch {
     return [];
   }
@@ -89,7 +100,7 @@ export async function fetchPublishedPosts(locale: string, limit = 12) {
 
     const json = await res.json();
     const posts = json.data?.data || json.data || [];
-    return Array.isArray(posts) ? posts : [];
+    return Array.isArray(posts) ? posts.map(stripSummaryPost) : [];
   } catch {
     return [];
   }

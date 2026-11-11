@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { BlogHomeContent } from "@/components/blog/home/blog-home-content";
-import { fetchCategories, fetchPublishedPosts } from "@/lib/api/server";
+import {
+  fetchCategories,
+  fetchPublishedPosts,
+  fetchPopularPosts,
+} from "@/lib/api/server";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { SITE_URL } from "@/lib/constants/site";
 import type { Category, Post } from "@/types";
@@ -26,15 +30,24 @@ export const metadata: Metadata = {
 export default async function MainHomePage({
   initialPosts,
   initialCategories,
+  initialPopularPosts,
 }: {
   initialPosts?: Post[];
   initialCategories?: Category[];
+  initialPopularPosts?: Post[];
 } = {}) {
   const locale = await getRequestLocale();
-  const posts = initialPosts || (await fetchPublishedPosts(locale, 12));
-  const categories = initialCategories || (await fetchCategories());
+  const [posts, categories, popularPosts] = await Promise.all([
+    initialPosts || fetchPublishedPosts(locale, 12),
+    initialCategories || fetchCategories(),
+    initialPopularPosts || fetchPopularPosts(locale, 5),
+  ]);
 
   return (
-    <BlogHomeContent initialPosts={posts} initialCategories={categories} />
+    <BlogHomeContent
+      initialPosts={posts}
+      initialCategories={categories}
+      initialPopularPosts={popularPosts}
+    />
   );
 }

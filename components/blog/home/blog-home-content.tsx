@@ -14,11 +14,13 @@ import type { Category, Post } from "@/types";
 interface BlogHomeContentProps {
   initialPosts?: Post[];
   initialCategories?: Category[];
+  initialPopularPosts?: Post[];
 }
 
 export function BlogHomeContent({
   initialPosts,
   initialCategories,
+  initialPopularPosts,
 }: BlogHomeContentProps = {}) {
   const locale = useLocale();
   const dictionary = useDictionary();
@@ -125,7 +127,7 @@ export function BlogHomeContent({
             posts={feedPosts}
           />
         </div>
-        <TrendingToolsPanel />
+        <TrendingToolsPanel initialPopularPosts={initialPopularPosts} />
       </div>
       <NewsletterCta />
     </div>

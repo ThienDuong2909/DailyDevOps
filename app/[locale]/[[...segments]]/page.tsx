@@ -721,15 +721,18 @@ export default async function LocalizedPage({
   const alternates = getLocaleAlternates(currentPath, querySuffix);
 
   if (segments.length === 0) {
-    const [initialPosts, initialCategories] = await Promise.all([
-      fetchPublishedPosts(activeLocale, 12),
-      fetchCategories(),
-    ]);
+    const [initialPosts, initialCategories, initialPopularPosts] =
+      await Promise.all([
+        fetchPublishedPosts(activeLocale, 12),
+        fetchCategories(),
+        fetchPopularPosts(activeLocale, 5),
+      ]);
     return wrapWithLocaleSync(
       alternates,
       <MainHomePage
         initialPosts={initialPosts}
         initialCategories={initialCategories}
+        initialPopularPosts={initialPopularPosts}
       />,
     );
   }

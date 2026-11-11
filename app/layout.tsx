@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Inter, Manrope } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
-import { LiquidBlobBackground } from "@/components/layout/liquid-blob-background";
+import { Ocean3dBackground } from "@/components/layout/ocean-3d-background";
 import { SentryProvider } from "@/components/observability/sentry-provider";
 import { SITE_URL } from "@/lib/constants/site";
 import "./globals.css";
@@ -144,7 +144,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${manrope.variable} site-ambient-shell font-display bg-background-light text-gray-900 antialiased dark:bg-background-dark dark:text-white`}
       >
-        <LiquidBlobBackground className="z-0" count={8} />
+        <Ocean3dBackground />
         <SentryProvider />
         <Suspense fallback={null}>
           <AnalyticsProvider />

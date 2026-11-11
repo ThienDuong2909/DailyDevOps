@@ -215,6 +215,12 @@ export default {
                 return response;
             }
             const url = new URL(request.url);
+
+            // Canonical 301 redirect www -> apex domain
+            if (url.hostname === "www.dailydevops.blog") {
+                url.hostname = "dailydevops.blog";
+                return Response.redirect(url.toString(), 301);
+            }
             if (env.API_SERVICE && url.pathname.startsWith("/api/v1/")) {
                 return env.API_SERVICE.fetch(request);
             }
@@ -248,7 +254,6 @@ export default {
                 const locale = getCookieLocale(request);
                 const isRsc = request.headers.get("rsc") === "1" ? "1" : "0";
                 const cacheUrl = new URL(url.toString());
-                cacheUrl.hostname = "webcache.dailydevops.blog";
                 cacheUrl.searchParams.set("__cv", \`\${BUILD_ID}_\${currentVersion}_\${routeHash}\`);
                 cacheUrl.searchParams.set("__loc", locale);
                 cacheUrl.searchParams.set("__rsc", isRsc);

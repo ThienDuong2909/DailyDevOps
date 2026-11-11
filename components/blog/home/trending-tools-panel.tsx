@@ -50,14 +50,26 @@ function formatViews(n: number): string {
   return String(n);
 }
 
-export function TrendingToolsPanel() {
+interface TrendingToolsPanelProps {
+  initialPopularPosts?: Post[];
+}
+
+export function TrendingToolsPanel({
+  initialPopularPosts,
+}: TrendingToolsPanelProps = {}) {
   const locale = useLocale();
   const dictionary = useDictionary();
   const { settings } = useSiteSettings();
   const [tagCloud, setTagCloud] = useState<ToolBubble[]>([]);
-  const [popularPosts, setPopularPosts] = useState<Post[]>([]);
+  const hasInitialPopular =
+    Array.isArray(initialPopularPosts) && initialPopularPosts.length > 0;
+  const [popularPosts, setPopularPosts] = useState<Post[]>(() =>
+    hasInitialPopular
+      ? initialPopularPosts.filter((p) => (p.viewCount ?? 0) > 0)
+      : [],
+  );
   const [isLoadingTags, setIsLoadingTags] = useState(true);
-  const [isLoadingPopular, setIsLoadingPopular] = useState(true);
+  const [isLoadingPopular, setIsLoadingPopular] = useState(!hasInitialPopular);
 
   /* ── fetch tags ── */
   useEffect(() => {
@@ -109,6 +121,8 @@ export function TrendingToolsPanel() {
 
   /* ── fetch popular posts ── */
   useEffect(() => {
+    if (hasInitialPopular) return;
+
     let alive = true;
 
     (async () => {
