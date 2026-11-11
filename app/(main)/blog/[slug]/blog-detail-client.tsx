@@ -355,9 +355,13 @@ export default function BlogDetailClient({
                 className="mb-10 overflow-hidden rounded-2xl"
                 style={{ border: "1px solid var(--border-soft-theme)" }}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={getImageUrl(post.featuredImage)}
                   alt={post.title}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                   className="aspect-[21/9] w-full object-cover"
                 />
               </div>

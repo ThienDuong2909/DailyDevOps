@@ -120,6 +120,7 @@ function SearchPageContent() {
           q
             ? `Found ${n} article${n === 1 ? "" : "s"} for "${q}"`
             : `Showing ${n} article${n === 1 ? "" : "s"}`,
+        searching: "Searching articles...",
         noResultsTitle: "No articles found",
         noResultsDesc:
           "Try checking your spelling, removing filters, or searching for a broader DevOps topic.",
@@ -151,6 +152,7 @@ function SearchPageContent() {
         sortOldest: "Cũ nhất",
         resultsFound: (n: number, q: string) =>
           q ? `Tìm thấy ${n} bài viết cho "${q}"` : `Tổng cộng ${n} bài viết`,
+        searching: "Đang tìm kiếm bài viết...",
         noResultsTitle: "Không tìm thấy bài viết phù hợp",
         noResultsDesc:
           "Hãy thử kiểm tra lại từ khóa, xóa bớt bộ lọc, hoặc khám phá các chủ đề phổ biến bên dưới.",
@@ -458,9 +460,16 @@ function SearchPageContent() {
       {/* ── Active Filters & Mobile Filter Toggle ── */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-[var(--text-main-theme)]">
-            {text.resultsFound(filteredPosts.length, qParam)}
-          </p>
+          {isLoading ? (
+            <span className="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-muted-theme)]">
+              <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+              <span>{text.searching}</span>
+            </span>
+          ) : (
+            <p className="text-sm font-semibold text-[var(--text-main-theme)]">
+              {text.resultsFound(filteredPosts.length, qParam)}
+            </p>
+          )}
 
           {/* Active Category Chip */}
           {categoryParam && (

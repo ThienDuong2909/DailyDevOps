@@ -9,9 +9,9 @@ interface Ocean3dBackgroundProps {
 /**
  * Ultra-lightweight WebGL Ocean 3D Wave Shader background.
  * - Replaces heavy Three.js (~650KB) with vanilla WebGL (< 3KB).
- * - Offloads all math to the GPU via Gerstner wave simulation.
+ * - Offloads all math to the GPU via 3D Gerstner wave simulation & surface normals.
  * - Zero CPU overhead on Cloudflare Worker SSR.
- * - Auto-pauses on background tabs or when scrolled out of view.
+ * - Auto-pauses on background tabs or when reduced motion is preferred.
  */
 export function Ocean3dBackground({ className = "" }: Ocean3dBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -55,36 +55,68 @@ export function Ocean3dBackground({ className = "" }: Ocean3dBackgroundProps) {
       uniform float u_is_dark;
       varying vec2 vUv;
 
+      // 3D Gerstner multi-harmonic wave height function
+      float getWaveHeight(vec2 p, float t) {
+        float w1 = sin(p.x * 2.5 + p.y * 1.2 + t * 0.75) * 0.16;
+        float w2 = cos(p.x * -1.8 + p.y * 2.8 - t * 0.6) * 0.10;
+        float w3 = sin(p.x * 4.8 + p.y * -3.6 + t * 1.1) * 0.05;
+        float w4 = sin(p.x * 10.5 + p.y * 8.5 + t * 1.6) * 0.025;
+        return w1 + w2 + w3 + w4;
+      }
+
       void main() {
-        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
-        float t = u_time * 0.35;
-        
-        // Multi-frequency ocean waves
-        float wave1 = sin(uv.x * 5.0 + t + sin(uv.y * 2.5 + t * 0.4)) * 0.07;
-        float wave2 = cos(uv.x * 10.0 - t * 0.6 + uv.y * 4.0) * 0.035;
-        float wave3 = sin(uv.x * 20.0 + t * 0.9) * 0.012;
-        float waveSum = wave1 + wave2 + wave3;
+        // Aspect ratio correction to prevent non-uniform stretching
+        float minRes = min(u_resolution.x, u_resolution.y);
+        vec2 aspect = u_resolution.xy / max(minRes, 1.0);
+        vec2 p = (vUv - 0.5) * aspect * 3.5;
+        float t = u_time * 0.55;
 
-        // Theme-aware color palette
-        // Dark theme: Deep midnight navy abyss into bioluminescent cyan
-        // Light theme: Subtle azure-tinted translucent water
-        vec3 deepColor = u_is_dark > 0.5 ? vec3(0.015, 0.035, 0.065) : vec3(0.95, 0.98, 1.0);
-        vec3 oceanColor = u_is_dark > 0.5 ? vec3(0.02, 0.08, 0.16) : vec3(0.88, 0.94, 0.99);
-        vec3 crestColor = u_is_dark > 0.5 ? vec3(0.02, 0.65, 0.78) : vec3(0.12, 0.65, 0.85);
+        // Wave height & finite-difference 3D surface normal
+        float h = getWaveHeight(p, t);
+        float eps = 0.02;
+        float hX = getWaveHeight(p + vec2(eps, 0.0), t);
+        float hY = getWaveHeight(p + vec2(0.0, eps), t);
 
-        float gradientY = vUv.y + waveSum * 0.45;
-        vec3 col = mix(deepColor, oceanColor, smoothstep(0.0, 0.9, gradientY));
+        vec3 normal = normalize(vec3((h - hX) / eps * 2.2, (h - hY) / eps * 2.2, 1.0));
 
-        // Gentle ambient mouse light interaction
-        float mouseDist = length(vUv - u_mouse);
-        float mouseSpec = pow(max(0.0, 1.0 - mouseDist), 3.5) * (u_is_dark > 0.5 ? 0.15 : 0.08);
+        // Key light (sun) and View vector
+        vec3 lightDir = normalize(vec3(0.5, 0.7, 1.0));
+        vec3 viewDir = vec3(0.0, 0.0, 1.0);
 
-        // Shimmer highlights on wave crests
-        float crestAlpha = smoothstep(0.48, 0.54, gradientY + waveSum) * (u_is_dark > 0.5 ? 0.22 : 0.12);
-        col += crestColor * (crestAlpha + mouseSpec);
+        // Blinn-Phong specular glint on wave crests
+        vec3 halfVec = normalize(lightDir + viewDir);
+        float spec = pow(max(dot(normal, halfVec), 0.0), 28.0);
 
-        float overallAlpha = u_is_dark > 0.5 ? 0.85 : 0.45;
-        gl_FragColor = vec4(col, overallAlpha);
+        // Fresnel rim reflection
+        float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 2.5);
+
+        // Interactive mouse disturbance / reflection
+        vec2 mouseP = (u_mouse - 0.5) * aspect * 3.5;
+        float mouseDist = length(mouseP - p);
+        float mouseLight = smoothstep(1.5, 0.0, mouseDist);
+        vec3 mouseHalf = normalize(normalize(vec3(mouseP - p, 0.8)) + viewDir);
+        float mouseSpec = pow(max(dot(normal, mouseHalf), 0.0), 18.0) * mouseLight;
+
+        // Vertical ocean depth gradient
+        float depth = clamp(vUv.y * 0.75 + h * 0.6 + 0.15, 0.0, 1.0);
+
+        // High-contrast color palettes
+        // Light Mode: Crisp azure mist -> clear aquatic blue -> vibrant cyan wave ridges
+        // Dark Mode: Deep abyssal navy -> bioluminescent electric cyan
+        vec3 deepColor   = u_is_dark > 0.5 ? vec3(0.015, 0.045, 0.09) : vec3(0.85, 0.93, 0.98);
+        vec3 oceanColor  = u_is_dark > 0.5 ? vec3(0.025, 0.11, 0.22)  : vec3(0.68, 0.86, 0.96);
+        vec3 crestColor  = u_is_dark > 0.5 ? vec3(0.02, 0.75, 0.88)   : vec3(0.06, 0.58, 0.82);
+        vec3 sunColor    = u_is_dark > 0.5 ? vec3(0.40, 0.95, 1.0)    : vec3(1.0, 1.0, 1.0);
+
+        vec3 col = mix(deepColor, oceanColor, depth);
+        float crestFactor = smoothstep(0.08, 0.25, h + fresnel * 0.35);
+        col = mix(col, crestColor, crestFactor * (u_is_dark > 0.5 ? 0.85 : 0.65));
+
+        // Add sparkling specular reflection
+        col += sunColor * (spec * (u_is_dark > 0.5 ? 0.45 : 0.4) + mouseSpec * 0.45);
+
+        float alpha = u_is_dark > 0.5 ? 0.92 : 0.86;
+        gl_FragColor = vec4(col, alpha);
       }
     `;
 
@@ -221,7 +253,7 @@ export function Ocean3dBackground({ className = "" }: Ocean3dBackgroundProps) {
   return (
     <canvas
       ref={canvasRef}
-      className={`fixed inset-0 pointer-events-none -z-10 h-full w-full ${className}`}
+      className={`fixed inset-0 pointer-events-none z-0 h-full w-full ${className}`}
       aria-hidden="true"
     />
   );

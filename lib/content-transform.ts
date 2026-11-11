@@ -20,6 +20,21 @@ const HEADING_REPEATED_HYPHENS_REGEX = /-+/g;
 const TITLE_HEADING_REGEX = /<h1[^>]*>[\s\S]*?<\/h1>/gi;
 const CODE_BLOCK_REGEX =
   /<pre([^>]*)>\s*<code([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>/gi;
+const IMG_TAG_REGEX = /<img\b([^>]*)>/gi;
+
+export function optimizeImagesInHtml(html: string): string {
+  if (!html) return "";
+  return html.replaceAll(IMG_TAG_REGEX, (_m, attrs) => {
+    let newAttrs = attrs;
+    if (!/\bloading\s*=/i.test(newAttrs)) {
+      newAttrs += ' loading="lazy"';
+    }
+    if (!/\bdecoding\s*=/i.test(newAttrs)) {
+      newAttrs += ' decoding="async"';
+    }
+    return `<img${newAttrs}>`;
+  });
+}
 
 export function slugifyHeading(value: string) {
   let slug = value
@@ -71,6 +86,15 @@ export function normalizeContentHeadings(
     }
   });
 
+  Array.from(doc.querySelectorAll("img")).forEach((img, index) => {
+    if (!img.getAttribute("loading")) {
+      img.setAttribute("loading", index === 0 ? "eager" : "lazy");
+    }
+    if (!img.getAttribute("decoding")) {
+      img.setAttribute("decoding", "async");
+    }
+  });
+
   return {
     html: doc.body.innerHTML,
     toc,
@@ -88,7 +112,8 @@ export function transformPostContent(primaryContent: string): string {
     TITLE_HEADING_REGEX,
     "",
   );
-  return withoutTitleHeading.replaceAll(
+  const withOptimizedImages = optimizeImagesInHtml(withoutTitleHeading);
+  return withOptimizedImages.replaceAll(
     CODE_BLOCK_REGEX,
     (_m, preAttrs, codeAttrs, content) => {
       const extractAttributeValue = (source: string, attributeName: string) => {

@@ -63,6 +63,8 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
           <img
             src={imageUrl}
             alt={post.title}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />

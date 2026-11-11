@@ -104,12 +104,15 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
             </Link>
           </div>
         </div>
-        <div className="h-full overflow-hidden rounded-2xl border border-gray-100 shadow-lg dark:border-gray-800">
-          <div
-            className="aspect-video w-full md:aspect-auto md:h-full bg-cover bg-center transition-transform duration-700 hover:scale-105"
-            style={{
-              backgroundImage: `url("${getImageUrl(post.featuredImage)}")`,
-            }}
+        <div className="relative h-full overflow-hidden rounded-2xl border border-gray-100 shadow-lg dark:border-gray-800">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={getImageUrl(post.featuredImage)}
+            alt={post.title}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            className="aspect-video w-full md:aspect-auto md:h-full object-cover transition-transform duration-700 hover:scale-105"
           />
         </div>
       </div>
