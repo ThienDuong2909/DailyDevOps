@@ -99,7 +99,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
               <ArrowRight className="size-4" />
             </Link>
             <Link
-              href={withLocale("/blog", locale)}
+              href={withLocale("/category", locale)}
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
                 "rounded-xl border-[var(--border-soft-theme)] px-5",

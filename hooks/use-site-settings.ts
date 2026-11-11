@@ -88,7 +88,7 @@ export const defaultSiteSettings: SiteSettingsPayload = {
     footerDescription:
       "The leading resource for DevOps professionals, SREs, and Platform Engineers. Building the future of infrastructure together.",
     footerContentLinks: [
-      { label: "Articles", href: "/blog" },
+      { label: "Articles", href: "/category" },
       { label: "Search", href: "/search" },
       { label: "Newsletter", href: "/newsletter" },
       { label: "RSS Feed", href: "/rss.xml" },
@@ -175,6 +175,7 @@ function localizeLinks(
   const englishLabelsByHref: Record<string, string> = {
     "/": "Articles",
     "/blog": "Articles",
+    "/category": "Articles",
     "/search": dictionary.common.search,
     "/newsletter": dictionary.common.newsletter,
     "/about": dictionary.common.about,
@@ -188,6 +189,7 @@ function localizeLinks(
   const vietnameseLabelsByHref: Record<string, string> = {
     "/": "Bài viết",
     "/blog": "Bài viết",
+    "/category": "Bài viết",
     "/search": dictionary.common.search,
     "/newsletter": dictionary.common.newsletter,
     "/about": dictionary.common.about,
@@ -201,10 +203,15 @@ function localizeLinks(
   const labelsByHref =
     locale === "en" ? englishLabelsByHref : vietnameseLabelsByHref;
 
-  return links.map((item) => ({
-    ...item,
-    label: labelsByHref[item.href] || item.label,
-  }));
+  return links.map((item) => {
+    const normalizedHref = item.href === "/blog" ? "/category" : item.href;
+    return {
+      ...item,
+      href: normalizedHref,
+      label:
+        labelsByHref[normalizedHref] || labelsByHref[item.href] || item.label,
+    };
+  });
 }
 
 function localizeSettings(

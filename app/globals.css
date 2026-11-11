@@ -18,7 +18,7 @@
       transparent 22%
     );
   --surface-base: rgba(255, 255, 255, 0.6);
-  --surface-elevated: rgba(255, 255, 255, 0.6);
+  --surface-elevated: rgba(255, 255, 255, 0.8);
   --surface-muted: rgba(243, 246, 250, 0.6);
   --surface-strong: #e8eef6;
   --text-main-theme: #172033;

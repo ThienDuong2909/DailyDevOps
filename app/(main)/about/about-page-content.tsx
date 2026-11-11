@@ -113,7 +113,7 @@ export function AboutPageContent({
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
-                href={withLocale("/blog", locale)}
+                href={withLocale("/category", locale)}
                 className="inline-flex h-11 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
               >
                 {copy.readArticles}

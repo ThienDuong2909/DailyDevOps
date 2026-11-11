@@ -1,14 +1,5 @@
 import { permanentRedirect } from "next/navigation";
-
-const KNOWN_CATEGORIES = new Set([
-  "devops",
-  "kubernetes",
-  "cicd",
-  "docker",
-  "monitoring",
-  "automation",
-  "security",
-]);
+import { fetchCategoryBySlug } from "@/lib/api/server";
 
 export default async function LegacyBlogDetailPage({
   params,
@@ -17,9 +8,10 @@ export default async function LegacyBlogDetailPage({
 }) {
   const { slug } = await params;
   const cleanSlug = (slug || "").toLowerCase();
+  const category = await fetchCategoryBySlug(cleanSlug);
 
-  if (KNOWN_CATEGORIES.has(cleanSlug)) {
-    permanentRedirect(`/category/${cleanSlug}`);
+  if (category) {
+    permanentRedirect(`/category/${category.slug}`);
   }
 
   permanentRedirect(`/${slug}`);

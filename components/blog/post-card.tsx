@@ -79,7 +79,7 @@ export function PostCard({ post, imageClassName }: PostCardProps) {
           href={
             post.category?.slug
               ? withLocale(`/category/${post.category.slug}`, locale)
-              : withLocale("/blog", locale)
+              : withLocale("/category", locale)
           }
           className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-lg backdrop-blur-sm transition-transform hover:scale-105"
           style={{ backgroundColor: `${categoryColor}E6` }}

@@ -42,7 +42,7 @@ export function NewsletterSection() {
           <span>Join the newsletter</span>
         </Link>
         <Link
-          href={withLocale("/blog", locale)}
+          href={withLocale("/category", locale)}
           className="inline-flex h-11 items-center rounded-xl px-5 text-sm font-semibold text-[color:var(--text-main-theme)] transition-colors hover:text-primary"
           style={{ border: "1px solid var(--border-soft-theme)" }}
         >

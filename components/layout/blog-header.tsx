@@ -144,7 +144,7 @@ function MobileHeaderMenu({
           </Link>
         ))}
         <Link
-          href={withLocale("/blog", locale)}
+          href={withLocale("/category", locale)}
           className="rounded-xl px-3 py-3 text-sm font-medium text-text-main transition-colors hover:bg-primary/10 hover:text-primary dark:text-white"
         >
           {dictionary.common.allArticles}

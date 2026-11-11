@@ -152,9 +152,7 @@ const nextConfig = {
             { source: '/10-alertmanager-notifications', destination: '/alertmanager-notifications', permanent: true },
             { source: '/11-tong-ket-huong-phat-trien', destination: '/tong-ket-huong-phat-trien', permanent: true },
 
-            // Casing normalization
-            { source: '/Blog/:path*', destination: '/blog/:path*', permanent: true },
-            { source: '/Category/:path*', destination: '/category/:path*', permanent: true },
+            // Casing normalization and legacy /blog redirects are handled loop-safely in middleware.ts
 
             // Block direct /vi/* and /en/* access — redirect to clean URL.
             { source: '/vi', destination: '/', permanent: false },

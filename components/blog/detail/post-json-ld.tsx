@@ -90,7 +90,7 @@ export function BreadcrumbJsonLd({
   const prefixed = (path: string) => `${siteUrl}${withLocale(path, locale)}`;
   const items = [
     { name: "Home", url: prefixed("/") },
-    { name: "Blog", url: prefixed("/blog") },
+    { name: "Blog", url: prefixed("/category") },
   ];
 
   if (post.category) {

@@ -77,6 +77,36 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const trimmedPathname =
+    pathname.length > 1 && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname;
+  const lowerPathname = trimmedPathname.toLowerCase();
+
+  // Legacy /blog index -> permanent 308 redirect to /category (or /category/:slug)
+  if (lowerPathname === "/blog") {
+    const redirectUrl = request.nextUrl.clone();
+    const categoryParam = redirectUrl.searchParams.get("category")?.trim();
+    redirectUrl.searchParams.delete("category");
+    redirectUrl.pathname =
+      categoryParam && categoryParam !== "all"
+        ? `/category/${encodeURIComponent(categoryParam)}`
+        : "/category";
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
+  // Loop-safe casing normalization for /Category/* and /Blog/*
+  if (
+    trimmedPathname !== lowerPathname &&
+    (lowerPathname === "/category" ||
+      lowerPathname.startsWith("/category/") ||
+      lowerPathname.startsWith("/blog/"))
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = lowerPathname;
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   // Determine the active locale:
   // - If URL has a locale prefix (/vi/... or /en/...) → use that as source of truth
   //   (handles shared links, direct navigation before redirect kicks in)

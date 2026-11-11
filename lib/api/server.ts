@@ -3,6 +3,7 @@
  * These use `fetch()` with ISR revalidation — NOT axios (which is client-only).
  */
 import { API_BASE_URL } from "@/lib/constants/site";
+import type { Category, Post, Tag } from "@/types";
 
 /**
  * Fetch a single post by slug for server-side rendering.
@@ -165,8 +166,153 @@ export async function fetchPostsByCategory(
 
     const json = await res.json();
     const posts = json.data?.data || json.data || [];
-    return Array.isArray(posts) ? posts : [];
+    return Array.isArray(posts) ? posts.map(stripSummaryPost) : [];
   } catch {
     return [];
   }
+}
+
+export type ListingSortOption = "latest" | "popular" | "oldest";
+
+function getSortParams(sort: ListingSortOption) {
+  switch (sort) {
+    case "popular":
+      return { sortBy: "viewCount", sortOrder: "desc" };
+    case "oldest":
+      return { sortBy: "publishedAt", sortOrder: "asc" };
+    default:
+      return { sortBy: "publishedAt", sortOrder: "desc" };
+  }
+}
+
+/**
+ * Fetch paginated published posts (optionally filtered by categorySlug) for SSR listing pages.
+ */
+export async function fetchPublishedPostsPaginated({
+  locale = "vi",
+  categorySlug,
+  page = 1,
+  limit = 12,
+  sort = "latest",
+}: {
+  locale?: string;
+  categorySlug?: string;
+  page?: number;
+  limit?: number;
+  sort?: ListingSortOption;
+} = {}): Promise<{ posts: Post[]; total: number; totalPages: number } | null> {
+  try {
+    const { sortBy, sortOrder } = getSortParams(sort);
+    const params = new URLSearchParams({
+      limit: String(limit),
+      page: String(page),
+      sortBy,
+      sortOrder,
+      locale,
+    });
+
+    if (categorySlug && categorySlug !== "all") {
+      params.set("categorySlug", categorySlug);
+    }
+
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/posts/published?${params.toString()}`,
+      { next: { revalidate: 3600 } },
+    );
+
+    if (!res.ok) {
+      return null;
+    }
+
+    const json = await res.json();
+    const payload = json?.data ?? json;
+    const rawPosts = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+    const meta = !Array.isArray(payload) ? payload?.meta : json?.meta;
+    const posts = rawPosts.map((post: Post) => stripSummaryPost(post));
+
+    return {
+      posts,
+      total: typeof meta?.total === "number" ? meta.total : posts.length,
+      totalPages:
+        typeof meta?.totalPages === "number" ? Math.max(1, meta.totalPages) : 1,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch top tags for listing sidebar tag cloud.
+ */
+export async function fetchTags(limit = 14): Promise<Tag[] | undefined> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/tags`, {
+      next: { revalidate: 3600 },
+    });
+
+    if (!res.ok) {
+      return undefined;
+    }
+
+    const json = await res.json();
+    const rawTags = Array.isArray(json)
+      ? json
+      : Array.isArray(json?.data)
+        ? json.data
+        : [];
+
+    return (rawTags as Tag[])
+      .filter((t) => (t._count?.posts ?? 0) > 0)
+      .sort((a, b) => (b._count?.posts ?? 0) - (a._count?.posts ?? 0))
+      .slice(0, limit);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Fetch consolidated lightweight listing data for /category and /category/[slug].
+ */
+export async function fetchCategoryListingData({
+  locale = "vi",
+  categorySlug,
+  page = 1,
+  sort = "latest",
+  skipPosts = false,
+}: {
+  locale?: string;
+  categorySlug?: string;
+  page?: number;
+  sort?: ListingSortOption;
+  skipPosts?: boolean;
+}) {
+  const [paginated, categories, popularPosts, tags] = await Promise.all([
+    skipPosts
+      ? Promise.resolve(null)
+      : fetchPublishedPostsPaginated({
+          locale,
+          categorySlug,
+          page,
+          limit: 12,
+          sort,
+        }),
+    fetchCategories() as Promise<Category[]>,
+    fetchPopularPosts(locale, 5) as Promise<Post[]>,
+    fetchTags(14),
+  ]);
+
+  return {
+    initialPosts: paginated?.posts,
+    initialTotalPosts: paginated?.total,
+    initialTotalPages: paginated?.totalPages,
+    initialCategories: categories.length > 0 ? categories : undefined,
+    initialPopularPosts: popularPosts
+      .filter((post) => (post.viewCount ?? 0) > 0)
+      .slice(0, 5),
+    initialTags: tags,
+  };
 }

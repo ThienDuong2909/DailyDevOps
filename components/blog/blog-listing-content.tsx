@@ -100,31 +100,81 @@ function getSkeletonCardCount() {
   return Math.min(POSTS_PER_PAGE, 9);
 }
 
+export interface BlogListingContentProps {
+  initialCategorySlug?: string;
+  initialLocale?: string;
+  initialPosts?: Post[];
+  initialTotalPosts?: number;
+  initialTotalPages?: number;
+  initialCategories?: Category[];
+  initialPopularPosts?: Post[];
+  initialTags?: Tag[];
+  initialPage?: number;
+  initialSort?: SortOption;
+}
+
 /* ── component ── */
-export function BlogListingContent() {
+export function BlogListingContent({
+  initialCategorySlug,
+  initialLocale,
+  initialPosts,
+  initialTotalPosts,
+  initialTotalPages,
+  initialCategories,
+  initialPopularPosts,
+  initialTags,
+  initialPage = 1,
+  initialSort = "latest",
+}: BlogListingContentProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = authStore((s) => s.isAuthenticated);
   const locale = useLocale();
   const dictionary = useDictionary();
 
-  /* ── state ── */
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [totalPosts, setTotalPosts] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  const [popularPosts, setPopularPosts] = useState<Post[]>([]);
-  const [isLoadingPopular, setIsLoadingPopular] = useState(true);
-  const [tagCloud, setTagCloud] = useState<Tag[]>([]);
-  const [isLoadingTags, setIsLoadingTags] = useState(true);
-
   /* ── derived from URL ── */
-  const currentPage = Math.max(1, Number(searchParams.get("page") || "1"));
-  const currentCategory = searchParams.get("category") || "all";
-  const currentSort = (searchParams.get("sort") as SortOption) || "latest";
+  const parsedPage = Number(searchParams.get("page") || "1");
+  const currentPage =
+    Number.isFinite(parsedPage) && parsedPage >= 1 ? Math.floor(parsedPage) : 1;
+  const currentCategory =
+    initialCategorySlug || searchParams.get("category") || "all";
+  const rawSort = searchParams.get("sort");
+  const currentSort: SortOption =
+    rawSort === "popular" || rawSort === "oldest" ? rawSort : "latest";
   const currentSearch = searchParams.get("q") || "";
+
+  const resolvedInitialCategory = initialCategorySlug || "all";
+  const matchesSsrPosts =
+    initialPosts !== undefined &&
+    (!initialLocale || initialLocale === locale) &&
+    currentCategory === resolvedInitialCategory &&
+    currentPage === initialPage &&
+    currentSort === initialSort &&
+    currentSearch === "";
+
+  /* ── state ── */
+  const [posts, setPosts] = useState<Post[]>(() => initialPosts ?? []);
+  const [totalPosts, setTotalPosts] = useState(
+    () => initialTotalPosts ?? initialPosts?.length ?? 0,
+  );
+  const [totalPages, setTotalPages] = useState(() => initialTotalPages ?? 1);
+  const [isLoading, setIsLoading] = useState(() => !matchesSsrPosts);
+  const [categories, setCategories] = useState<Category[]>(
+    () => initialCategories ?? [],
+  );
+  const [isLoadingCategories, setIsLoadingCategories] = useState(
+    () => initialCategories === undefined,
+  );
+  const [popularPosts, setPopularPosts] = useState<Post[]>(
+    () => initialPopularPosts ?? [],
+  );
+  const [isLoadingPopular, setIsLoadingPopular] = useState(
+    () => initialPopularPosts === undefined,
+  );
+  const [tagCloud, setTagCloud] = useState<Tag[]>(() => initialTags ?? []);
+  const [isLoadingTags, setIsLoadingTags] = useState(
+    () => initialTags === undefined,
+  );
 
   const [searchInput, setSearchInput] = useState(currentSearch);
   const sortOptions = useMemo<Record<SortOption, SortConfig>>(
@@ -152,10 +202,16 @@ export function BlogListingContent() {
     ],
   );
 
+  const baseListingPath =
+    currentCategory && currentCategory !== "all"
+      ? `/category/${encodeURIComponent(currentCategory)}`
+      : "/category";
+
   /* ── URL update helper ── */
   const updateUrl = useCallback(
     (params: Record<string, string>) => {
       const url = new URLSearchParams(searchParams.toString());
+      url.delete("category");
       Object.entries(params).forEach(([key, value]) => {
         if (
           !value ||
@@ -169,10 +225,26 @@ export function BlogListingContent() {
         }
       });
       const qs = url.toString();
-      const blogPath = withLocale("/blog", locale);
-      router.push(qs ? `${blogPath}?${qs}` : blogPath, { scroll: false });
+      const targetPath = withLocale(baseListingPath, locale);
+      router.push(qs ? `${targetPath}?${qs}` : targetPath, { scroll: false });
     },
-    [locale, router, searchParams],
+    [baseListingPath, locale, router, searchParams],
+  );
+
+  const buildPageHref = useCallback(
+    (targetPage: number) => {
+      const url = new URLSearchParams(searchParams.toString());
+      url.delete("category");
+      if (targetPage <= 1) {
+        url.delete("page");
+      } else {
+        url.set("page", String(targetPage));
+      }
+      const qs = url.toString();
+      const targetPath = withLocale(baseListingPath, locale);
+      return qs ? `${targetPath}?${qs}` : targetPath;
+    },
+    [baseListingPath, locale, searchParams],
   );
 
   useEffect(() => {
@@ -181,6 +253,14 @@ export function BlogListingContent() {
 
   /* ── fetch posts ── */
   useEffect(() => {
+    if (matchesSsrPosts && initialPosts !== undefined) {
+      setPosts(initialPosts);
+      setTotalPosts(initialTotalPosts ?? initialPosts.length);
+      setTotalPages(initialTotalPages ?? 1);
+      setIsLoading(false);
+      return;
+    }
+
     let alive = true;
 
     const fetchPosts = async () => {
@@ -230,12 +310,22 @@ export function BlogListingContent() {
     currentCategory,
     currentSort,
     currentSearch,
+    initialPosts,
+    initialTotalPages,
+    initialTotalPosts,
     locale,
+    matchesSsrPosts,
     sortOptions,
   ]);
 
   /* ── fetch categories ── */
   useEffect(() => {
+    if (initialCategories !== undefined) {
+      setCategories(initialCategories);
+      setIsLoadingCategories(false);
+      return;
+    }
+
     let alive = true;
 
     (async () => {
@@ -255,10 +345,19 @@ export function BlogListingContent() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [initialCategories]);
 
   /* ── fetch popular posts ── */
   useEffect(() => {
+    if (
+      initialPopularPosts !== undefined &&
+      (!initialLocale || initialLocale === locale)
+    ) {
+      setPopularPosts(initialPopularPosts);
+      setIsLoadingPopular(false);
+      return;
+    }
+
     let alive = true;
 
     (async () => {
@@ -279,10 +378,16 @@ export function BlogListingContent() {
     return () => {
       alive = false;
     };
-  }, [locale]);
+  }, [initialLocale, initialPopularPosts, locale]);
 
   /* ── fetch tags ── */
   useEffect(() => {
+    if (initialTags !== undefined) {
+      setTagCloud(initialTags);
+      setIsLoadingTags(false);
+      return;
+    }
+
     let alive = true;
 
     (async () => {
@@ -309,7 +414,7 @@ export function BlogListingContent() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [initialTags]);
 
   /* ── search handler ── */
   useEffect(() => {
@@ -421,7 +526,7 @@ export function BlogListingContent() {
         ) : (
           <>
             <Link
-              href={withLocale("/blog", locale)}
+              href={withLocale("/category", locale)}
               className={cn(
                 "flex h-9 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-medium transition-all active:scale-95",
                 currentCategory === "all"
@@ -506,7 +611,7 @@ export function BlogListingContent() {
                 <button
                   onClick={() => {
                     setSearchInput("");
-                    router.push(withLocale("/blog", locale));
+                    router.push(withLocale("/category", locale));
                   }}
                   className="mt-4 inline-flex h-10 items-center rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
                   type="button"
@@ -540,11 +645,7 @@ export function BlogListingContent() {
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href={
-                    currentPage > 1
-                      ? withLocale(`/blog?page=${currentPage - 1}`, locale)
-                      : withLocale("/blog", locale)
-                  }
+                  href={buildPageHref(Math.max(1, currentPage - 1))}
                   aria-disabled={currentPage === 1}
                   className={cn(
                     "inline-flex min-w-10 items-center justify-center rounded-lg border border-[var(--border-soft-theme)] bg-[var(--surface-muted)] px-3 py-2 text-sm transition-colors",
@@ -567,11 +668,7 @@ export function BlogListingContent() {
                         </span>
                       )}
                       <Link
-                        href={
-                          pn === 1
-                            ? withLocale("/blog", locale)
-                            : withLocale(`/blog?page=${pn}`, locale)
-                        }
+                        href={buildPageHref(pn)}
                         className={cn(
                           "inline-flex min-w-10 items-center justify-center rounded-lg border px-3 py-2 text-sm transition-colors",
                           pn === currentPage
@@ -585,10 +682,7 @@ export function BlogListingContent() {
                   );
                 })}
                 <Link
-                  href={withLocale(
-                    `/blog?page=${Math.min(totalPages, currentPage + 1)}`,
-                    locale,
-                  )}
+                  href={buildPageHref(Math.min(totalPages, currentPage + 1))}
                   aria-disabled={currentPage === totalPages}
                   className={cn(
                     "inline-flex min-w-10 items-center justify-center rounded-lg border border-[var(--border-soft-theme)] bg-[var(--surface-muted)] px-3 py-2 text-sm transition-colors",

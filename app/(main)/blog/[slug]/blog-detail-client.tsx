@@ -229,7 +229,7 @@ export default function BlogDetailClient({
             </Link>
           ) : null}
           <Link
-            href={withLocale("/blog", locale)}
+            href={withLocale("/category", locale)}
             className="inline-flex h-11 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
           >
             {dictionary.common.browseArticles}

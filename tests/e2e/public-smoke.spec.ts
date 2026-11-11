@@ -20,16 +20,16 @@ test.describe("Public smoke", () => {
       page.getByRole("button", { name: "Switch language" }),
     ).toHaveAttribute("title", "Language: English");
 
-    await page.goto("/blog");
+    await page.goto("/category");
 
-    await expect(page).toHaveURL("/blog");
+    await expect(page).toHaveURL("/category");
     await expect(
       page.getByRole("heading", { name: /All articles/i }),
     ).toBeVisible();
     await expect(page.getByPlaceholder("Search articles...")).toBeVisible();
   });
 
-  test("homepage renders and header search opens the search page", async ({
+  test("homepage renders and category listing preserves URL filters and legacy /blog redirects", async ({
     page,
   }) => {
     await page.goto("/");
@@ -44,9 +44,11 @@ test.describe("Public smoke", () => {
     ).toBeVisible();
 
     await page.goto("/blog");
+    await expect(page).toHaveURL("/category");
+
     await page.getByPlaceholder(/Tìm kiếm bài viết/i).fill("Kubernetes");
 
-    await expect(page).toHaveURL(/\/blog\?q=Kubernetes/);
+    await expect(page).toHaveURL(/\/category\?q=Kubernetes/);
     await expect(
       page.getByRole("heading", {
         name: /Tất cả bài viết|All articles/i,

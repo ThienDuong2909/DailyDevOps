@@ -56,7 +56,7 @@ export function BlogPostFeed({
         title={dictionary.blog.recentPosts}
         action={
           <Link
-            href={withLocale("/blog", locale)}
+            href={withLocale("/category", locale)}
             className="theme-glow-button inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white"
           >
             {dictionary.blog.viewAll}
@@ -83,7 +83,7 @@ export function BlogPostFeed({
           {hasMorePosts ? (
             <div className="flex justify-center pt-2">
               <Link
-                href={withLocale("/blog", locale)}
+                href={withLocale("/category", locale)}
                 className="theme-glow-button inline-flex h-12 items-center justify-center rounded-xl px-6 text-sm font-semibold text-white"
               >
                 {dictionary.blog.viewAllPosts}

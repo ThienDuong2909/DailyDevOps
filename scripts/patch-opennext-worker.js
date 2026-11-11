@@ -109,8 +109,8 @@ const ROUTE_CODE_HASHES = ${JSON.stringify(routeCodeHashes, null, 4)};
 
 function getRouteCodeHash(pathname) {
     if (pathname === "/") return ROUTE_CODE_HASHES.home;
+    if (pathname === "/category" || pathname.startsWith("/category/")) return ROUTE_CODE_HASHES.category;
     if (pathname === "/blog" || pathname.startsWith("/blog/")) return ROUTE_CODE_HASHES.blog;
-    if (pathname.startsWith("/category/")) return ROUTE_CODE_HASHES.category;
     if (pathname.startsWith("/tag/")) return ROUTE_CODE_HASHES.tag;
     if (pathname.startsWith("/author/")) return ROUTE_CODE_HASHES.author;
     if (pathname === "/search" || pathname.startsWith("/search/")) return ROUTE_CODE_HASHES.search;

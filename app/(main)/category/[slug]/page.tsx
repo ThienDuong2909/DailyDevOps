@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { PostCard } from "@/components/blog/post-card";
+import { BlogListingContent } from "@/components/blog/blog-listing-content";
+import { BlogListingFallback } from "@/components/blog/blog-listing-fallback";
+import {
+  fetchCategoryBySlug,
+  fetchCategoryListingData,
+} from "@/lib/api/server";
+import {
+  buildCategoryDetailMetadata,
+  normalizeListingSearchParams,
+  type ListingSearchParams,
+} from "@/lib/blog-listing";
 import { normalizeLocale } from "@/lib/i18n/config";
 import { getRequestLocale } from "@/lib/i18n/server";
-import { SITE_URL } from "@/lib/constants/site";
-import { fetchCategoryBySlug, fetchPostsByCategory } from "@/lib/api/server";
 
 export async function generateMetadata({
   params,
@@ -17,63 +26,23 @@ export async function generateMetadata({
     : await getRequestLocale();
   const category = await fetchCategoryBySlug(slug);
 
-  if (!category) {
-    return {
-      title:
-        resolvedLocale === "en"
-          ? "Category Not Found"
-          : "Không tìm thấy chuyên mục",
-      robots: {
-        index: false,
-        follow: false,
-      },
-    };
-  }
-
-  const title =
-    resolvedLocale === "en"
-      ? `${category.name} Articles | DevOps Blog`
-      : `Chuyên mục ${category.name} | Daily DevOps`;
-  const description =
-    category.description ||
-    (resolvedLocale === "en"
-      ? `Explore expert DevOps and platform engineering articles in the ${category.name} category.`
-      : `Tổng hợp các bài viết chuyên sâu về ${category.name} trên Daily DevOps: hướng dẫn cài đặt, kiến trúc, best practices và xử lý sự cố.`);
-
-  const canonicalUrl = `${SITE_URL}/category/${category.slug}`;
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      type: "website",
-      locale: resolvedLocale === "vi" ? "vi_VN" : "en_US",
-      title,
-      description,
-      url: canonicalUrl,
-      siteName: "DevOps Blog",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  };
+  return buildCategoryDetailMetadata({
+    category,
+    locale: resolvedLocale,
+  });
 }
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; locale?: string }>;
+  searchParams?: Promise<ListingSearchParams>;
 }) {
-  const { slug, locale } = await params;
+  const [{ slug, locale }, resolvedSearch] = await Promise.all([
+    params,
+    searchParams ? searchParams : Promise.resolve(undefined),
+  ]);
   const resolvedLocale = locale
     ? normalizeLocale(locale)
     : await getRequestLocale();
@@ -83,70 +52,26 @@ export default async function CategoryPage({
     notFound();
   }
 
-  const posts = await fetchPostsByCategory(
-    category.slug || category.id,
-    resolvedLocale,
-  );
-  const copy =
-    resolvedLocale === "en"
-      ? {
-          label: "Category",
-          description:
-            category.description ||
-            `A curated list of articles in the ${category.name} category.`,
-          count: `${posts.length} articles`,
-          emptyTitle: "No articles in this category yet",
-          emptyBody:
-            "When new posts are published in this category, they will appear here.",
-        }
-      : {
-          label: "Chuyên mục",
-          description:
-            category.description ||
-            `Tổng hợp các bài viết thuộc chủ đề ${category.name}.`,
-          count: `${posts.length} bài viết`,
-          emptyTitle: "Chưa có bài viết trong chuyên mục này",
-          emptyBody:
-            "Khi có bài viết mới được publish trong chuyên mục này, chúng sẽ hiển thị tại đây.",
-        };
+  const { page, sort, hasSearch } =
+    normalizeListingSearchParams(resolvedSearch);
+  const ssrData = await fetchCategoryListingData({
+    locale: resolvedLocale,
+    categorySlug: category.slug,
+    page,
+    sort,
+    skipPosts: hasSearch,
+  });
 
   return (
-    <div className="flex w-full max-w-[1280px] flex-col gap-8">
-      <section className="rounded-[28px] border border-gray-200 bg-white px-6 py-8 shadow-sm dark:border-gray-800 dark:bg-surface-dark md:px-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              {copy.label}
-            </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-text-main dark:text-white">
-              {category.name}
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm text-text-sub dark:text-gray-400">
-              {copy.description}
-            </p>
-          </div>
-          <div className="inline-flex items-center rounded-full border border-gray-200 bg-background-light px-4 py-2 text-sm font-medium text-text-sub dark:border-gray-700 dark:bg-background-dark dark:text-gray-300">
-            {copy.count}
-          </div>
-        </div>
-      </section>
-
-      {posts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 px-6 py-12 text-center dark:border-gray-700 dark:bg-surface-dark/60">
-          <h2 className="text-lg font-semibold text-text-main dark:text-white">
-            {copy.emptyTitle}
-          </h2>
-          <p className="mt-2 text-sm text-text-sub dark:text-gray-400">
-            {copy.emptyBody}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-4">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
-      )}
-    </div>
+    <Suspense fallback={<BlogListingFallback />}>
+      <BlogListingContent
+        key={`${resolvedLocale}:${category.slug}`}
+        initialCategorySlug={category.slug}
+        initialLocale={resolvedLocale}
+        initialPage={hasSearch ? 1 : page}
+        initialSort={hasSearch ? "latest" : sort}
+        {...ssrData}
+      />
+    </Suspense>
   );
 }

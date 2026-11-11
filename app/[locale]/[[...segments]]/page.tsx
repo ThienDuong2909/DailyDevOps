@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import MainHomePage from "@/app/(main)/page";
-import BlogPage from "@/app/(main)/blog/page";
+import CategoryIndexPage from "@/app/(main)/category/page";
 import BlogDetailClient from "@/app/(main)/blog/[slug]/blog-detail-client";
 import CategoryPage from "@/app/(main)/category/[slug]/page";
+import {
+  buildBlogRedirectTarget,
+  buildCategoryDetailMetadata,
+  buildCategoryIndexMetadata,
+  type ListingSearchParams,
+} from "@/lib/blog-listing";
 import TagPage from "@/app/(main)/tag/[slug]/page";
 import AuthorPage from "@/app/(main)/author/[username]/page";
 import ContactPage from "@/app/(main)/contact/page";
@@ -406,97 +412,12 @@ function getHomeMetadata(locale: SiteLocale): Metadata {
   };
 }
 
-function getBlogIndexMetadata(locale: SiteLocale): Metadata {
-  const title =
-    locale === "en"
-      ? "All DevOps Articles | DevOps Blog"
-      : "Tất cả bài viết DevOps, CI/CD, Kubernetes | Daily DevOps";
-  const description =
-    locale === "en"
-      ? "Browse all practical DevOps, Kubernetes, CI/CD, Docker, and Cloud infrastructure guides on DevOps Daily."
-      : "Tổng hợp tất cả các bài viết thực chiến về DevOps, Kubernetes, CI/CD, Docker, Cloud và Monitoring trên Daily DevOps.";
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: `${siteUrl}/blog`,
-    },
-    openGraph: {
-      type: "website",
-      locale: locale === "vi" ? "vi_VN" : "en_US",
-      title,
-      description,
-      url: `${siteUrl}/blog`,
-      siteName: "DevOps Blog",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  };
-}
-
 async function buildCategoryMetadata(
   slug: string,
   locale: SiteLocale,
 ): Promise<Metadata> {
   const category = await fetchCategoryBySlug(slug);
-
-  if (!category) {
-    return {
-      title:
-        locale === "en"
-          ? "Category Not Found | DevOps Blog"
-          : "Không tìm thấy chuyên mục | Daily DevOps",
-      robots: {
-        index: false,
-        follow: false,
-      },
-    };
-  }
-
-  const title =
-    locale === "en"
-      ? `${category.name} Articles | DevOps Blog`
-      : `Chuyên mục ${category.name} | Daily DevOps`;
-  const description =
-    category.description ||
-    (locale === "en"
-      ? `Explore expert DevOps and platform engineering articles in the ${category.name} category.`
-      : `Tổng hợp các bài viết chuyên sâu về ${category.name} trên Daily DevOps: hướng dẫn cài đặt, kiến trúc, best practices và xử lý sự cố.`);
-
-  const canonicalUrl = `${siteUrl}/category/${category.slug}`;
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      type: "website",
-      locale: locale === "vi" ? "vi_VN" : "en_US",
-      title,
-      description,
-      url: canonicalUrl,
-      siteName: "DevOps Blog",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  };
+  return buildCategoryDetailMetadata({ category, locale });
 }
 
 async function resolveSegmentMetadata(
@@ -507,8 +428,12 @@ async function resolveSegmentMetadata(
     return getHomeMetadata(locale);
   }
 
+  if (segments[0] === "category" && segments.length === 1) {
+    return buildCategoryIndexMetadata(locale);
+  }
+
   if (segments[0] === "blog" && segments.length === 1) {
-    return getBlogIndexMetadata(locale);
+    return buildCategoryIndexMetadata(locale);
   }
 
   if (segments[0] === "category" && segments.length === 2 && segments[1]) {
@@ -588,7 +513,7 @@ async function renderSingleSegmentPage(
   locale: SiteLocale,
   slug: string,
   alternates: Record<"vi" | "en", string>,
-  searchParams?: Promise<{ q?: string; page?: string }>,
+  searchParams?: Promise<ListingSearchParams>,
 ) {
   switch (slug) {
     case "about":
@@ -625,15 +550,22 @@ async function renderSingleSegmentPage(
         alternates,
         <DmcaPolicyPageContent locale={locale} />,
       );
-    case "blog": {
-      const sp = (await searchParams) as { category?: string } | undefined;
+    case "category": {
+      const sp = await searchParams;
       if (sp?.category && sp.category !== "all") {
-        permanentRedirect(`/category/${encodeURIComponent(sp.category)}`);
+        permanentRedirect(buildBlogRedirectTarget(sp));
       }
       return wrapWithLocaleSync(
         alternates,
-        <BlogPage searchParams={searchParams} />,
+        <CategoryIndexPage
+          params={Promise.resolve({ locale })}
+          searchParams={searchParams}
+        />,
       );
+    }
+    case "blog": {
+      const sp = await searchParams;
+      permanentRedirect(buildBlogRedirectTarget(sp));
     }
     default:
       return renderBlogDetailPage(slug, locale, alternates);
@@ -644,16 +576,25 @@ async function renderTwoSegmentPage(
   locale: SiteLocale,
   segments: string[],
   alternates: Record<"vi" | "en", string>,
+  searchParams?: Promise<ListingSearchParams>,
 ) {
   const [section, slug] = segments;
 
   switch (section) {
-    case "blog":
+    case "blog": {
+      const category = await fetchCategoryBySlug((slug || "").toLowerCase());
+      if (category) {
+        permanentRedirect(`/category/${category.slug}`);
+      }
       return renderBlogDetailPage(slug, locale, alternates);
+    }
     case "category":
       return wrapWithLocaleSync(
         alternates,
-        <CategoryPage params={Promise.resolve({ slug, locale })} />,
+        <CategoryPage
+          params={Promise.resolve({ slug, locale })}
+          searchParams={searchParams}
+        />,
       );
     case "tag":
       return wrapWithLocaleSync(
@@ -706,7 +647,7 @@ export default async function LocalizedPage({
   searchParams,
 }: {
   params: Promise<RouteParams>;
-  searchParams?: Promise<{ q?: string; page?: string }>;
+  searchParams?: Promise<ListingSearchParams>;
 }) {
   const { locale, segments = [] } = await params;
   const resolvedSearchParams = await searchParams;
@@ -717,7 +658,9 @@ export default async function LocalizedPage({
   }
 
   const currentPath = segments.length === 0 ? "/" : `/${segments.join("/")}`;
-  const querySuffix = buildQueryString(resolvedSearchParams);
+  const querySuffix = buildQueryString(
+    resolvedSearchParams as Record<string, string | undefined>,
+  );
   const alternates = getLocaleAlternates(currentPath, querySuffix);
 
   if (segments.length === 0) {
@@ -747,7 +690,12 @@ export default async function LocalizedPage({
   }
 
   if (segments.length === 2) {
-    const page = await renderTwoSegmentPage(activeLocale, segments, alternates);
+    const page = await renderTwoSegmentPage(
+      activeLocale,
+      segments,
+      alternates,
+      searchParams,
+    );
     if (page) {
       return page;
     }
