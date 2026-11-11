@@ -78,6 +78,28 @@ body {
   overflow-x: clip;
 }
 
+@keyframes particlesFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+#particles-js canvas.particles-js-canvas-el {
+  opacity: 0;
+  animation: particlesFadeIn 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #particles-js canvas.particles-js-canvas-el {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 /* Glassmorphism card utilities */
 .bg-surface-light\/80 {
   background-color: rgb(255 255 255 / 0.6);

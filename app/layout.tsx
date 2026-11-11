@@ -110,6 +110,27 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Anti-FOUC: apply saved theme immediately before external stylesheets block; default to light */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+                            try {
+                                if (localStorage.theme === 'dark') {
+                                    document.documentElement.classList.add('dark');
+                                } else {
+                                    document.documentElement.classList.remove('dark');
+                                }
+                            } catch (_) {}
+                        `,
+          }}
+        />
+        {/* Preload & async-load local particles engine immediately so background effects mount without delay */}
+        <link rel="preload" href="/scripts/particles.min.js" as="script" />
+        <script
+          src="/scripts/particles.min.js"
+          async
+          data-particle-script="true"
+        />
         {/* JSON-LD: WebSite structured data */}
         <script
           type="application/ld+json"
@@ -126,19 +147,6 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
           rel="stylesheet"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-                            try {
-                                if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
-                                    document.documentElement.classList.remove('dark');
-                                } else {
-                                    document.documentElement.classList.add('dark');
-                                }
-                            } catch (_) {}
-                        `,
-          }}
         />
       </head>
       <body

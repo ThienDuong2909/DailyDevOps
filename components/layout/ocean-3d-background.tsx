@@ -102,24 +102,58 @@ export function ParticlesBackground({
 
     let observer: MutationObserver | null = null;
     let isMounted = true;
+    let hasStarted = false;
+    let attachedScript: HTMLScriptElement | null = null;
+    let lastIsDark: boolean | null = null;
 
     const html = document.documentElement;
     const detectDark = () =>
       html.classList.contains("dark") ||
       html.getAttribute("data-theme") === "dark";
 
+    const runInit = (isDark: boolean, isInitial: boolean) => {
+      initParticles(isDark);
+      if (!isInitial) {
+        const canvas = document.querySelector(
+          "#particles-js canvas.particles-js-canvas-el",
+        ) as HTMLCanvasElement | null;
+        if (canvas) {
+          canvas.style.animationDuration = "450ms";
+        }
+      }
+    };
+
     const startParticles = () => {
-      if (!isMounted) return;
-      initParticles(detectDark());
+      if (
+        !isMounted ||
+        hasStarted ||
+        typeof window.particlesJS !== "function"
+      ) {
+        return;
+      }
+      hasStarted = true;
+      lastIsDark = detectDark();
+      runInit(lastIsDark, true);
 
       observer = new MutationObserver(() => {
         if (!isMounted) return;
-        initParticles(detectDark());
+        const nextIsDark = detectDark();
+        if (nextIsDark !== lastIsDark) {
+          lastIsDark = nextIsDark;
+          runInit(nextIsDark, false);
+        }
       });
       observer.observe(html, {
         attributes: true,
         attributeFilter: ["class", "data-theme"],
       });
+    };
+
+    const handleScriptError = () => {
+      if (attachedScript && !attachedScript.src.includes("cdn.jsdelivr.net")) {
+        attachedScript.src =
+          "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
+      }
     };
 
     if (typeof window.particlesJS === "function") {
@@ -134,23 +168,25 @@ export function ParticlesBackground({
         script.src = "/scripts/particles.min.js";
         script.async = true;
         script.setAttribute("data-particle-script", "true");
-        script.onerror = () => {
-          // Fallback to CDN if local script fails
-          if (script) {
-            script.src =
-              "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
-          }
-        };
         document.body.appendChild(script);
       }
 
-      script.onload = () => {
+      attachedScript = script;
+      script.addEventListener("load", startParticles);
+      script.addEventListener("error", handleScriptError);
+
+      // Guard against script finishing between initial check and listener attachment
+      if (typeof window.particlesJS === "function") {
         startParticles();
-      };
+      }
     }
 
     return () => {
       isMounted = false;
+      if (attachedScript) {
+        attachedScript.removeEventListener("load", startParticles);
+        attachedScript.removeEventListener("error", handleScriptError);
+      }
       if (observer) observer.disconnect();
       if (
         window.pJSDom &&

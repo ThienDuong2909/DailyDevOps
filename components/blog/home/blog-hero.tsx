@@ -76,6 +76,7 @@ export function BlogHero({ post, isLoading }: BlogHeroProps) {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
+                  timeZone: "Asia/Ho_Chi_Minh",
                 },
               )}
             </span>
