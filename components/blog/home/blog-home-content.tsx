@@ -27,23 +27,19 @@ export function BlogHomeContent({
   const [selectedTopic, setSelectedTopic] = useState("all");
   const hasInitialCategories =
     Array.isArray(initialCategories) && initialCategories.length > 0;
-  const [topics, setTopics] = useState<Array<{ label: string; value: string }>>(
-    () => {
-      if (hasInitialCategories) {
-        return [
-          { label: dictionary.common.allArticles, value: "all" },
-          ...initialCategories.map((category) => ({
-            label: category.name,
-            value: category.slug,
-          })),
-        ];
-      }
-      return [{ label: dictionary.common.allArticles, value: "all" }];
-    },
+  const [categories, setCategories] = useState<Category[]>(() =>
+    hasInitialCategories ? initialCategories : [],
   );
   const [isLoadingTopics, setIsLoadingTopics] = useState(!hasInitialCategories);
   const { featuredPost, isFallback, isLoading, posts } =
     useBlogPosts(initialPosts);
+
+  useEffect(() => {
+    if (Array.isArray(initialCategories) && initialCategories.length > 0) {
+      setCategories(initialCategories);
+      setIsLoadingTopics(false);
+    }
+  }, [initialCategories]);
 
   useEffect(() => {
     if (hasInitialCategories) {
@@ -57,29 +53,23 @@ export function BlogHomeContent({
         const response = await apiClient.get<
           { data?: Category[] } | Category[]
         >("/api/v1/categories");
-        const categories = Array.isArray(response)
+        const nextCategories = Array.isArray(response)
           ? response
           : Array.isArray(response?.data)
             ? response.data
             : [];
 
-        if (!isMounted || categories.length === 0) {
+        if (!isMounted || nextCategories.length === 0) {
           return;
         }
 
-        setTopics([
-          { label: dictionary.common.allArticles, value: "all" },
-          ...categories.map((category) => ({
-            label: category.name,
-            value: category.slug,
-          })),
-        ]);
+        setCategories(nextCategories);
       } catch {
         if (!isMounted) {
           return;
         }
 
-        setTopics([{ label: dictionary.common.allArticles, value: "all" }]);
+        setCategories([]);
       } finally {
         if (isMounted) {
           setIsLoadingTopics(false);
@@ -92,7 +82,18 @@ export function BlogHomeContent({
     return () => {
       isMounted = false;
     };
-  }, [dictionary.common.allArticles, locale]);
+  }, [hasInitialCategories]);
+
+  const topics = useMemo(
+    () => [
+      { label: dictionary.common.allArticles, value: "all" },
+      ...categories.map((category) => ({
+        label: category.name,
+        value: category.slug,
+      })),
+    ],
+    [categories, dictionary.common.allArticles],
+  );
 
   const feedPosts = useMemo(() => {
     const remainingPosts = featuredPost

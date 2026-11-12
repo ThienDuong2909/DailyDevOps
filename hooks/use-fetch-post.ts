@@ -49,14 +49,36 @@ export function useFetchPostData(
     sourceSlug: string;
   } | null>(null);
   const locale = useLocale();
-  const hasSkippedInitialFetch = useRef(hasInitialData);
+  const lastInitialPostRef = useRef(initialData?.post);
+  const lastLocaleRef = useRef(locale);
+  const lastSlugRef = useRef(slug);
 
   useEffect(() => {
-    // Skip the first client-side fetch when we have SSR data
-    if (hasSkippedInitialFetch.current) {
-      hasSkippedInitialFetch.current = false;
+    const initialPostChanged = initialData?.post !== lastInitialPostRef.current;
+    const localeChanged = locale !== lastLocaleRef.current;
+    const slugChanged = slug !== lastSlugRef.current;
+    lastInitialPostRef.current = initialData?.post;
+    lastLocaleRef.current = locale;
+    lastSlugRef.current = slug;
+
+    if (
+      initialData?.post &&
+      (initialPostChanged || (!localeChanged && !slugChanged))
+    ) {
+      setPost(initialData.post);
+      setRelatedPosts(
+        initialData.relatedPosts
+          ? sortPostsNewestFirst(initialData.relatedPosts)
+          : [],
+      );
+      setPopularPosts(initialData.popularPosts?.slice(0, 4) || []);
+      setErrorMessage("");
+      setTranslationNotice(null);
+      setLoading(false);
       return;
     }
+
+    let active = true;
 
     const fetchData = async () => {
       try {
@@ -68,6 +90,7 @@ export function useFetchPostData(
         );
         const postData = unwrap<PostWithComments | null>(postRes, null);
         if (!postData) throw new Error("missing post");
+        if (!active) return;
         setPost(postData);
         const [relatedRes, popularRes] = await Promise.all([
           apiClient.get(
@@ -77,6 +100,7 @@ export function useFetchPostData(
             `/api/v1/posts/published?limit=5&sortBy=viewCount&sortOrder=desc&locale=${locale}`,
           ),
         ]);
+        if (!active) return;
         setRelatedPosts(sortPostsNewestFirst(unwrap<Post[]>(relatedRes, [])));
         setPopularPosts(
           unwrap<Post[]>(popularRes, [])
@@ -84,6 +108,7 @@ export function useFetchPostData(
             .slice(0, 4),
         );
       } catch (error) {
+        if (!active) return;
         const apiError = error as AxiosError<{
           details?: {
             code?: string;
@@ -105,11 +130,23 @@ export function useFetchPostData(
         }
         setPost(null);
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
-    if (slug) fetchData();
-  }, [locale, slug]);
+    if (slug) void fetchData();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    initialData?.popularPosts,
+    initialData?.post,
+    initialData?.relatedPosts,
+    locale,
+    slug,
+  ]);
 
   return {
     post,

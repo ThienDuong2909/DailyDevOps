@@ -56,6 +56,112 @@ test.describe("Public smoke", () => {
     ).toBeVisible();
   });
 
+  test("switches locale via desktop header switcher, preserves homepage topic, and survives reload", async ({
+    context,
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(page).toHaveURL("/");
+    await expect(
+      page.getByRole("button", { name: "Switch language" }),
+    ).toHaveAttribute("title", "Language: Tiếng Việt");
+
+    const monitoringTopic = page.getByRole("button", {
+      name: /^Monitoring$/i,
+    });
+    if ((await monitoringTopic.count()) > 0) {
+      await monitoringTopic.first().click();
+      await expect(monitoringTopic.first()).toHaveClass(/theme-glow-button/);
+    }
+
+    await page.getByRole("button", { name: "Switch language" }).click();
+
+    const setEnPromise = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/set-locale") &&
+        res.request().method() === "POST" &&
+        res.status() === 200,
+    );
+    await page.getByRole("button", { name: /English/i }).click();
+    await setEnPromise;
+
+    await expect(page).toHaveURL("/");
+    await expect(
+      page.getByRole("button", { name: "Switch language" }),
+    ).toHaveAttribute("title", "Language: English");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(
+      page.getByRole("button", { name: /^All articles$/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /^Most read$/i }),
+    ).toBeVisible();
+
+    if ((await monitoringTopic.count()) > 0) {
+      await expect(monitoringTopic.first()).toHaveClass(/theme-glow-button/);
+    }
+
+    const cookiesAfterEn = await context.cookies();
+    expect(
+      cookiesAfterEn.find((c) => c.name === "preferred_locale")?.value,
+    ).toBe("en");
+
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: "Switch language" }),
+    ).toHaveAttribute("title", "Language: English");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+
+    await page.getByRole("button", { name: "Switch language" }).click();
+    const setViPromise = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/set-locale") &&
+        res.request().method() === "POST" &&
+        res.status() === 200,
+    );
+    await page.getByRole("button", { name: /Tiếng Việt/i }).click();
+    await setViPromise;
+
+    await expect(
+      page.getByRole("button", { name: "Switch language" }),
+    ).toHaveAttribute("title", "Language: Tiếng Việt");
+    await expect(page.locator("html")).toHaveAttribute("lang", "vi");
+  });
+
+  test("switches locale from mobile menu on /category while preserving URL query", async ({
+    context,
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/category?q=Kubernetes");
+
+    await expect(
+      page.getByRole("heading", { name: /^Tất cả bài viết$/i }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /Mở menu|Open menu/i }).click();
+
+    const setEnPromise = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/set-locale") &&
+        res.request().method() === "POST" &&
+        res.status() === 200,
+    );
+    await page.getByRole("button", { name: "Switch to English" }).click();
+    await setEnPromise;
+
+    await expect(page).toHaveURL(/\/category\?q=Kubernetes/);
+    await expect(
+      page.getByRole("heading", { name: /^All articles$/i }),
+    ).toBeVisible();
+
+    const cookies = await context.cookies();
+    expect(cookies.find((c) => c.name === "preferred_locale")?.value).toBe(
+      "en",
+    );
+  });
+
   test("newsletter page renders subscription UI", async ({ page }) => {
     await page.goto("/newsletter");
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Search } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { HeaderAuthButton } from "@/components/auth/header-auth-button";
 import { useDictionary, useLocale } from "@/components/i18n/locale-provider";
@@ -19,10 +20,12 @@ type HeaderDictionary = ReturnType<typeof useDictionary>;
 function LocaleSwitch({
   locale,
   switchLocale,
+  isSwitchingLocale = false,
   mobile = false,
 }: Readonly<{
   locale: SiteLocale;
   switchLocale: (nextLocale: SiteLocale) => void;
+  isSwitchingLocale?: boolean;
   mobile?: boolean;
 }>) {
   const [open, setOpen] = useState(false);
@@ -53,8 +56,10 @@ function LocaleSwitch({
           <button
             key={l.code}
             type="button"
+            disabled={isSwitchingLocale}
+            aria-busy={isSwitchingLocale || undefined}
             onClick={() => switchLocale(l.code)}
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-opacity disabled:cursor-wait disabled:opacity-60 ${
               locale === l.code ? "bg-primary text-white" : "text-text-sub"
             }`}
             aria-label={`Switch to ${l.label}`}
@@ -70,8 +75,10 @@ function LocaleSwitch({
     <div ref={dropdownRef} className="relative hidden sm:block">
       <button
         type="button"
+        disabled={isSwitchingLocale}
+        aria-busy={isSwitchingLocale || undefined}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-lg transition-colors hover:border-primary hover:text-primary dark:border-gray-700 dark:hover:border-primary"
+        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-lg transition-colors hover:border-primary hover:text-primary disabled:cursor-wait disabled:opacity-60 dark:border-gray-700 dark:hover:border-primary"
         aria-label="Switch language"
         title={`Language: ${currentLocale.label}`}
       >
@@ -82,11 +89,13 @@ function LocaleSwitch({
         <div className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border shadow-xl theme-panel theme-border animate-in fade-in slide-in-from-top-1 duration-150">
           <button
             type="button"
+            disabled={isSwitchingLocale}
+            aria-busy={isSwitchingLocale || undefined}
             onClick={() => {
-              switchLocale(otherLocale.code);
               setOpen(false);
+              switchLocale(otherLocale.code);
             }}
-            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-[color:var(--text-main-theme)] transition-colors hover:bg-primary/5"
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-[color:var(--text-main-theme)] transition-colors hover:bg-primary/5 disabled:cursor-wait disabled:opacity-60"
           >
             <span className="text-base">{otherLocale.flag}</span>
             <span>{otherLocale.label}</span>
@@ -103,6 +112,7 @@ function MobileHeaderMenu({
   dictionary,
   locale,
   switchLocale,
+  isSwitchingLocale,
   navigation,
 }: Readonly<{
   mobileMenuOpen: boolean;
@@ -110,6 +120,7 @@ function MobileHeaderMenu({
   dictionary: HeaderDictionary;
   locale: SiteLocale;
   switchLocale: (nextLocale: SiteLocale) => void;
+  isSwitchingLocale: boolean;
   navigation: Array<{ href: string; label: string }>;
 }>) {
   if (!mobileMenuOpen) {
@@ -133,7 +144,12 @@ function MobileHeaderMenu({
       </button>
 
       <nav className="flex flex-col gap-2">
-        <LocaleSwitch locale={locale} switchLocale={switchLocale} mobile />
+        <LocaleSwitch
+          locale={locale}
+          switchLocale={switchLocale}
+          isSwitchingLocale={isSwitchingLocale}
+          mobile
+        />
         {navigation.map((item) => (
           <Link
             key={`mobile-${item.href}-${item.label}`}
@@ -163,6 +179,7 @@ export function BlogHeader() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isSwitchingLocale, setIsSwitchingLocale] = useState(false);
 
   // Global Ctrl+K / Cmd+K keyboard listener
   useEffect(() => {
@@ -182,13 +199,34 @@ export function BlogHeader() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  const switchLocale = (nextLocale: SiteLocale) => {
-    if (nextLocale === locale) return;
-    const currentSegments = (pathname || "")
-      .replace(/^\/(vi|en)(?=\/|$)/, "")
-      .replace(/^\/+/, "");
-    const targetUrl = withLocale(`/${currentSegments}`, nextLocale);
-    router.push(targetUrl);
+  const switchLocale = async (nextLocale: SiteLocale) => {
+    if (nextLocale === locale || isSwitchingLocale) return;
+
+    setIsSwitchingLocale(true);
+    try {
+      const response = await fetch("/api/set-locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: nextLocale }),
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to set locale: ${response.status}`);
+      }
+
+      document.documentElement.lang = nextLocale;
+      setMobileMenuOpen(false);
+      router.refresh();
+    } catch {
+      toast.error(
+        locale === "vi"
+          ? "Không thể chuyển ngôn ngữ lúc này. Vui lòng thử lại."
+          : "Could not switch language right now. Please try again.",
+      );
+    } finally {
+      setIsSwitchingLocale(false);
+    }
   };
 
   const handleOpenPalette = () => {
@@ -268,7 +306,11 @@ export function BlogHeader() {
             )}
           </button>
 
-          <LocaleSwitch locale={locale} switchLocale={switchLocale} />
+          <LocaleSwitch
+            locale={locale}
+            switchLocale={switchLocale}
+            isSwitchingLocale={isSwitchingLocale}
+          />
           <ThemeToggle />
           <HeaderAuthButton />
         </div>
@@ -280,6 +322,7 @@ export function BlogHeader() {
         dictionary={dictionary}
         locale={locale}
         switchLocale={switchLocale}
+        isSwitchingLocale={isSwitchingLocale}
         navigation={settings.content.headerNavigation}
       />
 

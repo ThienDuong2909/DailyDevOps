@@ -15,6 +15,7 @@ import { isSupportedLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/config";
  * - Works correctly in SSR/edge environments
  */
 export async function POST(req: NextRequest) {
+  const noStoreHeaders = { "Cache-Control": "no-store" };
   let body: unknown;
 
   try {
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json(
       { ok: false, error: "Invalid request body" },
-      { status: 400 },
+      { status: 400, headers: noStoreHeaders },
     );
   }
 
@@ -32,11 +33,14 @@ export async function POST(req: NextRequest) {
   if (!isSupportedLocale(locale)) {
     return NextResponse.json(
       { ok: false, error: "Unsupported locale" },
-      { status: 400 },
+      { status: 400, headers: noStoreHeaders },
     );
   }
 
-  const response = NextResponse.json({ ok: true, locale });
+  const response = NextResponse.json(
+    { ok: true, locale },
+    { headers: noStoreHeaders },
+  );
 
   response.cookies.set(LOCALE_COOKIE_NAME, locale, {
     path: "/",

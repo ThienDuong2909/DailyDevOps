@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Eye } from "lucide-react";
 import { useDictionary, useLocale } from "@/components/i18n/locale-provider";
@@ -70,6 +70,8 @@ export function TrendingToolsPanel({
   );
   const [isLoadingTags, setIsLoadingTags] = useState(true);
   const [isLoadingPopular, setIsLoadingPopular] = useState(!hasInitialPopular);
+  const lastInitialPopularRef = useRef(initialPopularPosts);
+  const lastPopularLocaleRef = useRef(locale);
 
   /* ── fetch tags ── */
   useEffect(() => {
@@ -121,7 +123,30 @@ export function TrendingToolsPanel({
 
   /* ── fetch popular posts ── */
   useEffect(() => {
-    if (hasInitialPopular) return;
+    const initialChanged =
+      initialPopularPosts !== lastInitialPopularRef.current;
+    const localeChanged = locale !== lastPopularLocaleRef.current;
+    lastInitialPopularRef.current = initialPopularPosts;
+    lastPopularLocaleRef.current = locale;
+
+    if (initialChanged && Array.isArray(initialPopularPosts)) {
+      setPopularPosts(
+        initialPopularPosts.filter((p) => (p.viewCount ?? 0) > 0),
+      );
+      setIsLoadingPopular(false);
+      if (initialPopularPosts.length > 0 || !localeChanged) {
+        return;
+      }
+    }
+
+    if (
+      !localeChanged &&
+      Array.isArray(initialPopularPosts) &&
+      initialPopularPosts.length > 0
+    ) {
+      setIsLoadingPopular(false);
+      return;
+    }
 
     let alive = true;
 
@@ -148,7 +173,7 @@ export function TrendingToolsPanel({
     return () => {
       alive = false;
     };
-  }, [locale]);
+  }, [initialPopularPosts, locale]);
 
   /* ── compute visual props ── */
   const bubbles = useMemo(() => {

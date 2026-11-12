@@ -185,6 +185,18 @@ function getCookieLocale(request) {
     return match ? match[1] : "vi";
 }
 
+function withVaryCookie(headers) {
+    const existing = headers.get("Vary") || "";
+    const parts = existing
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+    if (!parts.some((v) => v.toLowerCase() === "cookie")) {
+        parts.push("Cookie");
+    }
+    headers.set("Vary", parts.join(", "));
+}
+
 export default {
     async fetch(request, env, ctx) {
         if (env.API_SERVICE && !globalThis.__API_FETCH_PATCHED) {
@@ -262,6 +274,8 @@ export default {
                 const cachedPage = await edgeCache.match(pageCacheKey);
                 if (cachedPage) {
                     const hitHeaders = new Headers(cachedPage.headers);
+                    hitHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
+                    withVaryCookie(hitHeaders);
                     hitHeaders.set("X-Edge-Cache", "HIT");
                     hitHeaders.set("X-Cache-Version", \`\${BUILD_ID}_\${currentVersion}\`);
                     hitHeaders.set("X-Route-Hash", routeHash);
@@ -282,23 +296,35 @@ export default {
             const ssrResp = await handler(reqOrResp, env, ctx, request.signal);
 
             if (pageCacheKey && edgeCache && ssrResp.status === 200) {
-                const missHeaders = new Headers(ssrResp.headers);
-                missHeaders.set("Cache-Control", "public, max-age=60, s-maxage=86400, stale-while-revalidate=604800");
-                missHeaders.set("CDN-Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
-                missHeaders.set("X-Edge-Cache", "MISS");
-                missHeaders.set("X-Cache-Version", \`\${BUILD_ID}_\${currentVersion}\`);
-                missHeaders.set("X-Route-Hash", routeHash);
-                missHeaders.delete("set-cookie");
+                const edgeHeaders = new Headers(ssrResp.headers);
+                edgeHeaders.set("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
+                edgeHeaders.set("CDN-Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+                withVaryCookie(edgeHeaders);
+                edgeHeaders.delete("set-cookie");
 
-                const cachableSsrResp = new Response(ssrResp.body, {
+                const [edgeBody, clientBody] = ssrResp.body
+                    ? ssrResp.body.tee()
+                    : [null, null];
+
+                const edgeCacheResp = new Response(edgeBody, {
                     status: 200,
-                    headers: missHeaders,
+                    headers: edgeHeaders,
                 });
 
                 if (ctx && typeof ctx.waitUntil === "function") {
-                    ctx.waitUntil(edgeCache.put(pageCacheKey, cachableSsrResp.clone()));
+                    ctx.waitUntil(edgeCache.put(pageCacheKey, edgeCacheResp));
                 }
-                return cachableSsrResp;
+
+                const clientHeaders = new Headers(edgeHeaders);
+                clientHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
+                clientHeaders.set("X-Edge-Cache", "MISS");
+                clientHeaders.set("X-Cache-Version", \`\${BUILD_ID}_\${currentVersion}\`);
+                clientHeaders.set("X-Route-Hash", routeHash);
+
+                return new Response(clientBody, {
+                    status: 200,
+                    headers: clientHeaders,
+                });
             }
 
             return ssrResp;

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import type { SiteLocale } from "@/lib/i18n/config";
@@ -19,6 +19,10 @@ export function LocaleProvider({
   locale: SiteLocale;
   children: React.ReactNode;
 }>) {
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
   const value = useMemo(
     () => ({
       locale,

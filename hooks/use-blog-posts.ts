@@ -49,11 +49,32 @@ export function useBlogPosts(initialPosts?: Post[]): UseBlogPostsResult {
   );
   const [isLoading, setIsLoading] = useState(!hasInitial);
   const [isFallback, setIsFallback] = useState(false);
-  const isFirstMount = useRef(hasInitial);
+  const lastLocaleRef = useRef(locale);
+  const lastInitialPostsRef = useRef(initialPosts);
 
   useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
+    const initialChanged = initialPosts !== lastInitialPostsRef.current;
+    const localeChanged = locale !== lastLocaleRef.current;
+    lastInitialPostsRef.current = initialPosts;
+    lastLocaleRef.current = locale;
+
+    if (
+      initialChanged &&
+      Array.isArray(initialPosts) &&
+      initialPosts.length > 0
+    ) {
+      setPosts(sortPostsNewestFirst(initialPosts));
+      setIsFallback(false);
+      setIsLoading(false);
+      return;
+    }
+
+    if (
+      !localeChanged &&
+      Array.isArray(initialPosts) &&
+      initialPosts.length > 0
+    ) {
+      setIsLoading(false);
       return;
     }
 
@@ -97,7 +118,7 @@ export function useBlogPosts(initialPosts?: Post[]): UseBlogPostsResult {
     return () => {
       isMounted = false;
     };
-  }, [locale]);
+  }, [initialPosts, locale]);
 
   const featuredPost = useMemo(() => posts[0] ?? null, [posts]);
 
